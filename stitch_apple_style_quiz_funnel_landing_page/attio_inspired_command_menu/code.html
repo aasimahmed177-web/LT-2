@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#70757f",
+                    "secondary-fixed-dim": "#c7c6c8",
+                    "on-background": "#1a1c1d",
+                    "on-error-container": "#93000a",
+                    "outline-variant": "#c3c6d7",
+                    "surface-dim": "#d9dadb",
+                    "surface-variant": "#e2e2e3",
+                    "on-tertiary": "#ffffff",
+                    "outline": "#737686",
+                    "surface-container": "#eeeeef",
+                    "on-secondary-fixed-variant": "#464749",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#003fa5",
+                    "inverse-on-surface": "#f0f1f2",
+                    "on-primary-fixed": "#001849",
+                    "error-container": "#ffdad6",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#fefcff",
+                    "surface-container-low": "#f3f3f4",
+                    "on-secondary-container": "#626265",
+                    "secondary": "#5e5e60",
+                    "surface-bright": "#f9f9fa",
+                    "inverse-primary": "#b3c5ff",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#1a1c1d",
+                    "obsidian": "#1C1D1F",
+                    "on-tertiary-container": "#fdfcff",
+                    "primary-container": "#2c6bf2",
+                    "tertiary-fixed": "#dee2ee",
+                    "surface-background": "#FFFFFF",
+                    "primary-fixed": "#dbe1ff",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e8e8e9",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "primary": "#0052d1",
+                    "border-subtle": "#E4E7EC",
+                    "surface-tint": "#0054d7",
+                    "inverse-surface": "#2f3132",
+                    "on-error": "#ffffff",
+                    "background": "#f9f9fa",
+                    "secondary-container": "#e0dfe2",
+                    "tertiary": "#575c66",
+                    "secondary-fixed": "#e3e2e4",
+                    "on-surface-variant": "#424655",
+                    "on-tertiary-fixed-variant": "#424750",
+                    "surface": "#f9f9fa",
+                    "on-secondary-fixed": "#1b1c1e",
+                    "surface-container-highest": "#e2e2e3",
+                    "tertiary-fixed-dim": "#c2c6d2",
+                    "surface-muted": "#F2F4F7",
+                    "on-tertiary-fixed": "#171c24"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "space-md": "16px",
+                    "space-xl": "48px",
+                    "space-sm": "8px",
+                    "margin-desktop": "32px",
+                    "space-lg": "24px",
+                    "unit": "4px",
+                    "margin-mobile": "16px",
+                    "gutter": "16px",
+                    "space-xs": "4px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-xl": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-xl": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-md": ["18px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .command-item-active {
+            background-color: #F2F4F7;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface overflow-hidden">
+<!-- Background CRM Dashboard (Blurred Shell) -->
+<div class="flex h-screen opacity-40 grayscale pointer-events-none">
+<!-- SideNavBar Integration -->
+<aside class="w-60 h-full fixed left-0 top-0 border-r border-border-subtle bg-surface flex flex-col py-space-md">
+<div class="px-space-md mb-space-xl">
+<div class="font-headline-md text-headline-md font-bold text-obsidian">Workspace</div>
+<div class="font-body-md text-body-md text-on-surface-variant">Premium CRM</div>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="flex items-center px-space-md py-2 text-obsidian font-bold border-l-2 border-primary bg-surface-muted">
+<span class="material-symbols-outlined mr-3">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</div>
+<div class="flex items-center px-space-md py-2 text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined mr-3 text-secondary-fixed-dim">inbox</span>
+<span class="font-body-md text-body-md">Inbox</span>
+</div>
+<div class="flex items-center px-space-md py-2 text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined mr-3 text-secondary-fixed-dim">corporate_fare</span>
+<span class="font-body-md text-body-md">Companies</span>
+</div>
+<div class="flex items-center px-space-md py-2 text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined mr-3 text-secondary-fixed-dim">group</span>
+<span class="font-body-md text-body-md">People</span>
+</div>
+</nav>
+</aside>
+<!-- Main Workspace Content -->
+<main class="ml-60 flex-1 flex flex-col">
+<header class="flex justify-between items-center w-full px-margin-desktop h-14 border-b border-border-subtle bg-background">
+<div class="flex items-center gap-space-md">
+<span class="font-headline-md text-headline-md font-bold text-primary">Attio CRM</span>
+<div class="flex space-x-space-md">
+<span class="font-label-md text-label-md text-primary border-b-2 border-primary pb-1">List</span>
+<span class="font-label-md text-label-md text-secondary hover:text-obsidian transition-all">Board</span>
+<span class="font-label-md text-label-md text-secondary hover:text-obsidian transition-all">Table</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+<span class="material-symbols-outlined text-secondary">history</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high"></div>
+</div>
+</header>
+<div class="p-margin-desktop">
+<div class="h-8 w-48 bg-surface-container-high rounded-lg mb-space-lg"></div>
+<div class="grid grid-cols-4 gap-gutter mb-space-xl">
+<div class="h-32 bg-white border border-border-subtle rounded-xl p-space-md"></div>
+<div class="h-32 bg-white border border-border-subtle rounded-xl p-space-md"></div>
+<div class="h-32 bg-white border border-border-subtle rounded-xl p-space-md"></div>
+<div class="h-32 bg-white border border-border-subtle rounded-xl p-space-md"></div>
+</div>
+<div class="space-y-space-sm">
+<div class="h-10 w-full bg-white border border-border-subtle rounded-lg"></div>
+<div class="h-10 w-full bg-white border border-border-subtle rounded-lg"></div>
+<div class="h-10 w-full bg-white border border-border-subtle rounded-lg"></div>
+<div class="h-10 w-full bg-white border border-border-subtle rounded-lg"></div>
+</div>
+</div>
+</main>
+</div>
+<!-- Command Menu Overlay -->
+<div class="fixed inset-0 z-50 flex items-start justify-center pt-32 px-4 bg-obsidian/20 backdrop-blur-sm">
+<div class="w-full max-w-2xl bg-white rounded-xl shadow-[0px_4px_20px_rgba(0,0,0,0.08)] border border-border-subtle overflow-hidden transform animate-in fade-in zoom-in duration-200">
+<!-- Search Input Area -->
+<div class="flex items-center px-space-md border-b border-border-subtle h-[60px]">
+<span class="material-symbols-outlined text-outline mr-3">search</span>
+<input autofocus="" class="flex-1 bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface placeholder:text-outline" placeholder="Search for companies, people, or commands..." type="text"/>
+<div class="flex items-center gap-1">
+<kbd class="px-1.5 py-0.5 text-label-sm font-label-sm text-outline border border-border-subtle rounded bg-surface-container-low">ESC</kbd>
+</div>
+</div>
+<!-- Scrollable Results -->
+<div class="max-h-[480px] overflow-y-auto p-2">
+<!-- Category: Actions -->
+<div class="mb-space-md">
+<div class="px-space-md py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Actions</div>
+<div class="space-y-0.5">
+<button class="w-full group flex items-center justify-between px-space-md py-2.5 rounded-lg hover:bg-surface-muted transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 flex items-center justify-center rounded-md bg-primary-fixed text-primary">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Create company</span>
+</div>
+<div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm font-label-sm">⌘</span>
+<span class="text-label-sm font-label-sm">C</span>
+</div>
+</button>
+<button class="w-full group flex items-center justify-between px-space-md py-2.5 rounded-lg hover:bg-surface-muted transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 flex items-center justify-center rounded-md bg-secondary-container text-secondary">
+<span class="material-symbols-outlined text-[18px]">person_add</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Invite team</span>
+</div>
+<div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm font-label-sm">⌘</span>
+<span class="text-label-sm font-label-sm">I</span>
+</div>
+</button>
+</div>
+</div>
+<!-- Category: Companies -->
+<div class="mb-space-md">
+<div class="px-space-md py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Companies</div>
+<div class="space-y-0.5">
+<button class="w-full group flex items-center justify-between px-space-md py-2.5 rounded-lg bg-surface-muted ring-1 ring-inset ring-primary/5 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 flex items-center justify-center rounded-md overflow-hidden bg-obsidian">
+<img alt="Stripe Logo" class="w-5 h-5" data-alt="The official minimalist vector logo of Stripe corporation, presented as a white stylized letter S on a clean, deep slate background. The style is sharp, corporate, and modern, fitting a high-end fintech application UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKlz6crQL9Dr0Wbzk21U_-znSh0UyB4mxbLq3Z2TSpz4ZG1Ifq0k-S87q3-dqX8-TzDmN7tJi19Sco2zE-3j322sgqgKJH4Lbzg1aQO_BhmehDpyQaZ9EDsyvX1YpEP-WO_e5h7IGY9k02yOB0gRzKZGVvJJ0B4P3W0AUTGcUK9wLgVA3sUZZ7m07L-XfM3F9-VwspfM5fepvGqY9AU6CZRWtUCkmuvOiXGClgi48R4yUxJxvY7X5xJ3TG2UXdvlncKDqThr81fU4"/>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Stripe</span>
+</div>
+<div class="flex items-center gap-1 opacity-100">
+<kbd class="px-1.5 py-0.5 text-[10px] font-bold text-primary bg-primary/10 rounded">ENTER</kbd>
+</div>
+</button>
+<button class="w-full group flex items-center justify-between px-space-md py-2.5 rounded-lg hover:bg-surface-muted transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 flex items-center justify-center rounded-md overflow-hidden bg-[#FF5A5F]">
+<img alt="Airbnb Logo" class="w-5 h-5" data-alt="The globally recognized Airbnb bélos logo symbol, rendered in pure white against a vibrant coral-red background. The image is a clean, centered graphic icon representing the travel and hospitality brand within a professional CRM software interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA29nxEC2r9TFdz-HUsRZC26qAAVqOZ80wGG2eiPDNuHJgO4HULJu1gaW9T5w2bvyXBm6T7gf_q3A6euBS3w_TTSphFtZWklQFVC2m99zVo8CqQw63MiB2m5_kb3vCIYIVyNvAdRheZ0y4N3qYvxWTHnsAekw8aN5aD1gZlS4GU9g_cjmO-pL1pKVf6myFKm91Co8qOy0RAm44hBB05fQ7zzozQFu2jT1qKrSVaxkL2JO-0FFE1xx44I-EvqhDtbsq8AIZVaoPmVFM"/>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Airbnb</span>
+</div>
+</button>
+</div>
+</div>
+<!-- Category: People -->
+<div>
+<div class="px-space-md py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">People</div>
+<div class="space-y-0.5">
+<button class="w-full group flex items-center justify-between px-space-md py-2.5 rounded-lg hover:bg-surface-muted transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full overflow-hidden border border-border-subtle bg-surface-container">
+<img alt="John Doe Profile" data-alt="A professional, high-resolution portrait of a modern executive male with a friendly and reliable expression. The lighting is bright and airy, with a soft-focus studio background in neutral gray tones, suitable for a premium CRM user profile icon." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfldqg8U7FyaY9khqZp0ZZz7visyNqxIuUUjsvzMX4Sn5EDWYx4L3sr0MrhgDzdgCPpWGlBbp7IBHfP-EFFWukV1Q2Y5oH1VLPOYfnJcJfueB9x0drU19y55TMJQBKUrQ84JgGjJnY5OzSVkeAQN6X9Rpx7RFFWX40fsHq39rp07nOVexU4V6-CAYJFjzPCIWDwoW-0Pgrfb6f74JgGJ4QDKu0lOOLOQ2FuyFRbPxMfDdDElIc7FSG9jVFh45RwQDCS_NVPym3VdA"/>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-body-md text-body-md text-on-surface">John Doe</span>
+<span class="font-label-sm text-label-sm text-outline">Founder at Stripe</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="bg-surface-container-low px-space-md py-3 flex items-center justify-between border-t border-border-subtle">
+<div class="flex items-center gap-space-md text-outline font-label-sm">
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.5 bg-white border border-border-subtle rounded text-[10px]">↑↓</kbd>
+                        Navigate
+                    </span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.5 bg-white border border-border-subtle rounded text-[10px]">Enter</kbd>
+                        Select
+                    </span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.5 bg-white border border-border-subtle rounded text-[10px]">⌘K</kbd>
+                        Close
+                    </span>
+</div>
+<div class="text-label-sm font-label-sm text-outline italic">
+                    Attio Command
+                </div>
+</div>
+</div>
+</div>
+<script>
+        // Micro-interactions for the command menu
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // In a real app, this would close the modal.
+                console.log('Close command menu');
+            }
+        });
+
+        // Hover animation logic for result items
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                // Visual feedback handled by Tailwind hover:
+            });
+        });
+    </script>
+</body></html>
