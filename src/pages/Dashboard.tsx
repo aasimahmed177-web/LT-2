@@ -1,23 +1,34 @@
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mockStats, weeklyData, mockLeads, getStatusColor, formatDate } from '../data/mockData';
 
-const statuses = ['new', 'contacted', 'pre-qualified', 'qualified', 'converted', 'not-qualified', 'junk'] as const;
+const STAGE_COLORS: Record<string, string> = {
+  Lead: 'bg-slate-100 text-slate-700',
+  Contact: 'bg-blue-100 text-blue-700',
+  Prospect: 'bg-purple-100 text-purple-700',
+  ConversionLead: 'bg-amber-100 text-amber-700',
+  Purchase: 'bg-emerald-100 text-emerald-700',
+  NotQualified: 'bg-orange-100 text-orange-700',
+  NoResponse: 'bg-red-100 text-red-700',
+  Duplicate: 'bg-pink-100 text-pink-700',
+  Invalid: 'bg-gray-100 text-gray-500',
+};
 
-function StatCard({ label, value, trend, index = 0 }: { label: string; value: string | number; trend?: string; index?: number }) {
+function StatCard({ label, value, sub, loading = false }: { label: string; value: string | number; sub?: string; loading?: boolean }) {
+  if (loading) {
+    return (
+      <div className="bg-white border border-border rounded-xl p-5 animate-pulse">
+        <div className="h-3 w-20 bg-surface-container-high rounded mb-3" />
+        <div className="h-7 w-16 bg-surface-container-high rounded" />
+        {sub && <div className="h-3 w-24 bg-surface-container-high rounded mt-3" />}
+      </div>
+    );
+  }
   return (
-    <div
-      className={`card p-5 fade-in stagger-${index + 1}`}
-    >
-      <p className="stat-label">{label}</p>
-      <p className="stat-value mt-2">{value}</p>
-      {trend && (
-        <div className="flex items-center gap-1 mt-2">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-success">
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-          <p className="text-xs text-ink-muted">{trend}</p>
-        </div>
-      )}
+    <div className="bg-white border border-border rounded-xl p-5 fade-in hover:shadow-sm transition-shadow duration-200">
+      <p className="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-bold text-ink tracking-tight mt-2">{value}</p>
+      {sub && <p className="text-xs text-ink-muted mt-2">{sub}</p>}
     </div>
   );
 }
@@ -25,11 +36,11 @@ function StatCard({ label, value, trend, index = 0 }: { label: string; value: st
 function CustomTooltip({ active, payload, label }: any) {
   if (active && payload?.length) {
     return (
-      <div className="bg-surface-background border border-border rounded-xl px-3 py-2 text-xs shadow-lg">
+      <div className="bg-white border border-border rounded-xl px-3 py-2 text-xs shadow-lg">
         <p className="text-ink-muted font-medium mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
           <p key={i} style={{ color: p.color }} className="font-semibold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }}></span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }} />
             {p.name}: {p.value}
           </p>
         ))}
@@ -39,126 +50,205 @@ function CustomTooltip({ active, payload, label }: any) {
   return null;
 }
 
-function RecentLeads() {
-  const recent = mockLeads.slice(0, 6);
-  return (
-    <div className="fade-in">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-ink-secondary">Recent leads</h3>
-        <span className="text-xs text-ink-muted">{recent.length} latest</span>
-      </div>
-      <div className="card overflow-hidden divide-y divide-border">
-        {recent.map((lead) => (
-          <div key={lead.id} className="flex items-center justify-between px-4 py-3 hover:bg-surface-container-low transition-colors duration-150">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center">
-                <span className="text-xs font-semibold text-primary">
-                  {lead.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-ink">{lead.name}</p>
-                <p className="text-xs text-ink-muted">{lead.source} &middot; {formatDate(lead.createdAt)}</p>
-              </div>
-            </div>
-            <span className={`badge ${getStatusColor(lead.status)}`}>{lead.status}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function Dashboard() {
-  const statusCounts = statuses.map(s => ({
-    status: s,
-    count: mockLeads.filter(l => l.status === s).length,
-  }));
-  const maxCount = Math.max(...statusCounts.map(s => s.count), 1);
+  const stats = useQuery(api.leads.getDashboardStats);
+  const leads = useQuery(api.leads.listLeads, {});
+
+  if (!stats || !leads) {
+    return (
+      <div className="max-w-6xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-ink tracking-tight">Dashboard</h1>
+            <p className="text-xs font-medium text-ink-secondary mt-0.5">Lead performance &amp; signals</p>
+          </div>
+        </div>
+        {/* Skeleton primary stats */}
+        <div className="grid grid-cols-5 gap-4 mb-8 skeleton-fade-in">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className={`bg-white border border-border rounded-xl p-5 animate-pulse stagger-${i + 1}`}>
+              <div className="h-3 w-20 bg-surface-container-high rounded mb-3" />
+              <div className="h-7 w-16 bg-surface-container-high rounded" />
+              <div className="h-3 w-24 bg-surface-container-high rounded mt-3" />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton secondary stats */}
+        <div className="grid grid-cols-4 gap-4 mb-8 skeleton-fade-in">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={`bg-white border border-border rounded-xl p-5 animate-pulse stagger-${i + 1}`}>
+              <div className="h-3 w-16 bg-surface-container-high rounded mb-3" />
+              <div className="h-7 w-12 bg-surface-container-high rounded" />
+              <div className="h-3 w-20 bg-surface-container-high rounded mt-3" />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton charts */}
+        <div className="grid grid-cols-3 gap-4 mb-8 skeleton-fade-in">
+          <div className="col-span-2 bg-white border border-border rounded-xl p-5 animate-pulse">
+            <div className="h-3 w-40 bg-surface-container-high rounded mb-6" />
+            <div className="h-[240px] bg-surface-container-low rounded-lg" />
+          </div>
+          <div className="bg-white border border-border rounded-xl p-5 animate-pulse">
+            <div className="h-3 w-32 bg-surface-container-high rounded mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i}>
+                  <div className="flex justify-between mb-1">
+                    <div className="h-3 w-20 bg-surface-container-high rounded" />
+                    <div className="h-3 w-8 bg-surface-container-high rounded" />
+                  </div>
+                  <div className="h-1.5 w-full bg-surface-container-high rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Skeleton funnel */}
+        <div className="bg-white border border-border rounded-xl p-5 mb-8 animate-pulse skeleton-fade-in">
+          <div className="h-3 w-24 bg-surface-container-high rounded mb-5" />
+          <div className="flex items-end justify-center gap-3 h-[200px]">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                <div className="h-3 w-6 bg-surface-container-high rounded" />
+                <div className="w-full rounded-t-lg bg-surface-container-high" style={{ height: `${Math.random() * 80 + 60}px` }} />
+                <div className="h-3 w-12 bg-surface-container-high rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weeklyData = dayNames.map((day, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
+    const dayLeads = leads.filter(l => {
+      const t = l.createdAt || 0;
+      return t >= dayStart && t < dayEnd;
+    });
+    return {
+      day,
+      leads: dayLeads.length,
+      qualified: dayLeads.filter(l => l.currentStage === 'ConversionLead' || l.currentStage === 'Purchase').length,
+      converted: dayLeads.filter(l => l.currentStage === 'Purchase').length,
+    };
+  });
+
+  const stageData = Object.entries(stats.stageCounts || {}).map(([stage, count]) => ({ stage, count: count as number }));
+  const maxCount = Math.max(...stageData.map(s => s.count), 1);
+  const recentLeads = [...leads].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 6);
 
   return (
-    <div className="max-w-6xl">
-      <div className="page-header">
+    <div className="max-w-6xl fade-in">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Lead performance &amp; Meta signals</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-            Export
-          </button>
-          <button className="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            Add lead
-          </button>
+          <h1 className="text-xl font-bold text-ink tracking-tight">Dashboard</h1>
+          <p className="text-xs font-medium text-ink-secondary mt-0.5">Lead performance &amp; Meta signals</p>
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* Primary stats */}
+      <div className="grid grid-cols-5 gap-4 mb-8">
+        <StatCard label="Total leads" value={stats.totalLeads} sub="All time" />
+        <StatCard label="Contacted" value={stats.contacted} sub={`${stats.totalLeads > 0 ? ((stats.contacted / stats.totalLeads) * 100).toFixed(1) : 0}% rate`} />
+        <StatCard label="Prospects" value={stats.prospect} sub={`${stats.totalLeads > 0 ? ((stats.prospect / stats.totalLeads) * 100).toFixed(1) : 0}% rate`} />
+        <StatCard label="Converted" value={stats.purchase} sub={`${stats.totalLeads > 0 ? ((stats.purchase / stats.totalLeads) * 100).toFixed(1) : 0}% close rate`} />
+        <StatCard label="Pending Events" value={stats.pendingEvents} sub={`${stats.failedEvents} failed`} />
+      </div>
+
+      {/* Secondary stats */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total leads" value={mockStats.totalLeads} trend="+12 this month" index={0} />
-        <StatCard label="New today" value={mockStats.newToday} trend="Last 24 hours" index={1} />
-        <StatCard label="Qualified" value={mockStats.qualified} index={2} />
-        <StatCard label="Converted" value={mockStats.converted} trend={`${mockStats.conversionRate}% rate`} index={3} />
+        <StatCard label="New Today" value={stats.newToday} sub="Last 24 hours" />
+        <StatCard label="Follow-ups Due" value={stats.followUpsDue} sub="Tasks overdue" />
+        <StatCard label="Missing Meta ID" value={stats.missingMetaLeadId} sub="No leadgen_id" />
+        <StatCard label="Missing Phone" value={stats.missingPhone} sub="No phone number" />
       </div>
 
-      {/* Charts row */}
+      {/* Charts */}
       <div className="grid grid-cols-3 gap-4 mb-8 fade-in">
-        <div className="col-span-2 card p-5">
-          <h3 className="text-xs font-semibold text-ink-secondary mb-6">Lead activity this week</h3>
+        <div className="col-span-2 bg-white border border-border rounded-xl p-5">
+          <h3 className="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider mb-6">Lead activity this week</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={weeklyData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f1" vertical={false} />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f4f4f5' }} />
-              <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} name="Leads" />
+              <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} name="New leads" />
               <Bar dataKey="qualified" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Qualified" />
               <Bar dataKey="converted" fill="#93c5fd" radius={[4, 4, 0, 0]} name="Converted" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Status distribution */}
-        <div className="card p-5">
-          <h3 className="text-xs font-semibold text-ink-secondary mb-6">Status distribution</h3>
+        <div className="bg-white border border-border rounded-xl p-5">
+          <h3 className="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider mb-4">Stage distribution</h3>
           <div className="space-y-3">
-            {statusCounts.map(({ status, count }) => (
-              <div key={status}>
+            {stageData.map(({ stage, count }) => (
+              <div key={stage}>
                 <div className="flex justify-between mb-1">
-                  <span className="text-xs text-ink-secondary font-medium capitalize">{status}</span>
+                  <span className="text-xs text-ink-secondary font-medium">{stage}</span>
                   <span className="text-xs font-mono text-ink-muted">{count}</span>
                 </div>
-                <div className="w-full bg-surface-container-high rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      status === 'new' ? 'bg-primary' :
-                      status === 'contacted' ? 'bg-secondary' :
-                      status === 'qualified' ? 'bg-success' :
-                      status === 'converted' ? 'bg-primary-container' :
-                      status === 'pre-qualified' ? 'bg-violet-500' :
-                      status === 'not-qualified' ? 'bg-warning' :
-                      'bg-red-500'
-                    }`}
-                    style={{ width: `${(count / maxCount) * 100}%` }}
-                  />
+                <div className="w-full bg-surface-container-high rounded-full h-1.5">
+                  <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${(count / maxCount) * 100}%`, backgroundColor: stage === 'Lead' ? '#94a3b8' : stage === 'Contact' ? '#3b82f6' : stage === 'Prospect' ? '#8b5cf6' : stage === 'ConversionLead' ? '#f59e0b' : stage === 'Purchase' ? '#10b981' : '#f97316' }} />
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-4 border-t border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-ink-secondary">Signal quality</span>
-              <span className="text-xs font-semibold text-success">Good</span>
-            </div>
-            <p className="text-xs text-ink-muted mt-1">Status changes syncing to Meta</p>
-          </div>
+        </div>
+      </div>
+
+      {/* Funnel */}
+      <div className="bg-white border border-border rounded-xl p-5 mb-8 fade-in">
+        <h3 className="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider mb-5">Lead Funnel</h3>
+        <div className="flex items-end justify-center gap-3">
+          {(stats.funnel || []).map((f: any, i: number) => {
+            const total = stats.funnel?.[0]?.count || 1;
+            const pct = total > 0 ? ((f.count / total) * 100).toFixed(0) : '0';
+            const maxCount = Math.max(...(stats.funnel || []).map((x: any) => x.count), 1);
+            const height = Math.max((f.count / maxCount) * 180, 20);
+            const colors = ['#94a3b8', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'];
+            return (
+              <div key={f.stage} className="flex flex-col items-center gap-2 flex-1">
+                <span className="text-xs font-semibold text-ink">{f.count}</span>
+                <div className="w-full rounded-t-lg transition-all duration-500" style={{ height: `${height}px`, backgroundColor: colors[i], opacity: 0.85 }} />
+                <span className="text-[10px] text-ink-muted">{f.stage}</span>
+                <span className="text-[10px] font-semibold text-ink-secondary">{pct}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Recent leads */}
-      <RecentLeads />
+      <div className="fade-in">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-ink-secondary">Recent leads</h3>
+          <span className="text-xs text-ink-muted">{recentLeads.length} latest</span>
+        </div>
+        <div className="bg-white border border-border rounded-xl divide-y divide-border overflow-hidden">
+          {recentLeads.map(lead => (
+            <div key={lead._id} className="flex items-center justify-between px-4 py-3 hover:bg-surface-container-low transition-colors duration-150">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-primary">{lead.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink leading-tight">{lead.fullName}</p>
+                  <p className="text-xs text-ink-muted truncate max-w-[200px]">{lead.formName || lead.campaignName || 'Lead'} &middot; {new Date(lead.createdAt || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                </div>
+              </div>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-md ${STAGE_COLORS[lead.currentStage] || 'bg-slate-100 text-slate-700'}`}>{lead.currentStage}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

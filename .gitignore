@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.git-helper/
+.env.local
+.env
+.agents/
+.orchids/files/
+*.db
+*.db-shm
+*.db-wal

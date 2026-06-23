@@ -68,7 +68,7 @@ body {
 /* ─── Page header ─── */
 .page-header { @apply mb-8 flex items-center justify-between; }
 .page-title { @apply text-xl font-bold text-ink; letter-spacing: -0.02em; }
-.page-subtitle { @apply text-xs font-medium text-ink-secondary mt-0.5; }
+.page-subtitle { @apply text-xs font-medium text-ink-secondary mt-1; }
 
 /* ─── Cards ─── */
 .card {
@@ -148,7 +148,7 @@ body {
 
 /* ─── Tabs ─── */
 .tab {
-  @apply px-4 py-2.5 text-xs font-medium transition-colors relative cursor-pointer;
+  @apply px-4 py-2 text-xs font-medium transition-colors relative cursor-pointer;
   border-radius: 6px 6px 0 0;
 }
 .tab-active { @apply text-ink font-semibold; }
@@ -187,6 +187,15 @@ body {
   50% { opacity: 0.65; }
 }
 
+/* ─── Skeleton fade-in ─── */
+.skeleton-fade-in {
+  animation: skeletonFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes skeletonFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── Dropdown ─── */
 .dropdown {
   background: var(--color-surface-background);
@@ -198,7 +207,7 @@ body {
 
 /* ─── Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
-  .fade-in, .dropdown, .stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5, .stagger-6 {
+  .fade-in, .dropdown, .stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5, .stagger-6, .skeleton-fade-in {
     animation: none !important;
   }
   .animate-pulse-subtle {
