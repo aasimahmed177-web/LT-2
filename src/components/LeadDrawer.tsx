@@ -9,56 +9,47 @@ interface LeadDrawerProps {
   onClose: () => void;
 }
 
-const STAGE_ACTIONS = [
-  { key: 'Contact', label: 'Mark Contact', color: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' },
-  { key: 'Prospect', label: 'Mark Prospect', color: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' },
-  { key: 'ConversionLead', label: 'Mark ConversionLead', color: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' },
-  { key: 'Purchase', label: 'Mark Purchase', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' },
-  { key: 'NotQualified', label: 'Mark Not Qualified', color: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
-  { key: 'NoResponse', label: 'Mark No Response', color: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' },
-];
+const STAGE_PILL_COLORS: Record<string, string> = {
+  Lead: 'bg-slate-100 text-slate-700',
+  Contact: 'bg-blue-100 text-blue-700',
+  Prospect: 'bg-purple-100 text-purple-700',
+  ConversionLead: 'bg-amber-100 text-amber-700',
+  Purchase: 'bg-green-bg text-green',
+  NotQualified: 'bg-orange-100 text-orange-700',
+  NoResponse: 'bg-red-100 text-red-700',
+  Duplicate: 'bg-pink-100 text-pink-700',
+  Invalid: 'bg-gray-100 text-gray-500',
+};
 
 function StagePill({ stage }: { stage: string }) {
-  const colors: Record<string, string> = {
-    Lead: 'bg-slate-100 text-slate-700',
-    Contact: 'bg-blue-100 text-blue-700',
-    Prospect: 'bg-purple-100 text-purple-700',
-    ConversionLead: 'bg-amber-100 text-amber-700',
-    Purchase: 'bg-emerald-100 text-emerald-700',
-    NotQualified: 'bg-orange-100 text-orange-700',
-    NoResponse: 'bg-red-100 text-red-700',
-    Duplicate: 'bg-pink-100 text-pink-700',
-    Invalid: 'bg-gray-100 text-gray-500',
-  };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-md ${colors[stage] || 'bg-slate-100 text-slate-700'}`}>
-      {stage}
+    <span className={`pill-sm ${STAGE_PILL_COLORS[stage] || 'bg-slate-100 text-slate-700'}`}>
+      {stage === 'ConversionLead' ? 'Conv. Lead' : stage}
     </span>
   );
 }
 
-function SyncBadge({ status }: { status?: string }) {
-  if (!status || status === 'not_sent') {
-    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500">Not sent</span>;
-  }
-  if (status === 'pending') {
-    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />Pending</span>;
-  }
-  if (status === 'sent') {
-    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Sent</span>;
-  }
-  if (status === 'failed') {
-    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-red-50 text-red-700">Failed</span>;
-  }
-  return null;
+function WidgetCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="widget-card">
+      <p className="widget-card-label">{label}</p>
+      <div className="widget-card-value">{children}</div>
+    </div>
+  );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function StatusPill({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    pending: 'bg-amber-bg text-amber border-amber/20',
+    sent: 'bg-green-bg text-green border-green/20',
+    failed: 'bg-red-bg text-red border-red/20',
+    skipped: 'bg-gray-100 text-gray-500 border-gray-200',
+  };
   return (
-    <div className="bg-surface-container-low rounded-lg px-3 py-2.5">
-      <p className="text-[10px] font-semibold text-ink-secondary uppercase tracking-wider">{label}</p>
-      <div className="text-sm text-ink mt-0.5 break-all">{children}</div>
-    </div>
+    <span className={`pill border ${styles[status] || 'bg-gray-100 text-gray-500'}`}>
+      {status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber animate-pulse mr-0.5" />}
+      {status}
+    </span>
   );
 }
 
@@ -77,70 +68,35 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
   const [taskTitle, setTaskTitle] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [addingTask, setAddingTask] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!lead) {
     return (
       <div className="fixed inset-0 z-50 flex justify-end">
         <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-        <div className="relative w-full max-w-lg bg-white border-l border-border shadow-2xl h-full overflow-y-auto">
-          {/* Skeleton header */}
-          <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-border z-10 px-5 py-3.5">
+        <div className="relative w-full max-w-[600px] bg-white border-l border-border shadow-2xl h-full overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-border z-10 px-5 py-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 animate-pulse">
                 <div className="w-8 h-8 rounded-full bg-surface-container-high" />
-                <div>
-                  <div className="h-4 w-32 bg-surface-container-high rounded mb-1" />
+                <div className="space-y-1">
+                  <div className="h-4 w-32 bg-surface-container-high rounded" />
                   <div className="h-3 w-24 bg-surface-container-high rounded" />
                 </div>
               </div>
               <div className="w-7 h-7 bg-surface-container-high rounded-lg animate-pulse" />
             </div>
           </div>
-          {/* Skeleton body */}
           <div className="p-5 space-y-5 animate-pulse">
-            <div className="flex gap-1.5">
-              <div className="h-7 w-20 bg-surface-container-high rounded-lg" />
-              <div className="h-7 w-20 bg-surface-container-high rounded-lg" />
-              <div className="h-7 w-20 bg-surface-container-high rounded-lg" />
-            </div>
-            <div>
-              <div className="h-3 w-24 bg-surface-container-high rounded mb-2" />
-              <div className="flex flex-wrap gap-1.5">
-                <div className="h-7 w-24 bg-surface-container-high rounded-lg" />
-                <div className="h-7 w-24 bg-surface-container-high rounded-lg" />
-                <div className="h-7 w-24 bg-surface-container-high rounded-lg" />
-                <div className="h-7 w-24 bg-surface-container-high rounded-lg" />
-                <div className="h-7 w-28 bg-surface-container-high rounded-lg" />
-                <div className="h-7 w-28 bg-surface-container-high rounded-lg" />
-              </div>
-            </div>
-            <div>
-              <div className="h-3 w-28 bg-surface-container-high rounded mb-2" />
-              <div className="grid grid-cols-2 gap-2">
-                <div className="h-14 bg-surface-container-high rounded-lg" />
-                <div className="h-14 bg-surface-container-high rounded-lg" />
-              </div>
-            </div>
-            <div>
-              <div className="h-3 w-28 bg-surface-container-high rounded mb-2" />
-              <div className="h-20 bg-surface-container-high rounded-lg" />
-            </div>
-            <div>
-              <div className="h-3 w-24 bg-surface-container-high rounded mb-2" />
-              <div className="h-24 bg-surface-container-high rounded-lg" />
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-14 bg-surface-container-high rounded-lg" />
+              ))}
             </div>
           </div>
         </div>
       </div>
     );
   }
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
 
   const handleStageChange = async (stage: string) => {
     try {
@@ -185,167 +141,161 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
   const answers = lead.answers as Record<string, string> | undefined;
   const rawPayload = lead.rawPayload as Record<string, any> | undefined;
 
+  const suggestedStages = ['Contact', 'Prospect', 'ConversionLead', 'Purchase'];
+  const disqualifiedStages = ['NotQualified', 'NoResponse'];
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/15" onClick={onClose} />
       <div
-        className="relative w-full max-w-lg bg-white border-l border-border shadow-2xl h-full overflow-y-auto animate-slide-right"
+        className="relative w-full max-w-[600px] bg-white border-l border-border shadow-2xl h-full overflow-y-auto animate-slide-right"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-border z-10 px-5 py-3.5 flex items-center justify-between">
+        {/* ═══ Header ═══ */}
+        <div className="sticky top-0 bg-white border-b border-border z-10 px-5 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed to-primary-fixed-dim flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary">
+            <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+              <span className="text-[11px] font-bold text-ink-secondary">
                 {lead.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </span>
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-ink truncate">{lead.fullName}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-foreground truncate">{lead.fullName}</h2>
+                <StagePill stage={lead.currentStage} />
+              </div>
               <p className="text-[11px] text-ink-muted font-mono truncate">{lead.metaLeadId || 'No Meta Lead ID'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <StagePill stage={lead.currentStage} />
-            <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-container-low transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-container-low transition-colors shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => copyToClipboard(lead.phoneNumber || '', 'phone')} className="btn btn-ghost text-xs px-2 py-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-              {copiedField === 'phone' ? 'Copied!' : 'Copy phone'}
-            </button>
-            <button onClick={() => copyToClipboard(lead.metaLeadId || '', 'metaId')} className="btn btn-ghost text-xs px-2 py-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-              {copiedField === 'metaId' ? 'Copied!' : 'Copy Lead ID'}
-            </button>
-            {lead.phoneNumber && (
-              <a href={`https://wa.me/${lead.phoneNumber.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost text-xs px-2 py-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
-                WhatsApp
-              </a>
-            )}
-          </div>
-
-          {/* Stage Actions */}
+          {/* ═══ Record Overview Widgets ═══ */}
           <div>
-            <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Change Stage</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {STAGE_ACTIONS.map(action => (
-                <button
-                  key={action.key}
-                  onClick={() => handleStageChange(action.key)}
-                  disabled={lead.currentStage === action.key}
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${action.color}`}
-                >
-                  {action.label}
-                </button>
-              ))}
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2.5">Lead record</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <WidgetCard label="Phone">{lead.phoneNumber || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Email">{lead.email || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Budget">{answers?.['What budget range are you considering?'] || answers?.Budget || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Timeline">{answers?.['What is your preferred timeline?'] || answers?.Timeline || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Purpose">{answers?.['Why are you exploring Dubai property?'] || answers?.Purpose || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Campaign">{lead.campaignName || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Ad">{lead.adName || <span className="text-ink-muted">—</span>}</WidgetCard>
+              <WidgetCard label="Meta Lead ID">{lead.metaLeadId || <span className="text-ink-muted">—</span>}</WidgetCard>
             </div>
           </div>
 
-          {/* Contact Information */}
-          <div>
-            <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Contact Information</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Phone">{lead.phoneNumber || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Email">{lead.email || <span className="text-ink-muted">—</span>}</Field>
-            </div>
-          </div>
-
-          {/* Meta Information */}
-          <div>
-            <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Meta Campaign Info</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Meta Lead ID">{lead.metaLeadId || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Form Name">{lead.formName || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Campaign">{lead.campaignName || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Ad Set">{lead.adsetName || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Ad Name">{lead.adName || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Page ID">{lead.pageId || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Form ID">{lead.formId || <span className="text-ink-muted">—</span>}</Field>
-              <Field label="Sync Status"><SyncBadge status={lead.syncStatus} /></Field>
-            </div>
-          </div>
-
-          {/* Form Answers */}
-          {answers && Object.keys(answers).length > 0 && (
-            <div>
-              <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Form Answers</h3>
-              <div className="space-y-1.5">
-                {Object.entries(answers).map(([q, a]) => (
-                  <div key={q} className="bg-surface-container-low rounded-lg px-3 py-2">
-                    <p className="text-[10px] font-semibold text-ink-secondary">{q}</p>
-                    <p className="text-sm text-ink mt-0.5">{a}</p>
-                  </div>
+          {/* ═══ Stage Actions ═══ */}
+          <div className="card-inset p-3.5">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2.5">
+              Stage &middot; Current: {lead.currentStage === 'ConversionLead' ? 'Conv. Lead' : lead.currentStage}
+            </p>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedStages.map(stage => (
+                  <button
+                    key={stage}
+                    onClick={() => handleStageChange(stage)}
+                    disabled={lead.currentStage === stage}
+                    className="px-2.5 py-1 text-[11px] font-semibold rounded-md border border-border transition-all duration-150 disabled:opacity-35 disabled:cursor-not-allowed
+                      bg-white text-ink hover:bg-surface-container-low hover:border-border-strong
+                      disabled:hover:bg-white disabled:hover:border-border"
+                  >
+                    {stage === 'ConversionLead' ? 'Conv. Lead' : stage}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {disqualifiedStages.map(stage => (
+                  <button
+                    key={stage}
+                    onClick={() => handleStageChange(stage)}
+                    disabled={lead.currentStage === stage}
+                    className="px-2.5 py-1 text-[11px] font-semibold rounded-md border border-border transition-all duration-150 disabled:opacity-35 disabled:cursor-not-allowed
+                      text-ink-muted hover:text-ink hover:bg-surface-container-low
+                      disabled:hover:text-ink-muted disabled:hover:bg-transparent"
+                  >
+                    {stage === 'NotQualified' ? 'Not Qualified' : 'No Response'}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Stage History */}
+          {/* ═══ Stage History (timeline) ═══ */}
           <div>
-            <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Stage History</h3>
-            <div className="bg-surface-container-low rounded-lg divide-y divide-border/50">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2.5">Stage History</p>
+            <div className="relative">
               {!stageHistory || stageHistory.length === 0 ? (
-                <p className="text-xs text-ink-muted px-3 py-3">No stage changes yet</p>
+                <p className="text-xs text-ink-muted py-2">No stage changes yet</p>
               ) : (
-                stageHistory.slice(0, 10).map((h: any) => (
-                  <div key={h._id} className="flex items-center justify-between px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      {h.fromStage ? (
-                        <>
-                          <StagePill stage={h.fromStage} />
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-muted"><polyline points="9 18 15 12 9 6" /></svg>
-                        </>
-                      ) : null}
-                      <StagePill stage={h.toStage} />
+                <div className="space-y-0">
+                  {stageHistory.slice(0, 10).map((h: any, idx: number) => (
+                    <div key={h._id} className="flex gap-3 relative pb-3">
+                      {/* Timeline line */}
+                      {idx < Math.min(stageHistory.length, 10) - 1 && (
+                        <div className="absolute left-[7px] top-[18px] bottom-0 w-px bg-border" />
+                      )}
+                      {/* Dot */}
+                      <div className="w-[15px] shrink-0 flex justify-center pt-0.5">
+                        <div className="w-[15px] h-[15px] rounded-full border-2 border-border bg-white flex items-center justify-center">
+                          <div className="w-[5px] h-[5px] rounded-full bg-ink-muted" />
+                        </div>
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {h.fromStage ? (
+                            <>
+                              <StagePill stage={h.fromStage} />
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-muted shrink-0"><polyline points="9 18 15 12 9 6" /></svg>
+                            </>
+                          ) : null}
+                          <StagePill stage={h.toStage} />
+                        </div>
+                        <p className="text-[10px] text-ink-muted mt-0.5">{formatDate(h.createdAt)}</p>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-ink-muted">{formatDate(h.createdAt)}</span>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Event Sync History */}
+          {/* ═══ CRM Event History ═══ */}
           <div>
-            <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Event Sync History</h3>
-            <div className="bg-surface-container-low rounded-lg divide-y divide-border/50">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2.5">CRM Event History</p>
+            <div className="space-y-1.5">
               {!events || events.length === 0 ? (
-                <p className="text-xs text-ink-muted px-3 py-3">No events recorded yet</p>
+                <p className="text-xs text-ink-muted py-1">No CRM events recorded yet</p>
               ) : (
                 events.map((e: any) => (
-                  <div key={e._id} className="px-3 py-2">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-xs font-semibold text-ink">{e.eventName}</span>
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                        e.status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                        e.status === 'sent' ? 'bg-emerald-50 text-emerald-700' :
-                        e.status === 'failed' ? 'bg-red-50 text-red-700' :
-                        'bg-gray-100 text-gray-500'
-                      }`}>{e.status}</span>
+                  <div key={e._id} className="widget-card flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-ink">{e.eventName}</span>
+                        <StatusPill status={e.status} />
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-ink-muted">{formatDate(e.createdAt)}</span>
+                        {e.attemptCount > 0 && <span className="text-[10px] text-ink-muted">Attempts: {e.attemptCount}</span>}
+                        {e.idempotencyKey && <span className="text-[10px] text-ink-faint font-mono">{e.idempotencyKey}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-ink-muted">{formatDate(e.createdAt)}</span>
-                      {e.attemptCount > 0 && <span className="text-[10px] text-ink-muted">Attempts: {e.attemptCount}</span>}
-                    </div>
-                    {e.errorMessage && <p className="text-[10px] text-red-600 mt-1">{e.errorMessage}</p>}
+                    {e.errorMessage && <p className="text-[10px] text-red mt-1 w-full">{e.errorMessage}</p>}
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          {/* Notes */}
+          {/* ═══ Notes ═══ */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Notes</h3>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Notes</p>
               <button onClick={() => setAddingNote(!addingNote)} className="text-[11px] font-semibold text-primary hover:underline">+ Add note</button>
             </div>
             {addingNote && (
@@ -354,7 +304,7 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                   value={noteBody}
                   onChange={e => setNoteBody(e.target.value)}
                   placeholder="Write a note..."
-                  className="w-full text-sm text-ink bg-white border border-border rounded-lg px-3 py-2 outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)] transition-all duration-150 resize-none"
+                  className="input resize-none"
                   rows={3}
                 />
                 <div className="flex gap-2">
@@ -363,7 +313,7 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                 </div>
               </div>
             )}
-            <div className="bg-surface-container-low rounded-lg divide-y divide-border/50">
+            <div className="card-inset divide-y divide-border-subtle">
               {!notes || notes.length === 0 ? (
                 <p className="text-xs text-ink-muted px-3 py-3">No notes yet</p>
               ) : (
@@ -380,10 +330,10 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
             </div>
           </div>
 
-          {/* Tasks */}
+          {/* ═══ Tasks ═══ */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Tasks / Follow-up</h3>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Tasks / Follow-up</p>
               <button onClick={() => setAddingTask(!addingTask)} className="text-[11px] font-semibold text-primary hover:underline">+ Add task</button>
             </div>
             {addingTask && (
@@ -392,7 +342,7 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                   value={taskTitle}
                   onChange={e => setTaskTitle(e.target.value)}
                   placeholder="Task title..."
-                  className="w-full text-sm text-ink bg-white border border-border rounded-lg px-3 py-1.5 outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)] transition-all duration-150"
+                  className="input"
                 />
                 <div className="flex gap-2">
                   <button onClick={handleAddTask} className="btn btn-primary text-xs px-3 py-1.5">Save</button>
@@ -400,7 +350,7 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                 </div>
               </div>
             )}
-            <div className="bg-surface-container-low rounded-lg divide-y divide-border/50">
+            <div className="card-inset divide-y divide-border-subtle">
               {!tasks || tasks.length === 0 ? (
                 <p className="text-xs text-ink-muted px-3 py-3">No tasks yet</p>
               ) : (
@@ -410,45 +360,29 @@ export default function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                       <p className={`text-sm ${t.status === 'done' ? 'line-through text-ink-muted' : 'text-ink'}`}>{t.title}</p>
                       {t.dueAt && <span className="text-[10px] text-ink-muted">Due: {formatDate(t.dueAt)}</span>}
                     </div>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                      t.status === 'done' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                    }`}>{t.status}</span>
+                    <StatusPill status={t.status === 'done' ? 'sent' : 'pending'} />
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          {/* Raw Payload */}
+          {/* ═══ Raw Payload ═══ */}
           {rawPayload && (
             <div>
-              <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Raw Payload</h3>
-              <pre className="text-[10px] text-ink-secondary bg-surface-container-low rounded-lg px-3 py-3 overflow-x-auto font-mono leading-relaxed">
+              <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2">Raw Payload</p>
+              <pre className="text-[10px] text-ink-secondary bg-surface-subtle rounded-lg px-3 py-3 overflow-x-auto font-mono leading-relaxed border border-border-subtle">
                 {JSON.stringify(rawPayload, null, 2)}
               </pre>
             </div>
           )}
 
-          {/* Timestamps */}
-          <div className="pt-3 border-t border-border text-[11px] text-ink-muted space-y-1">
+          {/* ═══ Timestamps ═══ */}
+          <div className="pt-3 border-t border-border text-[10px] text-ink-muted space-y-0.5">
             <p>Created: {formatDate(lead.createdAt)}</p>
             <p>Updated: {formatDate(lead.updatedAt)}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <SyncBadge status={lead.syncStatus} />
-              {lead.lastEventSent && <span className="text-[10px] text-ink-muted">Last event: {lead.lastEventSent}</span>}
-            </div>
           </div>
         </div>
-
-        <style>{`
-          @keyframes slideRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-          }
-          .animate-slide-right {
-            animation: slideRight 0.2s ease;
-          }
-        `}</style>
       </div>
     </div>
   );
