@@ -13,10 +13,14 @@ export const updateStage = mutation({
   args: {
     leadId: v.id("leads"),
     stage: v.string(),
+    reason: v.optional(v.string()),
   },
-  handler: async (ctx, { leadId, stage }) => {
+  handler: async (ctx, { leadId, stage, reason }) => {
     const lead = await ctx.db.get(leadId);
     if (!lead) throw new Error("Lead not found");
+
+    // Don't create duplicate if same stage clicked twice
+    if (lead.stage === stage) return { success: true, unchanged: true };
 
     const fromStage = lead.stage;
     const now = new Date().toISOString();
@@ -29,6 +33,7 @@ export const updateStage = mutation({
       fromStage,
       toStage: stage,
       changedAt: now,
+      reason: reason || undefined,
     });
 
     const eventName = STAGE_EVENT_MAP[stage];
@@ -43,6 +48,8 @@ export const updateStage = mutation({
         attempts: 0,
       });
     }
+
+    return { success: true };
   },
 });
 
@@ -92,14 +99,16 @@ export const addTask = mutation({
   args: {
     leadId: v.id("leads"),
     content: v.string(),
+    dueDate: v.optional(v.string()),
   },
-  handler: async (ctx, { leadId, content }) => {
+  handler: async (ctx, { leadId, content, dueDate }) => {
     const now = new Date().toISOString();
     const id = await ctx.db.insert("tasks", {
       leadId,
       content,
       done: false,
       createdAt: now,
+      dueDate: dueDate || undefined,
     });
     return { id };
   },

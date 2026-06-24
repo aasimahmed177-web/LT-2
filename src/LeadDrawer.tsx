@@ -17,6 +17,8 @@ const STAGES = [
   { key: 'Invalid', label: 'Invalid' },
 ]
 
+const DISQUALIFICATION_STAGES = new Set(['NotQualified', 'NoResponse', 'Duplicate', 'Invalid'])
+
 function extractFieldValue(fieldData: any[], ...namePatterns: string[]): string {
   for (const field of fieldData || []) {
     const name = (field.name || '').toLowerCase()
@@ -30,6 +32,10 @@ function extractFieldValue(fieldData: any[], ...namePatterns: string[]): string 
 
 function getMetaCreatedTime(lead: any): string | null {
   return lead?.fullResponse?.created_time || null
+}
+
+function cleanPhone(phone: string): string {
+  return phone.replace(/[^+\d]/g, '')
 }
 
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
@@ -59,8 +65,14 @@ export default function LeadDrawer({
   const [loadError, setLoadError] = useState<string | null>(null)
   const [newNote, setNewNote] = useState('')
   const [newTask, setNewTask] = useState('')
+  const [newTaskDueDate, setNewTaskDueDate] = useState('')
   const [updatingStage, setUpdatingStage] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+
+  // Disqualification reason modal
+  const [pendingStage, setPendingStage] = useState<string | null>(null)
+  const [disqualReason, setDisqualReason] = useState('')
+  const [copiedLabel, setCopiedLabel] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!leadId) return
@@ -91,17 +103,35 @@ export default function LeadDrawer({
     if (leadId) load()
   }, [leadId, load])
 
-  const handleStageChange = async (stage: string) => {
+  const doStageChange = async (stage: string, reason?: string) => {
     if (!leadId || stage === lead?.stage) return
     setUpdatingStage(true)
     try {
-      await updateLeadStage(leadId, stage)
+      await updateLeadStage(leadId, stage, reason)
       onStageChange()
       await load()
     } catch (err) {
       console.error('Stage update error:', err)
     } finally {
       setUpdatingStage(false)
+    }
+  }
+
+  const handleStageClick = (stage: string) => {
+    if (stage === lead?.stage) return
+    if (DISQUALIFICATION_STAGES.has(stage)) {
+      setPendingStage(stage)
+      setDisqualReason('')
+    } else {
+      doStageChange(stage)
+    }
+  }
+
+  const handleConfirmDisqual = () => {
+    if (pendingStage) {
+      doStageChange(pendingStage, disqualReason.trim() || undefined)
+      setPendingStage(null)
+      setDisqualReason('')
     }
   }
 
@@ -119,8 +149,9 @@ export default function LeadDrawer({
   const handleAddTask = async () => {
     if (!leadId || !newTask.trim()) return
     try {
-      await addLeadTask(leadId, newTask.trim())
+      await addLeadTask(leadId, newTask.trim(), newTaskDueDate || undefined)
       setNewTask('')
+      setNewTaskDueDate('')
       await load()
     } catch (err) {
       console.error('Add task error:', err)
@@ -137,6 +168,30 @@ export default function LeadDrawer({
     }
   }
 
+  const handleCopy = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedLabel(label)
+      setTimeout(() => setCopiedLabel(null), 1500)
+    } catch { /* clipboard not available */ }
+  }
+
+  const buildLeadSummary = (): string => {
+    const fieldData = lead?.fieldData || []
+    const budget = extractFieldValue(fieldData, 'budget')
+    const purpose = extractFieldValue(fieldData, 'purpose', 'why_are_you', 'exploring')
+    const metaCreated = getMetaCreatedTime(lead)
+    return [
+      `Name: ${lead?.name || '—'}`,
+      `Phone: ${lead?.phone || '—'}`,
+      `Budget: ${budget || '—'}`,
+      `Purpose: ${purpose || '—'}`,
+      `Stage: ${lead?.stage || '—'}`,
+      `Meta Created: ${metaCreated ? new Date(metaCreated).toLocaleDateString() : '—'}`,
+      `Source: ${lead?.platform || 'meta'}`,
+    ].join('\n')
+  }
+
   if (!leadId) return null
 
   const fieldData = lead?.fieldData || []
@@ -144,6 +199,15 @@ export default function LeadDrawer({
   const purpose = extractFieldValue(fieldData, 'purpose', 'why_are_you', 'exploring')
   const metaCreated = getMetaCreatedTime(lead)
   const isTestLead = lead?.name && lead.name.includes('test lead: dummy data')
+  const phone = lead?.phone || ''
+  const cleanedPhone = cleanPhone(phone)
+  const isWaPhone = cleanedPhone.startsWith('+') || cleanedPhone.startsWith('1') || cleanedPhone.length >= 10
+
+  // Sort tasks: pending first, then done
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1
+    return 0
+  })
 
   const statusDot = (status: string) => {
     const colors: Record<string, string> = {
@@ -160,24 +224,64 @@ export default function LeadDrawer({
       <div className="drawer-panel">
         <div className="p-6">
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-[#0a0a0a] tracking-tight">{lead?.name || 'Unnamed Lead'}</h2>
+                <h2 className="text-lg font-semibold text-[#0a0a0a] tracking-tight truncate">{lead?.name || 'Unnamed Lead'}</h2>
                 {isTestLead && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted">
-                    Test
-                  </span>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted shrink-0">Test</span>
                 )}
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#0a0a0a] text-white shrink-0">{lead?.stage || '—'}</span>
               </div>
-              {lead?.metaLeadId && (
-                <p className="text-xs text-muted font-mono mt-0.5">Meta ID: {lead.metaLeadId}</p>
-              )}
-              {lead?._id && (
-                <p className="text-[10px] text-[#d4d4d4] font-mono mt-0.5">DB ID: {lead._id}</p>
-              )}
+              <p className="text-sm text-muted mt-0.5">{phone || lead?.email || 'No contact info'}</p>
             </div>
-            <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-xl leading-none">&times;</button>
+            <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-xl leading-none ml-3">&times;</button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {phone && (
+              <a
+                href={`tel:${phone}`}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call
+              </a>
+            )}
+            {phone && isWaPhone && (
+              <a
+                href={`https://wa.me/${cleanedPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                WhatsApp
+              </a>
+            )}
+            {phone && (
+              <button
+                onClick={() => handleCopy(phone, 'phone')}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+              >
+                {copiedLabel === 'phone' ? 'Copied!' : 'Copy phone'}
+              </button>
+            )}
+            {lead?.metaLeadId && (
+              <button
+                onClick={() => handleCopy(lead.metaLeadId, 'metaId')}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+              >
+                {copiedLabel === 'metaId' ? 'Copied!' : 'Copy Meta ID'}
+              </button>
+            )}
+            <button
+              onClick={() => handleCopy(buildLeadSummary(), 'summary')}
+              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+            >
+              {copiedLabel === 'summary' ? 'Copied!' : 'Copy summary'}
+            </button>
           </div>
 
           {loading ? (
@@ -203,18 +307,23 @@ export default function LeadDrawer({
                     {STAGES.map((s) => (
                       <button
                         key={s.key}
-                        onClick={() => handleStageChange(s.key)}
-                        disabled={updatingStage || s.key === lead.stage}
+                        onClick={() => handleStageClick(s.key)}
+                        disabled={updatingStage}
                         className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-all ${
                           s.key === lead.stage
                             ? 'bg-[#0a0a0a] text-white'
-                            : 'bg-white text-muted hover:bg-[#f5f5f5] hover:text-[#0a0a0a] border border-card-border'
+                            : updatingStage
+                              ? 'bg-gray-100 text-muted cursor-wait'
+                              : 'bg-white text-muted hover:bg-[#f5f5f5] hover:text-[#0a0a0a] border border-card-border'
                         }`}
                       >
                         {s.label}
                       </button>
                     ))}
                   </div>
+                  {updatingStage && (
+                    <p className="text-xs text-muted mt-2 italic">Saving...</p>
+                  )}
                 </div>
                 {lead.stageChangedAt && (
                   <p className="text-xs text-muted mt-2">
@@ -228,7 +337,7 @@ export default function LeadDrawer({
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Phone</span>
-                    <p className="text-[#0a0a0a]">{lead.phone || '—'}</p>
+                    <p className="text-[#0a0a0a]">{phone || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Email</span>
@@ -251,8 +360,8 @@ export default function LeadDrawer({
                 </div>
               </SectionBox>
 
-              {/* === CAMPAIGN SOURCE === */}
-              <SectionBox title="Campaign Source">
+              {/* === CAMPAIGN / SOURCE === */}
+              <SectionBox title="Campaign / Source">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Campaign</span>
@@ -267,30 +376,32 @@ export default function LeadDrawer({
                     <p className="text-[#0a0a0a]">{lead.adSetName || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Source</span>
-                    <p className="text-[#0a0a0a]">{lead.platform || 'meta'}</p>
+                    <span className="text-muted text-xs">Form</span>
+                    <p className="text-[#0a0a0a]">{lead.formName || '—'}</p>
                   </div>
                 </div>
-              </SectionBox>
-
-              {/* === META / SYSTEM DATA === */}
-              <SectionBox title="Meta / System Data">
-                <div className="text-sm space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-muted text-xs">Meta Lead ID</span>
-                    <p className="text-[#0a0a0a] font-mono text-xs">{lead.metaLeadId || '—'}</p>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted text-xs">Meta Page ID</span>
-                    <p className="text-[#0a0a0a] font-mono text-xs">{lead.pageId || '—'}</p>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted text-xs">Meta Created</span>
-                    <p className="text-[#0a0a0a] text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted text-xs">Imported At</span>
-                    <p className="text-[#0a0a0a] text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
+                <div className="mt-3 pt-3 border-t border-card-border">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted text-xs">Source</span>
+                      <p className="text-[#0a0a0a]">{lead.platform || 'meta'}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted text-xs">Meta Lead ID</span>
+                      <p className="text-[#0a0a0a] font-mono text-xs">{lead.metaLeadId || '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted text-xs">Meta Page ID</span>
+                      <p className="text-[#0a0a0a] font-mono text-xs">{lead.pageId || '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted text-xs">Meta Created</span>
+                      <p className="text-[#0a0a0a] text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted text-xs">Imported At</span>
+                      <p className="text-[#0a0a0a] text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -315,14 +426,17 @@ export default function LeadDrawer({
 
               {/* === NOTES === */}
               <SectionBox title="Notes">
-                <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
-                  {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
-                  {notes.map((n: any) => (
-                    <div key={n._id} className="text-xs bg-[#fafafa] rounded-lg p-2.5 border border-card-border">
-                      <p className="text-[#0a0a0a]">{n.content}</p>
-                      <p className="text-muted mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
-                    </div>
-                  ))}
+                <div className="space-y-2 max-h-40 overflow-y-auto mb-2">
+                  {notes.length === 0 ? (
+                    <p className="text-xs text-muted italic">No notes yet</p>
+                  ) : (
+                    notes.map((n: any) => (
+                      <div key={n._id} className="text-xs bg-[#fafafa] rounded-lg p-2.5 border border-card-border">
+                        <p className="text-[#0a0a0a]">{n.content}</p>
+                        <p className="text-muted mt-0.5 text-[10px]">{new Date(n.createdAt).toLocaleString()}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -332,25 +446,40 @@ export default function LeadDrawer({
                     placeholder="Add a note..."
                     className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
-                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90">Add</button>
+                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90 shrink-0">Add</button>
                 </div>
               </SectionBox>
 
               {/* === TASKS === */}
               <SectionBox title="Tasks">
-                <div className="space-y-1.5 max-h-36 overflow-y-auto mb-2">
-                  {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
-                  {tasks.map((t: any) => (
-                    <div key={t._id} className="flex items-center gap-2 text-sm bg-[#fafafa] rounded-lg p-2 border border-card-border">
-                      <input
-                        type="checkbox"
-                        checked={t.done}
-                        onChange={() => handleToggleTask(t._id, !t.done)}
-                        className="rounded border-card-border accent-[#0a0a0a]"
-                      />
-                      <span className={t.done ? 'line-through text-muted' : 'text-[#0a0a0a]'}>{t.content}</span>
-                    </div>
-                  ))}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto mb-2">
+                  {sortedTasks.length === 0 ? (
+                    <p className="text-xs text-muted italic">No tasks yet</p>
+                  ) : (
+                    sortedTasks.map((t: any) => (
+                      <div key={t._id} className={`flex items-center gap-2 text-sm rounded-lg p-2 border ${t.done ? 'bg-white border-card-border opacity-60' : 'bg-[#fafafa] border-card-border'}`}>
+                        <input
+                          type="checkbox"
+                          checked={t.done}
+                          onChange={() => handleToggleTask(t._id, !t.done)}
+                          className="rounded border-card-border accent-[#0a0a0a] shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className={t.done ? 'line-through text-muted' : 'text-[#0a0a0a]'}>{t.content}</span>
+                          <div className="flex gap-2 mt-0.5">
+                            {t.dueDate && (
+                              <span className={`text-[10px] ${new Date(t.dueDate) < new Date() && !t.done ? 'text-red-500' : 'text-muted'}`}>
+                                Due: {new Date(t.dueDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {t.createdAt && (
+                              <span className="text-[10px] text-muted">{new Date(t.createdAt).toLocaleString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -360,22 +489,34 @@ export default function LeadDrawer({
                     placeholder="Add a task..."
                     className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
-                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90">Add</button>
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="text-xs border border-card-border rounded-md px-2 py-1.5 bg-white text-muted focus:outline-none focus:border-[#0a0a0a] w-[130px]"
+                    title="Due date (optional)"
+                  />
+                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90 shrink-0">Add</button>
                 </div>
               </SectionBox>
 
               {/* === STAGE HISTORY === */}
               <SectionBox title="Stage History">
-                <div className="space-y-1 max-h-28 overflow-y-auto">
+                <div className="space-y-1 max-h-36 overflow-y-auto">
                   {history.length === 0 ? (
-                    <p className="text-xs text-muted">No stage changes yet</p>
+                    <p className="text-xs text-muted italic">No stage changes yet</p>
                   ) : (
                     history.map((h: any) => (
-                      <div key={h._id} className="text-xs bg-[#fafafa] rounded-lg p-2 flex justify-between border border-card-border">
-                        <span className="text-[#0a0a0a]">
-                          {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
-                        </span>
-                        <span className="text-muted">{new Date(h.changedAt).toLocaleString()}</span>
+                      <div key={h._id} className="text-xs bg-[#fafafa] rounded-lg p-2 border border-card-border">
+                        <div className="flex justify-between">
+                          <span className="text-[#0a0a0a] font-medium">
+                            {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
+                          </span>
+                          <span className="text-muted">{new Date(h.changedAt).toLocaleString()}</span>
+                        </div>
+                        {h.reason && (
+                          <p className="text-muted mt-0.5 text-[10px]">Reason: {h.reason}</p>
+                        )}
                       </div>
                     ))
                   )}
@@ -386,7 +527,7 @@ export default function LeadDrawer({
               <SectionBox title="CRM Event History">
                 <div className="space-y-1 max-h-28 overflow-y-auto">
                   {events.length === 0 ? (
-                    <p className="text-xs text-muted">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
+                    <p className="text-xs text-muted italic">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
                   ) : (
                     events.map((ev: any) => (
                       <div key={ev._id} className="text-xs bg-[#fafafa] rounded-lg p-2 border border-card-border">
@@ -412,6 +553,41 @@ export default function LeadDrawer({
           )}
         </div>
       </div>
+
+      {/* Disqualification Reason Modal */}
+      {pendingStage && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-[60]" onClick={() => setPendingStage(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl border border-card-border p-6 z-[70] w-[400px] max-w-[90vw]">
+            <h3 className="text-sm font-semibold text-[#0a0a0a] mb-2">
+              Change stage to {STAGES.find((s) => s.key === pendingStage)?.label || pendingStage}?
+            </h3>
+            <p className="text-xs text-muted mb-4">Optionally add a reason for this change.</p>
+            <textarea
+              value={disqualReason}
+              onChange={(e) => setDisqualReason(e.target.value)}
+              placeholder="Reason (optional)..."
+              rows={3}
+              className="w-full text-sm border border-card-border rounded-md px-3 py-2 focus:outline-none focus:border-[#0a0a0a] transition-colors resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setPendingStage(null)}
+                className="px-4 py-2 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDisqual}
+                disabled={updatingStage}
+                className="px-4 py-2 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
+              >
+                {updatingStage ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   )
 }

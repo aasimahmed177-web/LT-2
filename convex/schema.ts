@@ -33,6 +33,7 @@ export default defineSchema({
     toStage: v.string(),
     changedAt: v.string(),
     changedBy: v.optional(v.string()),
+    reason: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
     .index("by_metaLeadId", ["metaLeadId"]),
@@ -64,6 +65,7 @@ export default defineSchema({
     done: v.boolean(),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
+    dueDate: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"]),
 
