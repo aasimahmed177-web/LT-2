@@ -31,6 +31,15 @@ function getMetaCreatedTime(lead: any): string | null {
   return lead?.fullResponse?.created_time || null
 }
 
+function SectionBox({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
+  return (
+    <div className={`rounded-lg border-l-4 ${accent} bg-gray-50/60 p-3`}>
+      <p className="text-xs font-semibold text-muted mb-2 uppercase tracking-wider">{title}</p>
+      {children}
+    </div>
+  )
+}
+
 export default function LeadDrawer({
   leadId,
   onClose,
@@ -186,32 +195,61 @@ export default function LeadDrawer({
               <p className="text-xs text-gray-400 mt-2">ID: {leadId}</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Stage Buttons */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Stage</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {STAGES.map((s) => (
-                    <button
-                      key={s.key}
-                      onClick={() => handleStageChange(s.key)}
-                      disabled={updatingStage || s.key === lead.stage}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
-                        s.key === lead.stage
-                          ? stageColors[s.key] || 'bg-gray-200 text-gray-700'
-                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 border border-gray-200'
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+            <div className="space-y-5">
+              {/* === CRM STATUS === */}
+              <SectionBox title="CRM Status" accent="border-indigo-400">
+                {/* Stage Buttons */}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Current Stage</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {STAGES.map((s) => (
+                      <button
+                        key={s.key}
+                        onClick={() => handleStageChange(s.key)}
+                        disabled={updatingStage || s.key === lead.stage}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
+                          s.key === lead.stage
+                            ? stageColors[s.key] || 'bg-gray-200 text-gray-700'
+                            : 'bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 border border-gray-200'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Contact Info */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Contact</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Stage History */}
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Stage History</p>
+                  {history.length === 0 ? (
+                    <p className="text-xs text-muted">No stage changes yet</p>
+                  ) : (
+                    <div className="space-y-1 max-h-28 overflow-y-auto">
+                      {history.map((h: any) => (
+                        <div key={h._id} className="text-xs bg-white rounded-lg p-2 flex justify-between border border-gray-100">
+                          <span className="text-gray-700">
+                            {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
+                          </span>
+                          <span className="text-gray-400">{new Date(h.changedAt).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage Changed Timestamp */}
+                {lead.stageChangedAt && (
+                  <p className="text-xs text-muted mt-2">
+                    Stage last changed: {new Date(lead.stageChangedAt).toLocaleString()}
+                  </p>
+                )}
+              </SectionBox>
+
+              {/* === META / SOURCE DATA === */}
+              <SectionBox title="Meta / Source Data" accent="border-amber-400">
+                {/* Contact Info from Meta */}
+                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                   <div>
                     <span className="text-muted text-xs">Phone</span>
                     <p className="text-gray-800">{lead.phone || '—'}</p>
@@ -233,12 +271,9 @@ export default function LeadDrawer({
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Campaign Info */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Campaign</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Campaign Info */}
+                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                   <div>
                     <span className="text-muted text-xs">Campaign</span>
                     <p className="text-gray-800">{lead.campaignName || '—'}</p>
@@ -256,115 +291,95 @@ export default function LeadDrawer({
                     <p className="text-gray-800 font-mono text-xs">{lead.pageId || '—'}</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Timestamps */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Timestamps</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted text-xs">Meta Created Time</span>
-                    <p className="text-gray-800">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
+                {/* Timestamps */}
+                <div className="text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted text-xs">Meta Created</span>
+                    <p className="text-gray-800 text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
                   </div>
-                  <div>
+                  <div className="flex justify-between mt-1">
                     <span className="text-muted text-xs">Imported At</span>
-                    <p className="text-gray-800">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Stage Changed</span>
-                    <p className="text-gray-800">{lead.stageChangedAt ? new Date(lead.stageChangedAt).toLocaleString() : '—'}</p>
+                    <p className="text-gray-800 text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Raw Field Data */}
-              <div>
-                <button
-                  onClick={() => setShowRaw(!showRaw)}
-                  className="text-xs font-medium text-accent hover:text-indigo-500"
-                >
-                  {showRaw ? 'Hide' : 'Show'} raw field data
-                </button>
-                {showRaw && fieldData.length > 0 && (
-                  <div className="mt-2 text-xs bg-gray-50 rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto">
-                    {fieldData.map((f: any, i: number) => (
-                      <div key={i} className="flex gap-2">
-                        <span className="font-medium text-gray-600">{f.name}:</span>
-                        <span className="text-gray-800">{(f.values || []).join(', ')}</span>
+                {/* Raw Field Data */}
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowRaw(!showRaw)}
+                    className="text-xs font-medium text-accent hover:text-indigo-500"
+                  >
+                    {showRaw ? 'Hide' : 'Show'} raw field data
+                  </button>
+                  {showRaw && fieldData.length > 0 && (
+                    <div className="mt-2 text-xs bg-white rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto border border-gray-100">
+                      {fieldData.map((f: any, i: number) => (
+                        <div key={i} className="flex gap-2">
+                          <span className="font-medium text-gray-600">{f.name}:</span>
+                          <span className="text-gray-800">{(f.values || []).join(', ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </SectionBox>
+
+              {/* === NOTES & TASKS === */}
+              <SectionBox title="Notes &amp; Tasks" accent="border-emerald-400">
+                {/* Notes */}
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Notes</p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
+                    {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
+                    {notes.map((n: any) => (
+                      <div key={n._id} className="text-xs bg-white rounded-lg p-2.5 border border-gray-100">
+                        <p className="text-gray-700">{n.content}</p>
+                        <p className="text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                      placeholder="Add a note..."
+                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                    <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                  </div>
+                </div>
 
-              {/* Notes */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Notes</p>
-                <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
-                  {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
-                  {notes.map((n: any) => (
-                    <div key={n._id} className="text-xs bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-gray-700">{n.content}</p>
-                      <p className="text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
-                    </div>
-                  ))}
+                {/* Tasks */}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Tasks</p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto mb-2">
+                    {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
+                    {tasks.map((t: any) => (
+                      <div key={t._id} className="flex items-center gap-2 text-sm bg-white rounded-lg p-2 border border-gray-100">
+                        <input
+                          type="checkbox"
+                          checked={t.done}
+                          onChange={() => handleToggleTask(t._id, !t.done)}
+                          className="rounded border-gray-300 accent-accent"
+                        />
+                        <span className={t.done ? 'line-through text-muted' : 'text-gray-700'}>{t.content}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={newTask}
+                      onChange={(e) => setNewTask(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                      placeholder="Add a task..."
+                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                    <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                    placeholder="Add a note..."
-                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
-                </div>
-              </div>
-
-              {/* Tasks */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Tasks</p>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto mb-2">
-                  {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
-                  {tasks.map((t: any) => (
-                    <div key={t._id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={t.done}
-                        onChange={() => handleToggleTask(t._id, !t.done)}
-                        className="rounded border-gray-300 accent-accent"
-                      />
-                      <span className={t.done ? 'line-through text-muted' : 'text-gray-700'}>{t.content}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                    placeholder="Add a task..."
-                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
-                </div>
-              </div>
-
-              {/* Stage History */}
-              <div>
-                <p className="text-xs font-medium text-muted mb-2 uppercase tracking-wider">Stage History</p>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {history.length === 0 && <p className="text-xs text-muted">No stage changes yet</p>}
-                  {history.map((h: any) => (
-                    <div key={h._id} className="text-xs bg-gray-50 rounded-lg p-2 flex justify-between">
-                      <span className="text-gray-700">
-                        {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
-                      </span>
-                      <span className="text-gray-400">{new Date(h.changedAt).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </SectionBox>
             </div>
           )}
         </div>

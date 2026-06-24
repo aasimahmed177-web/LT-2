@@ -40,6 +40,8 @@ export const upsertMetaLead = mutation({
       .first();
 
     if (existing) {
+      // Only update Meta-owned/source fields.
+      // Never overwrite CRM-owned fields: stage, stageChangedAt, notes, tasks, history, conversionLeadEvents.
       await ctx.db.patch(existing._id, {
         adId: args.adId,
         adName: args.adName,
@@ -54,7 +56,6 @@ export const upsertMetaLead = mutation({
         name: args.name,
         email: args.email,
         phone: args.phone,
-        stage: "Lead",
       });
       return { action: "updated", id: existing._id };
     } else {

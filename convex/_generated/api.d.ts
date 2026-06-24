@@ -9,6 +9,7 @@
  */
 
 import type * as crm from "../crm.js";
+import type * as importResults from "../importResults.js";
 import type * as leads from "../leads.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   crm: typeof crm;
+  importResults: typeof importResults;
   leads: typeof leads;
 }>;
 
