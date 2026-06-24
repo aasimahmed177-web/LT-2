@@ -6,15 +6,15 @@ import {
 } from './api'
 
 const STAGES = [
-  { key: 'Lead', label: 'Lead', color: 'bg-indigo-500' },
-  { key: 'Contact', label: 'Contact', color: 'bg-amber-500' },
-  { key: 'Prospect', label: 'Prospect', color: 'bg-blue-500' },
-  { key: 'ConversionLead', label: 'Conversion Lead', color: 'bg-purple-500' },
-  { key: 'Purchase', label: 'Purchase', color: 'bg-emerald-500' },
-  { key: 'NotQualified', label: 'Not Qualified', color: 'bg-red-500' },
-  { key: 'NoResponse', label: 'No Response', color: 'bg-gray-400' },
-  { key: 'Duplicate', label: 'Duplicate', color: 'bg-orange-500' },
-  { key: 'Invalid', label: 'Invalid', color: 'bg-red-600' },
+  { key: 'Lead', label: 'Lead' },
+  { key: 'Contact', label: 'Contact' },
+  { key: 'Prospect', label: 'Prospect' },
+  { key: 'ConversionLead', label: 'Conversion Lead' },
+  { key: 'Purchase', label: 'Purchase' },
+  { key: 'NotQualified', label: 'Not Qualified' },
+  { key: 'NoResponse', label: 'No Response' },
+  { key: 'Duplicate', label: 'Duplicate' },
+  { key: 'Invalid', label: 'Invalid' },
 ]
 
 function extractFieldValue(fieldData: any[], ...namePatterns: string[]): string {
@@ -32,10 +32,10 @@ function getMetaCreatedTime(lead: any): string | null {
   return lead?.fullResponse?.created_time || null
 }
 
-function SectionBox({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
+function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className={`rounded-lg border-l-4 ${accent} bg-gray-50/60 p-3`}>
-      <p className="text-xs font-semibold text-muted mb-2 uppercase tracking-wider">{title}</p>
+    <div className="border border-card-border rounded-lg p-4">
+      <p className="text-[11px] uppercase tracking-widest font-medium text-muted mb-3">{title}</p>
       {children}
     </div>
   )
@@ -145,27 +145,13 @@ export default function LeadDrawer({
   const metaCreated = getMetaCreatedTime(lead)
   const isTestLead = lead?.name && lead.name.includes('test lead: dummy data')
 
-  const stageColors: Record<string, string> = {
-    Lead: 'bg-indigo-100 text-indigo-700 ring-1 ring-inset ring-indigo-200/50',
-    Contact: 'bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200/50',
-    contacted: 'bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200/50',
-    Prospect: 'bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200/50',
-    prospect: 'bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200/50',
-    ConversionLead: 'bg-purple-100 text-purple-700 ring-1 ring-inset ring-purple-200/50',
-    Purchase: 'bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200/50',
-    NotQualified: 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200/50',
-    NoResponse: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200/50',
-    Duplicate: 'bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200/50',
-    Invalid: 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200/50',
-  }
-
-  const statusBadge = (status: string) => {
-    const m: Record<string, string> = {
-      pending: 'bg-amber-100 text-amber-700',
-      sent: 'bg-emerald-100 text-emerald-700',
-      failed: 'bg-red-100 text-red-700',
+  const statusDot = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: '#a0a0a0',
+      sent: '#0a0a0a',
+      failed: '#dc2626',
     }
-    return m[status] || 'bg-gray-100 text-gray-600'
+    return colors[status] || '#a0a0a0'
   }
 
   return (
@@ -174,13 +160,13 @@ export default function LeadDrawer({
       <div className="drawer-panel">
         <div className="p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-gray-900">{lead?.name || 'Unnamed Lead'}</h2>
+                <h2 className="text-lg font-semibold text-[#0a0a0a] tracking-tight">{lead?.name || 'Unnamed Lead'}</h2>
                 {isTestLead && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                    Meta Test Lead
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted">
+                    Test
                   </span>
                 )}
               </div>
@@ -188,10 +174,10 @@ export default function LeadDrawer({
                 <p className="text-xs text-muted font-mono mt-0.5">Meta ID: {lead.metaLeadId}</p>
               )}
               {lead?._id && (
-                <p className="text-[10px] text-gray-300 font-mono mt-0.5">DB ID: {lead._id}</p>
+                <p className="text-[10px] text-[#d4d4d4] font-mono mt-0.5">DB ID: {lead._id}</p>
               )}
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-xl leading-none">&times;</button>
           </div>
 
           {loading ? (
@@ -199,30 +185,30 @@ export default function LeadDrawer({
           ) : loadError ? (
             <div className="text-sm text-red-500 py-12 text-center">
               <p>Failed to load lead</p>
-              <p className="text-xs text-gray-400 mt-2">Requested ID: {leadId}</p>
-              <p className="text-xs text-gray-400 mt-1">Error: {loadError}</p>
+              <p className="text-xs text-muted mt-2">Requested ID: {leadId}</p>
+              <p className="text-xs text-muted mt-1">Error: {loadError}</p>
             </div>
           ) : !lead ? (
             <div className="text-sm text-red-500 py-12 text-center">
               <p>Lead not found</p>
-              <p className="text-xs text-gray-400 mt-2">ID: {leadId}</p>
+              <p className="text-xs text-muted mt-2">ID: {leadId}</p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* === CRM STATUS === */}
-              <SectionBox title="CRM Status" accent="border-indigo-400">
+              <SectionBox title="CRM Status">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Current Stage</p>
+                  <p className="text-xs text-muted mb-2">Current Stage</p>
                   <div className="flex flex-wrap gap-1.5">
                     {STAGES.map((s) => (
                       <button
                         key={s.key}
                         onClick={() => handleStageChange(s.key)}
                         disabled={updatingStage || s.key === lead.stage}
-                        className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
+                        className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-all ${
                           s.key === lead.stage
-                            ? stageColors[s.key] || 'bg-gray-200 text-gray-700'
-                            : 'bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 border border-gray-200'
+                            ? 'bg-[#0a0a0a] text-white'
+                            : 'bg-white text-muted hover:bg-[#f5f5f5] hover:text-[#0a0a0a] border border-card-border'
                         }`}
                       >
                         {s.label}
@@ -238,88 +224,88 @@ export default function LeadDrawer({
               </SectionBox>
 
               {/* === CONTACT === */}
-              <SectionBox title="Contact" accent="border-amber-400">
+              <SectionBox title="Contact">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Phone</span>
-                    <p className="text-gray-800">{lead.phone || '—'}</p>
+                    <p className="text-[#0a0a0a]">{lead.phone || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Email</span>
-                    <p className="text-gray-800">{lead.email || '—'}</p>
+                    <p className="text-[#0a0a0a]">{lead.email || '—'}</p>
                   </div>
                 </div>
               </SectionBox>
 
               {/* === QUALIFICATION === */}
-              <SectionBox title="Qualification" accent="border-blue-400">
+              <SectionBox title="Qualification">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Budget</span>
-                    <p className="text-gray-800">{budget || '—'}</p>
+                    <p className="text-[#0a0a0a]">{budget || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Purpose</span>
-                    <p className="text-gray-800">{purpose || '—'}</p>
+                    <p className="text-[#0a0a0a]">{purpose || '—'}</p>
                   </div>
                 </div>
               </SectionBox>
 
               {/* === CAMPAIGN SOURCE === */}
-              <SectionBox title="Campaign Source" accent="border-cyan-400">
+              <SectionBox title="Campaign Source">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Campaign</span>
-                    <p className="text-gray-800">{lead.campaignName || '—'}</p>
+                    <p className="text-[#0a0a0a]">{lead.campaignName || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Ad</span>
-                    <p className="text-gray-800">{lead.adName || '—'}</p>
+                    <p className="text-[#0a0a0a]">{lead.adName || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Ad Set</span>
-                    <p className="text-gray-800">{lead.adSetName || '—'}</p>
+                    <p className="text-[#0a0a0a]">{lead.adSetName || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Source</span>
-                    <p className="text-gray-800">{lead.platform || 'meta'}</p>
+                    <p className="text-[#0a0a0a]">{lead.platform || 'meta'}</p>
                   </div>
                 </div>
               </SectionBox>
 
               {/* === META / SYSTEM DATA === */}
-              <SectionBox title="Meta / System Data" accent="border-gray-400">
-                <div className="text-sm space-y-1">
+              <SectionBox title="Meta / System Data">
+                <div className="text-sm space-y-1.5">
                   <div className="flex justify-between">
                     <span className="text-muted text-xs">Meta Lead ID</span>
-                    <p className="text-gray-800 font-mono text-xs">{lead.metaLeadId || '—'}</p>
+                    <p className="text-[#0a0a0a] font-mono text-xs">{lead.metaLeadId || '—'}</p>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted text-xs">Meta Page ID</span>
-                    <p className="text-gray-800 font-mono text-xs">{lead.pageId || '—'}</p>
+                    <p className="text-[#0a0a0a] font-mono text-xs">{lead.pageId || '—'}</p>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted text-xs">Meta Created</span>
-                    <p className="text-gray-800 text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
+                    <p className="text-[#0a0a0a] text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted text-xs">Imported At</span>
-                    <p className="text-gray-800 text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
+                    <p className="text-[#0a0a0a] text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
                   </div>
                 </div>
                 <div className="mt-3">
                   <button
                     onClick={() => setShowRaw(!showRaw)}
-                    className="text-xs font-medium text-accent hover:text-indigo-500"
+                    className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors"
                   >
                     {showRaw ? 'Hide' : 'Show'} raw field data
                   </button>
                   {showRaw && fieldData.length > 0 && (
-                    <div className="mt-2 text-xs bg-white rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto border border-gray-100">
+                    <div className="mt-2 text-xs bg-[#fafafa] rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto border border-card-border">
                       {fieldData.map((f: any, i: number) => (
                         <div key={i} className="flex gap-2">
-                          <span className="font-medium text-gray-600">{f.name}:</span>
-                          <span className="text-gray-800">{(f.values || []).join(', ')}</span>
+                          <span className="font-medium text-muted">{f.name}:</span>
+                          <span className="text-[#0a0a0a]">{(f.values || []).join(', ')}</span>
                         </div>
                       ))}
                     </div>
@@ -328,13 +314,13 @@ export default function LeadDrawer({
               </SectionBox>
 
               {/* === NOTES === */}
-              <SectionBox title="Notes" accent="border-emerald-400">
+              <SectionBox title="Notes">
                 <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
                   {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
                   {notes.map((n: any) => (
-                    <div key={n._id} className="text-xs bg-white rounded-lg p-2.5 border border-gray-100">
-                      <p className="text-gray-700">{n.content}</p>
-                      <p className="text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                    <div key={n._id} className="text-xs bg-[#fafafa] rounded-lg p-2.5 border border-card-border">
+                      <p className="text-[#0a0a0a]">{n.content}</p>
+                      <p className="text-muted mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -344,25 +330,25 @@ export default function LeadDrawer({
                     onChange={(e) => setNewNote(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
                     placeholder="Add a note..."
-                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
-                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90">Add</button>
                 </div>
               </SectionBox>
 
               {/* === TASKS === */}
-              <SectionBox title="Tasks" accent="border-emerald-400">
+              <SectionBox title="Tasks">
                 <div className="space-y-1.5 max-h-36 overflow-y-auto mb-2">
                   {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
                   {tasks.map((t: any) => (
-                    <div key={t._id} className="flex items-center gap-2 text-sm bg-white rounded-lg p-2 border border-gray-100">
+                    <div key={t._id} className="flex items-center gap-2 text-sm bg-[#fafafa] rounded-lg p-2 border border-card-border">
                       <input
                         type="checkbox"
                         checked={t.done}
                         onChange={() => handleToggleTask(t._id, !t.done)}
-                        className="rounded border-gray-300 accent-accent"
+                        className="rounded border-card-border accent-[#0a0a0a]"
                       />
-                      <span className={t.done ? 'line-through text-muted' : 'text-gray-700'}>{t.content}</span>
+                      <span className={t.done ? 'line-through text-muted' : 'text-[#0a0a0a]'}>{t.content}</span>
                     </div>
                   ))}
                 </div>
@@ -372,24 +358,24 @@ export default function LeadDrawer({
                     onChange={(e) => setNewTask(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
                     placeholder="Add a task..."
-                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                    className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
-                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90">Add</button>
                 </div>
               </SectionBox>
 
               {/* === STAGE HISTORY === */}
-              <SectionBox title="Stage History" accent="border-purple-400">
+              <SectionBox title="Stage History">
                 <div className="space-y-1 max-h-28 overflow-y-auto">
                   {history.length === 0 ? (
                     <p className="text-xs text-muted">No stage changes yet</p>
                   ) : (
                     history.map((h: any) => (
-                      <div key={h._id} className="text-xs bg-white rounded-lg p-2 flex justify-between border border-gray-100">
-                        <span className="text-gray-700">
+                      <div key={h._id} className="text-xs bg-[#fafafa] rounded-lg p-2 flex justify-between border border-card-border">
+                        <span className="text-[#0a0a0a]">
                           {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
                         </span>
-                        <span className="text-gray-400">{new Date(h.changedAt).toLocaleString()}</span>
+                        <span className="text-muted">{new Date(h.changedAt).toLocaleString()}</span>
                       </div>
                     ))
                   )}
@@ -397,24 +383,25 @@ export default function LeadDrawer({
               </SectionBox>
 
               {/* === CRM EVENT HISTORY === */}
-              <SectionBox title="CRM Event History" accent="border-rose-400">
+              <SectionBox title="CRM Event History">
                 <div className="space-y-1 max-h-28 overflow-y-auto">
                   {events.length === 0 ? (
                     <p className="text-xs text-muted">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
                   ) : (
                     events.map((ev: any) => (
-                      <div key={ev._id} className="text-xs bg-white rounded-lg p-2 border border-gray-100">
+                      <div key={ev._id} className="text-xs bg-[#fafafa] rounded-lg p-2 border border-card-border">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-700">{ev.eventName}</span>
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusBadge(ev.status)}`}>
+                          <span className="font-medium text-[#0a0a0a]">{ev.eventName}</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted">
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusDot(ev.status) }} />
                             {ev.status}
                           </span>
                         </div>
-                        <div className="flex justify-between mt-1 text-gray-400">
+                        <div className="flex justify-between mt-1 text-muted">
                           <span>Stage: {ev.stage}</span>
                           <span>{new Date(ev.createdAt).toLocaleString()}</span>
                         </div>
-                        {ev.attempts > 0 && <p className="text-gray-400 mt-0.5">Attempts: {ev.attempts}</p>}
+                        {ev.attempts > 0 && <p className="text-muted mt-0.5">Attempts: {ev.attempts}</p>}
                         {ev.error && <p className="text-red-500 mt-0.5">Error: {ev.error}</p>}
                       </div>
                     ))
