@@ -88,3 +88,7 @@ export function getEvents() {
 export function getEventsCounts() {
   return json<any>(`${API_BASE}/events/counts`)
 }
+
+export function getLastImportResult() {
+  return json<any>(`${API_BASE}/meta/last-import-result`)
+}

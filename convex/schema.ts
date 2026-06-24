@@ -64,4 +64,9 @@ export default defineSchema({
     updatedAt: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"]),
+
+  importResults: defineTable({
+    data: v.any(),
+    createdAt: v.string(),
+  }),
 });
