@@ -30,13 +30,13 @@ export default function Dashboard() {
     )
   }
 
-  const stageOrder = ['new', 'contacted', 'prospect', 'ConversionLead', 'Purchase']
+  const stageOrder = ['Lead', 'Contact', 'Prospect', 'ConversionLead', 'Purchase']
   const stageLabels: Record<string, string> = {
-    new: 'New', contacted: 'Contacted', prospect: 'Prospect',
+    Lead: 'Lead', Contact: 'Contact', Prospect: 'Prospect',
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
   const stageColors: Record<string, string> = {
-    new: 'bg-indigo-500', contacted: 'bg-amber-500', prospect: 'bg-blue-500',
+    Lead: 'bg-indigo-500', Contact: 'bg-amber-500', Prospect: 'bg-blue-500',
     ConversionLead: 'bg-purple-500', Purchase: 'bg-emerald-500',
   }
   const maxFunnel = Math.max(...stageOrder.map((s) => stats?.funnel?.find((f: any) => f.stage === s)?.count || 0), 1)
@@ -47,7 +47,7 @@ export default function Dashboard() {
   const statCards = [
     { label: 'Total Leads', value: stats.total, color: 'text-indigo-600' },
     { label: 'New Today', value: stats.newToday, color: 'text-emerald-600' },
-    { label: 'Contacted', value: stats.contacted, color: 'text-amber-600' },
+    { label: 'Contact', value: stats.contacted, color: 'text-amber-600' },
     { label: 'Prospects', value: stats.prospects, color: 'text-blue-600' },
     { label: 'Conv. Leads', value: stats.conversionLeads, color: 'text-purple-600' },
     { label: 'Purchases', value: stats.purchases, color: 'text-emerald-600' },
@@ -57,8 +57,8 @@ export default function Dashboard() {
 
   const stageBadgeClass = (stage: string) => {
     const m: Record<string, string> = {
-      new: 'bg-indigo-100 text-indigo-700',
-      contacted: 'bg-amber-100 text-amber-700',
+      Lead: 'bg-indigo-100 text-indigo-700',
+      Contact: 'bg-amber-100 text-amber-700',
       prospect: 'bg-blue-100 text-blue-700',
       ConversionLead: 'bg-purple-100 text-purple-700',
       Purchase: 'bg-emerald-100 text-emerald-700',

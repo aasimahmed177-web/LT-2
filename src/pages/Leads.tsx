@@ -51,8 +51,8 @@ export default function Leads() {
 
   const stageBadge = (stage: string) => {
     const m: Record<string, string> = {
-      new: 'bg-indigo-100 text-indigo-700',
-      contacted: 'bg-amber-100 text-amber-700',
+      Lead: 'bg-indigo-100 text-indigo-700',
+      Contact: 'bg-amber-100 text-amber-700',
       prospect: 'bg-blue-100 text-blue-700',
       ConversionLead: 'bg-purple-100 text-purple-700',
       Purchase: 'bg-emerald-100 text-emerald-700',

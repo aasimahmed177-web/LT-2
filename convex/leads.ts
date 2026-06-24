@@ -54,6 +54,7 @@ export const upsertMetaLead = mutation({
         name: args.name,
         email: args.email,
         phone: args.phone,
+        stage: "Lead",
       });
       return { action: "updated", id: existing._id };
     } else {
@@ -69,7 +70,7 @@ export const upsertMetaLead = mutation({
         fieldData: args.fieldData,
         fullResponse: args.fullResponse,
         ingestedAt: args.ingestedAt,
-        stage: "new",
+        stage: "Lead",
         platform: "meta",
         name: args.name,
         email: args.email,

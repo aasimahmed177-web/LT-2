@@ -175,16 +175,20 @@ export const getStats = query({
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const yesterdayStart = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
+    function getLeadCreatedDate(l: typeof all[number]): string {
+      return (l.fullResponse as any)?.created_time || l.ingestedAt;
+    }
+
     const total = all.length;
-    const newToday = all.filter((l) => l.ingestedAt >= todayStart).length;
-    const last24h = all.filter((l) => l.ingestedAt >= yesterdayStart).length;
+    const newToday = all.filter((l) => getLeadCreatedDate(l) >= todayStart).length;
+    const last24h = all.filter((l) => getLeadCreatedDate(l) >= yesterdayStart).length;
 
     const byStage: Record<string, number> = {};
     for (const l of all) {
       byStage[l.stage] = (byStage[l.stage] || 0) + 1;
     }
 
-    const stageOrder = ["new", "contacted", "prospect", "ConversionLead", "Purchase"];
+    const stageOrder = ["Lead", "Contact", "Prospect", "ConversionLead", "Purchase"];
     const funnel = stageOrder.map((stage) => ({
       stage,
       count: byStage[stage] || 0,
@@ -192,7 +196,7 @@ export const getStats = query({
 
     const activityByDate: Record<string, number> = {};
     for (const l of all) {
-      const date = l.ingestedAt?.substring(0, 10);
+      const date = getLeadCreatedDate(l).substring(0, 10);
       if (date) activityByDate[date] = (activityByDate[date] || 0) + 1;
     }
 
