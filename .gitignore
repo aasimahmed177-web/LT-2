@@ -31,3 +31,12 @@ dist-ssr
 *.db
 *.db-shm
 *.db-wal
+
+.env
+.env.local
+*.env
+*.env.local
+.git-helper/
+*.db
+*.db-shm
+*.db-wal
