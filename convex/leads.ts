@@ -32,6 +32,8 @@ export const upsertMetaLead = mutation({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
+    formName: v.optional(v.string()),
+    formId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -56,6 +58,8 @@ export const upsertMetaLead = mutation({
         name: args.name,
         email: args.email,
         phone: args.phone,
+        formName: args.formName,
+        formId: args.formId,
       });
       return { action: "updated", id: existing._id };
     } else {
@@ -76,6 +80,8 @@ export const upsertMetaLead = mutation({
         name: args.name,
         email: args.email,
         phone: args.phone,
+        formName: args.formName,
+        formId: args.formId,
       });
       return { action: "inserted", id };
     }

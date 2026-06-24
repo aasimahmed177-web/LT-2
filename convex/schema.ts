@@ -20,6 +20,8 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
+    formName: v.optional(v.string()),
+    formId: v.optional(v.string()),
   })
     .index("by_metaLeadId", ["metaLeadId"])
     .index("by_stage", ["stage"]),
