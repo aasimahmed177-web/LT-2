@@ -11,8 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
-# .env # Removed by Orchids to allow .env files
-# .env.local # Removed by Orchids to allow .env files
+.env
+.env.*
+screenshots/
+playwright-report/
+test-results/
+.claude/skills/playwright-skill/temp-execution-*
 convex/.temp
 .orchids
 
