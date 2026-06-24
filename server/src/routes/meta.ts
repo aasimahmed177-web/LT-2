@@ -15,6 +15,17 @@ router.get("/health", (_req: Request, res: Response) => {
   });
 });
 
+// Helper: get page-scoped access token from system user token
+async function getPageAccessToken(pageId: string, sysToken: string): Promise<string> {
+  const url = `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${sysToken}`;
+  const res = await fetch(url);
+  const data: any = await res.json();
+  if (!res.ok || !data.access_token) {
+    throw new Error(data.error?.message || "Failed to get page access token");
+  }
+  return data.access_token;
+}
+
 // Helper to extract name/email/phone from field_data
 function extractContactFields(fieldData: any[]) {
   let name: string | undefined;
@@ -45,64 +56,80 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
   }
 
   try {
-    // Fetch leads from Meta Graph API
-    const url = `https://graph.facebook.com/v21.0/${META_PAGE_ID}/leads?access_token=${META_ACCESS_TOKEN}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    // Step 1: Get page-scoped access token
+    const pageToken = await getPageAccessToken(META_PAGE_ID, META_ACCESS_TOKEN);
 
-    if (!response.ok) {
-      res.status(502).json({
-        error: "Meta API error",
-        detail: data.error || data,
-      });
+    // Step 2: Get leadgen forms for the page
+    const formsUrl = `https://graph.facebook.com/v21.0/${META_PAGE_ID}/leadgen_forms?access_token=${pageToken}`;
+    const formsRes = await fetch(formsUrl);
+    const formsData: any = await formsRes.json();
+
+    if (!formsRes.ok) {
+      res.status(502).json({ error: "Meta API error (forms)", detail: formsData.error || formsData });
       return;
     }
 
-    const leads = data.data || [];
-    if (leads.length === 0) {
-      res.json({ imported: 0, updated: 0, total: 0, message: "No new leads found on Meta" });
-      return;
-    }
+    const forms = formsData.data || [];
+    let totalImported = 0;
+    let totalUpdated = 0;
+    let totalScanned = 0;
+    const formIds: string[] = [];
 
-    let imported = 0;
-    let updated = 0;
+    // Step 3: Get leads from each form
+    for (const form of forms) {
+      const formId = form.id;
+      formIds.push(formId);
+      const leadsUrl = `https://graph.facebook.com/v21.0/${formId}/leads?access_token=${pageToken}`;
+      const leadsRes = await fetch(leadsUrl);
+      const leadsData: any = await leadsRes.json();
 
-    for (const lead of leads) {
-      const metaLeadId = lead.id;
-      const fieldData = lead.field_data || [];
-      const { name, email, phone } = extractContactFields(fieldData);
+      if (!leadsRes.ok) {
+        console.error(`Error fetching leads for form ${formId}:`, leadsData.error);
+        continue;
+      }
 
-      const result = await getConvex().mutation("leads:upsertMetaLead", {
-        metaLeadId,
-        adId: lead.ad_id,
-        adName: lead.ad_name,
-        adSetId: lead.adset_id,
-        adSetName: lead.adset_name,
-        campaignId: lead.campaign_id,
-        campaignName: lead.campaign_name,
-        pageId: lead.page_id,
-        fieldData,
-        fullResponse: lead,
-        ingestedAt: new Date().toISOString(),
-        name,
-        email,
-        phone,
-      });
+      const leads = leadsData.data || [];
+      totalScanned += leads.length;
 
-      if (result.action === "inserted") imported++;
-      else updated++;
+      for (const lead of leads) {
+        const metaLeadId = lead.id;
+        const fieldData = lead.field_data || [];
+        const { name, email, phone } = extractContactFields(fieldData);
+
+        const result = await getConvex().mutation("leads:upsertMetaLead", {
+          metaLeadId,
+          adId: lead.ad_id,
+          adName: lead.ad_name,
+          adSetId: lead.adset_id,
+          adSetName: lead.adset_name,
+          campaignId: lead.campaign_id,
+          campaignName: lead.campaign_name,
+          pageId: lead.page_id,
+          fieldData,
+          fullResponse: lead,
+          ingestedAt: new Date().toISOString(),
+          name,
+          email,
+          phone,
+        });
+
+        if (result.action === "inserted") totalImported++;
+        else totalUpdated++;
+      }
     }
 
     const counts = await getConvex().query("leads:counts");
 
     res.json({
-      imported,
-      updated,
+      formsScanned: forms.length,
+      leadsFetched: totalScanned,
+      created: totalImported,
+      updated: totalUpdated,
+      skipped: 0,
       total: counts.total,
-      byStage: counts.byStage,
     });
   } catch (err: any) {
-    console.error("Import error:", err.message);
+    console.error("Import error:", err);
     res.status(500).json({ error: "Import failed", detail: err.message });
   }
 });

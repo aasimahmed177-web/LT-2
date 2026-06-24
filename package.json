@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "server": "cd server && npx tsx src/index.ts",
+    "server": "cd server && npm run start",
     "convex": "npx convex"
   },
   "dependencies": {
