@@ -1,26 +1,21 @@
-import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import Settings from './pages/Settings'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './Layout'
+import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
+import Events from './pages/Events'
+import Settings from './pages/Settings'
 
 function App() {
-  const location = useLocation()
-
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px' }}>
-      <nav style={{ display: 'flex', gap: 16, padding: '16px 0', borderBottom: '1px solid #ddd', marginBottom: 24 }}>
-        <Link to="/settings" style={{ fontWeight: location.pathname === '/settings' ? 'bold' : 'normal' }}>
-          Settings
-        </Link>
-        <Link to="/leads" style={{ fontWeight: location.pathname === '/leads' ? 'bold' : 'normal' }}>
-          Leads
-        </Link>
-      </nav>
-      <Routes>
-        <Route path="/" element={<Settings />} />
-        <Route path="/settings" element={<Settings />} />
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leads" element={<Leads />} />
-      </Routes>
-    </div>
+        <Route path="/events" element={<Events />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
+    </Routes>
   )
 }
 
