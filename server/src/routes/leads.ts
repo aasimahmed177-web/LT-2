@@ -83,7 +83,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 // PUT /api/leads/:id/stage
 router.put("/:id/stage", async (req: Request, res: Response) => {
   try {
-    const { stage } = req.body;
+    const { stage, reason } = req.body;
     if (!stage) {
       res.status(400).json({ error: "stage is required" });
       return;
@@ -91,6 +91,7 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
     await getConvex().mutation("crm:updateStage", {
       leadId: req.params.id as any,
       stage,
+      reason: reason || undefined,
     });
     res.json({ success: true, stage });
   } catch (err: any) {
@@ -173,7 +174,7 @@ router.get("/:id/tasks", async (req: Request, res: Response) => {
 // POST /api/leads/:id/tasks
 router.post("/:id/tasks", async (req: Request, res: Response) => {
   try {
-    const { content } = req.body;
+    const { content, dueDate } = req.body;
     if (!content) {
       res.status(400).json({ error: "content is required" });
       return;
@@ -181,6 +182,7 @@ router.post("/:id/tasks", async (req: Request, res: Response) => {
     const result = await getConvex().mutation("crm:addTask", {
       leadId: req.params.id as any,
       content,
+      dueDate: dueDate || undefined,
     });
     res.json(result);
   } catch (err: any) {
