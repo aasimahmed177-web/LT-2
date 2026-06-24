@@ -11,8 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
-.env
-.env.local
+# .env # Removed by Orchids to allow .env files
+# .env.local # Removed by Orchids to allow .env files
 convex/.temp
 .orchids
 
