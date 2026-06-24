@@ -6,7 +6,7 @@ function getConvexUrl(): string | null {
   return process.env.CONVEX_URL || process.env.VITE_CONVEX_URL || null;
 }
 
-export function getConvex(): ConvexHttpClient {
+export function getConvex(): any {
   const url = getConvexUrl();
   if (!url) {
     throw new Error("CONVEX_URL or VITE_CONVEX_URL environment variable is required");

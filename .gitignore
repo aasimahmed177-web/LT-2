@@ -16,6 +16,12 @@ dist-ssr
 convex/.temp
 .orchids
 
+# Playwright skill temp execution files
+.claude/skills/playwright-skill/.temp-execution-*
+
+# Verification outputs and temp test files
+verification/*.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

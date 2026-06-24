@@ -157,7 +157,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
 
     const counts = await getConvex().query("leads:counts");
 
-    res.json({
+    const result = {
       formsScanned: forms.length,
       formsPagesFetched: formsPages,
       leadsFetched: totalFetched,
@@ -166,10 +166,29 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
       skipped: 0,
       total: counts.total,
       forms: formResults,
+      errors: formResults.filter((f) => f.error).map((f) => ({ formId: f.formId, formName: f.formName, error: f.error })),
+    };
+
+    // Persist last sync result for the Settings page
+    await getConvex().mutation("importResults:record", { data: result }).catch((err: any) => {
+      console.error("Failed to persist import result:", err.message);
     });
+
+    res.json(result);
   } catch (err: any) {
     console.error("Import error:", err);
     res.status(500).json({ error: "Import failed", detail: err.message });
+  }
+});
+
+// GET /api/meta/last-import-result
+router.get("/last-import-result", async (_req: Request, res: Response) => {
+  try {
+    const result = await getConvex().query("importResults:getLast");
+    res.json(result || { lastSyncedAt: null });
+  } catch (err: any) {
+    console.error("Last import result error:", err.message);
+    res.json({ lastSyncedAt: null });
   }
 });
 
