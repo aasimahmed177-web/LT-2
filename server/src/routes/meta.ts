@@ -143,6 +143,8 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
             name,
             email,
             phone,
+            formName,
+            formId: formId,
           });
 
           if (result.action === "inserted") totalImported++;

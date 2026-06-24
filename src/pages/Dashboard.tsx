@@ -1,17 +1,68 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
 }
 
+function isTestLead(lead: any): boolean {
+  return !!lead?.name?.includes('test lead: dummy data')
+}
+
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+const DATE_PRESETS = [
+  { label: 'Today', days: 0 },
+  { label: 'Yesterday', days: 1 },
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 14 days', days: 14 },
+  { label: 'Last 30 days', days: 30 },
+] as const
+
+function getDateRange(preset: string, customStart: string, customEnd: string): { start: Date; end: Date } | null {
+  const now = new Date()
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+  if (preset === 'all') return null
+
+  if (preset === 'custom') {
+    if (!customStart || !customEnd) return null
+    return { start: new Date(customStart + 'T00:00:00'), end: new Date(customEnd + 'T23:59:59.999') }
+  }
+
+  const found = DATE_PRESETS.find((p) => p.label === preset)
+  if (!found) return null
+
+  if (found.days === 0) {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return { start, end }
+  }
+  const start = new Date(end.getTime() - found.days * 24 * 60 * 60 * 1000)
+  return { start, end }
+}
+
+function isInRange(createdTime: string, range: { start: Date; end: Date } | null): boolean {
+  if (!range) return true
+  if (!createdTime) return false
+  const d = new Date(createdTime)
+  return d >= range.start && d <= range.end
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null)
-  const [recentLeads, setRecentLeads] = useState<any[]>([])
+  const [allLeads, setAllLeads] = useState<any[]>([])
   const [sourceOfTruth, setSourceOfTruth] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // Filters
+  const [datePreset, setDatePreset] = useState('all')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+  const [stageFilter, setStageFilter] = useState('')
+  const [campaignFilter, setCampaignFilter] = useState('')
+  const [formFilter, setFormFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [showTestLeads, setShowTestLeads] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -22,10 +73,7 @@ export default function Dashboard() {
     ])
       .then(([s, l, t]) => {
         setStats(s)
-        const sorted = (l.leads || [])
-          .filter((lead: any) => !lead.name?.includes('test lead: dummy data'))
-          .sort((a: any, b: any) => getMetaCreated(b).localeCompare(getMetaCreated(a)))
-        setRecentLeads(sorted.slice(0, 8))
+        setAllLeads(l.leads || [])
         setSourceOfTruth(t)
       })
       .catch(console.error)
@@ -33,6 +81,76 @@ export default function Dashboard() {
   }
 
   useEffect(() => { load() }, [])
+
+  const dateRange = useMemo(() => getDateRange(datePreset, customStart, customEnd), [datePreset, customStart, customEnd])
+
+  // Unique filter options from all leads
+  const filterOptions = useMemo(() => {
+    const campaigns = new Set<string>()
+    const forms = new Set<string>()
+    const sources = new Set<string>()
+    const stages = new Set<string>()
+    for (const l of allLeads) {
+      if (l.campaignName) campaigns.add(l.campaignName)
+      if (l.formName) forms.add(l.formName)
+      if (l.platform) sources.add(l.platform)
+      if (l.stage) stages.add(l.stage)
+    }
+    return {
+      campaigns: Array.from(campaigns).sort(),
+      forms: Array.from(forms).sort(),
+      sources: Array.from(sources).sort(),
+      stages: Array.from(stages).sort(),
+    }
+  }, [allLeads])
+
+  // Filtered leads
+  const filteredLeads = useMemo(() => {
+    return allLeads.filter((lead) => {
+      // Date range
+      if (!isInRange(getMetaCreated(lead), dateRange)) return false
+      // Stage
+      if (stageFilter && lead.stage !== stageFilter) return false
+      // Campaign
+      if (campaignFilter && lead.campaignName !== campaignFilter) return false
+      // Form
+      if (formFilter && lead.formName !== formFilter) return false
+      // Source
+      if (sourceFilter && lead.platform !== sourceFilter) return false
+      // Test/real toggle
+      if (!showTestLeads && isTestLead(lead)) return false
+      return true
+    })
+  }, [allLeads, dateRange, stageFilter, campaignFilter, formFilter, sourceFilter, showTestLeads])
+
+  // Computed stats from filtered leads
+  const filteredStats = useMemo(() => {
+    const byStage: Record<string, number> = {}
+    const byDate: Record<string, number> = {}
+    let total = 0
+    for (const l of filteredLeads) {
+      total++
+      byStage[l.stage] = (byStage[l.stage] || 0) + 1
+      const d = getMetaCreated(l).substring(0, 10)
+      if (d) byDate[d] = (byDate[d] || 0) + 1
+    }
+    const stageOrder = ['Lead', 'Contact', 'Prospect', 'ConversionLead', 'Purchase']
+    const funnel = stageOrder.map((stage) => ({ stage, count: byStage[stage] || 0 }))
+    return { total, byStage, funnel, activityByDate: byDate }
+  }, [filteredLeads])
+
+  const hasFilters = datePreset !== 'all' || stageFilter || campaignFilter || formFilter || sourceFilter || showTestLeads
+
+  const clearFilters = () => {
+    setDatePreset('all')
+    setCustomStart('')
+    setCustomEnd('')
+    setStageFilter('')
+    setCampaignFilter('')
+    setFormFilter('')
+    setSourceFilter('')
+    setShowTestLeads(false)
+  }
 
   if (loading) {
     return (
@@ -48,17 +166,32 @@ export default function Dashboard() {
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
 
-  const maxFunnel = Math.max(...stageOrder.map((s) => stats?.funnel?.find((f: any) => f.stage === s)?.count || 0), 1)
+  const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
 
-  const activityDates = stats?.activityByDate ? Object.entries(stats.activityByDate).sort() : []
-  const maxActivity = Math.max(...activityDates.map(([, c]) => c as number), 1)
-  const barGap = activityDates.length > 14 ? 1 : 2
+  const activityEntries = Object.entries(filteredStats.activityByDate).sort()
+  const maxActivity = Math.max(...activityEntries.map(([, c]) => c as number), 1)
 
-  // SVG chart dimensions
+  // Determine which activity dates to show
+  const activitySlice = datePreset === 'all' || datePreset === 'Last 30 days'
+    ? activityEntries.slice(-30)
+    : activityEntries.slice(-14)
+
+  const barGap = activitySlice.length > 14 ? 1 : 2
   const chartW = 600
   const chartH = 140
-  const barCount = activityDates.slice(-14).length
-  const barWidth = Math.min(28, (chartW - barCount * barGap) / barCount)
+  const barCount = activitySlice.length
+  const barWidth = Math.min(28, Math.max(8, (chartW - barCount * barGap) / barCount))
+
+  const FilterSelect = ({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string }) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors min-w-[100px]"
+    >
+      <option value="">{placeholder}</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  )
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -74,6 +207,85 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Date Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {DATE_PRESETS.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => setDatePreset(p.label)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              datePreset === p.label
+                ? 'bg-[#0a0a0a] text-white'
+                : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setDatePreset('all')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            datePreset === 'all'
+              ? 'bg-[#0a0a0a] text-white'
+              : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+          }`}
+        >
+          All time
+        </button>
+        <button
+          onClick={() => setDatePreset('custom')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            datePreset === 'custom'
+              ? 'bg-[#0a0a0a] text-white'
+              : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+          }`}
+        >
+          Custom
+        </button>
+        {datePreset === 'custom' && (
+          <div className="flex items-center gap-2 ml-1">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="h-8 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
+            />
+            <span className="text-xs text-muted">—</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="h-8 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Other Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterSelect value={stageFilter} onChange={setStageFilter} options={filterOptions.stages} placeholder="All stages" />
+        <FilterSelect value={campaignFilter} onChange={setCampaignFilter} options={filterOptions.campaigns} placeholder="All campaigns" />
+        <FilterSelect value={formFilter} onChange={setFormFilter} options={filterOptions.forms} placeholder="All forms" />
+        <FilterSelect value={sourceFilter} onChange={setSourceFilter} options={filterOptions.sources} placeholder="All sources" />
+        <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showTestLeads}
+            onChange={(e) => setShowTestLeads(e.target.checked)}
+            className="w-3.5 h-3.5 rounded border-card-border accent-[#0a0a0a]"
+          />
+          Show test leads
+        </label>
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="text-xs text-muted hover:text-[#0a0a0a] transition-colors ml-1 underline"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
       {/* Hero Bento: Total Pipeline + Activity Chart */}
       <div className="grid grid-cols-[1fr_2fr] gap-6">
         {/* Pipeline stat card */}
@@ -81,9 +293,10 @@ export default function Dashboard() {
           <div>
             <p className="section-label">Total Pipeline</p>
             <p className="text-[42px] font-bold text-[#0a0a0a] mt-2 tabular-nums tracking-tight leading-none">
-              {stats.total}
+              {filteredStats.total}
             </p>
-            <p className="text-sm text-muted mt-2">{stats.last24h} in last 24h</p>
+            {!hasFilters && <p className="text-sm text-muted mt-2">{stats.last24h} in last 24h</p>}
+            {hasFilters && <p className="text-sm text-muted mt-2">Filtered</p>}
           </div>
           <div className="flex gap-4 mt-6 pt-6 border-t border-card-border">
             {[
@@ -101,8 +314,8 @@ export default function Dashboard() {
         {/* Activity chart */}
         <div className="border border-card-border rounded-lg p-6">
           <p className="section-label">Lead Activity</p>
-          <p className="text-[11px] text-muted mt-0.5 mb-4">Last 14 days</p>
-          {activityDates.length > 0 ? (
+          <p className="text-[11px] text-muted mt-0.5 mb-4">{datePreset === 'all' ? 'All time' : `Last ${activitySlice.length} days`}</p>
+          {activitySlice.length > 0 ? (
             <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-auto" style={{ height: chartH }}>
               {/* Grid lines */}
               {[0.25, 0.5, 0.75, 1].map((pct) => (
@@ -114,7 +327,7 @@ export default function Dashboard() {
                 />
               ))}
               {/* Bars */}
-              {activityDates.slice(-14).map(([date, count], i) => {
+              {activitySlice.map(([date, count], i) => {
                 const x = i * (barWidth + barGap) + 10
                 const h = ((count as number) / maxActivity) * (chartH - 20)
                 return (
@@ -141,7 +354,7 @@ export default function Dashboard() {
                 )
               })}
               {/* Day labels */}
-              {activityDates.slice(-14).map(([date, _], i) => {
+              {activitySlice.map(([date, _], i) => {
                 const x = i * (barWidth + barGap) + 10 + barWidth / 2
                 const d = new Date(date)
                 return (
@@ -159,7 +372,7 @@ export default function Dashboard() {
               })}
             </svg>
           ) : (
-            <div className="text-sm text-muted">No activity data</div>
+            <div className="text-sm text-muted">No activity data in this range</div>
           )}
         </div>
       </div>
@@ -167,14 +380,14 @@ export default function Dashboard() {
       {/* Stats Cards Grid — 8 bento cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Leads', value: stats.total },
+          { label: 'Total Leads', value: filteredStats.total },
           { label: 'New Today', value: stats.newToday },
-          { label: 'Contact', value: stats.byStage?.Contact || 0 },
-          { label: 'Prospects', value: stats.byStage?.Prospect || 0 },
-          { label: 'Conv. Leads', value: stats.byStage?.ConversionLead || 0 },
-          { label: 'Purchases', value: stats.byStage?.Purchase || 0 },
+          { label: 'Contact', value: filteredStats.byStage?.Contact || 0 },
+          { label: 'Prospects', value: filteredStats.byStage?.Prospect || 0 },
+          { label: 'Conv. Leads', value: filteredStats.byStage?.ConversionLead || 0 },
+          { label: 'Purchases', value: filteredStats.byStage?.Purchase || 0 },
           { label: 'Pending Events', value: stats.pendingCrmEvents },
-          { label: 'Not Qualified', value: stats.byStage?.NotQualified || 0 },
+          { label: 'Not Qualified', value: filteredStats.byStage?.NotQualified || 0 },
         ].map((card) => (
           <div key={card.label} className="border border-card-border rounded-lg p-4 hover:border-[#d4d4d4] transition-colors">
             <p className="text-[11px] text-muted font-medium">{card.label}</p>
@@ -190,7 +403,7 @@ export default function Dashboard() {
           <h2 className="text-[13px] font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
           <div className="space-y-4">
             {stageOrder.map((stage) => {
-              const entry = stats.funnel?.find((f: any) => f.stage === stage)
+              const entry = filteredStats.funnel.find((f: any) => f.stage === stage)
               const count = entry?.count || 0
               const pct = maxFunnel > 0 ? (count / maxFunnel) * 100 : 0
               return (
@@ -215,27 +428,30 @@ export default function Dashboard() {
         <div className="border border-card-border rounded-lg p-5">
           <h2 className="text-[13px] font-semibold text-[#0a0a0a] mb-5">Stage Distribution</h2>
           <div className="space-y-3">
-            {Object.entries(stats.byStage || {}).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => (
+            {Object.entries(filteredStats.byStage).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => (
               <div key={stage} className="flex items-center gap-3">
                 <span className="text-xs font-medium text-[#6b6b6b] w-20">{stageLabels[stage] || stage}</span>
                 <div className="flex-1 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-[#0a0a0a]"
-                    style={{ width: `${((count as number) / stats.total) * 100}%` }}
+                    style={{ width: `${((count as number) / filteredStats.total) * 100}%` }}
                   />
                 </div>
                 <span className="text-xs font-semibold text-[#0a0a0a] w-8 text-right tabular-nums">{count as number}</span>
               </div>
             ))}
+            {Object.keys(filteredStats.byStage).length === 0 && (
+              <p className="text-xs text-muted">No data in this range</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Recent Leads */}
+      {/* Recent Leads (filtered) */}
       <div className="border border-card-border rounded-lg p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[13px] font-semibold text-[#0a0a0a]">Recent Leads</h2>
-          <span className="text-xs text-muted">{stats.total} total</span>
+          <span className="text-xs text-muted">{filteredStats.total} in range</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -248,7 +464,10 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentLeads.map((lead: any) => (
+              {[...filteredLeads]
+                .sort((a, b) => getMetaCreated(b).localeCompare(getMetaCreated(a)))
+                .slice(0, 8)
+                .map((lead: any) => (
                 <tr key={lead._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors">
                   <td className="py-2.5 pr-4 font-medium text-[#0a0a0a]">{lead.name || '—'}</td>
                   <td className="py-2.5 pr-4 text-muted">{lead.campaignName || '—'}</td>
