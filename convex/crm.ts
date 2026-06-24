@@ -148,6 +148,17 @@ export const listEvents = query({
   },
 });
 
+export const listEventsByLead = query({
+  args: { leadId: v.id("leads") },
+  handler: async (ctx, { leadId }) => {
+    return await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
+      .order("desc")
+      .collect();
+  },
+});
+
 export const eventsCounts = query({
   args: {},
   handler: async (ctx) => {

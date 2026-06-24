@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
 
+function getMetaCreated(lead: any): string {
+  return lead?.fullResponse?.created_time || lead.ingestedAt || ''
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null)
   const [recentLeads, setRecentLeads] = useState<any[]>([])
   const [sourceOfTruth, setSourceOfTruth] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
     Promise.all([
       getStats(),
       getLeads(),
@@ -15,11 +20,19 @@ export default function Dashboard() {
     ])
       .then(([s, l, t]) => {
         setStats(s)
-        setRecentLeads((l.leads || []).slice(0, 8))
+        // Sort by Meta created_time desc, exclude test leads
+        const sorted = (l.leads || [])
+          .filter((lead: any) => !lead.name?.includes('test lead: dummy data'))
+          .sort((a: any, b: any) => getMetaCreated(b).localeCompare(getMetaCreated(a)))
+        setRecentLeads(sorted.slice(0, 8))
         setSourceOfTruth(t)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    load()
   }, [])
 
   if (loading) {
@@ -47,19 +60,19 @@ export default function Dashboard() {
   const statCards = [
     { label: 'Total Leads', value: stats.total, color: 'text-indigo-600' },
     { label: 'New Today', value: stats.newToday, color: 'text-emerald-600' },
-    { label: 'Contact', value: stats.contacted, color: 'text-amber-600' },
-    { label: 'Prospects', value: stats.prospects, color: 'text-blue-600' },
-    { label: 'Conv. Leads', value: stats.conversionLeads, color: 'text-purple-600' },
-    { label: 'Purchases', value: stats.purchases, color: 'text-emerald-600' },
+    { label: 'Contact', value: stats.byStage?.Contact || 0, color: 'text-amber-600' },
+    { label: 'Prospects', value: stats.byStage?.Prospect || 0, color: 'text-blue-600' },
+    { label: 'Conv. Leads', value: stats.byStage?.ConversionLead || 0, color: 'text-purple-600' },
+    { label: 'Purchases', value: stats.byStage?.Purchase || 0, color: 'text-emerald-600' },
     { label: 'Pending Events', value: stats.pendingCrmEvents, color: 'text-orange-600' },
-    { label: 'Not Qualified', value: stats.notQualified, color: 'text-red-600' },
+    { label: 'Not Qualified', value: stats.byStage?.NotQualified || 0, color: 'text-red-600' },
   ]
 
   const stageBadgeClass = (stage: string) => {
     const m: Record<string, string> = {
       Lead: 'bg-indigo-100 text-indigo-700',
       Contact: 'bg-amber-100 text-amber-700',
-      prospect: 'bg-blue-100 text-blue-700',
+      Prospect: 'bg-blue-100 text-blue-700',
       ConversionLead: 'bg-purple-100 text-purple-700',
       Purchase: 'bg-emerald-100 text-emerald-700',
       NotQualified: 'bg-red-100 text-red-700',
@@ -190,7 +203,7 @@ export default function Dashboard() {
                 <th className="pb-2 font-medium">Name</th>
                 <th className="pb-2 font-medium">Campaign</th>
                 <th className="pb-2 font-medium">Stage</th>
-                <th className="pb-2 font-medium">Date</th>
+                <th className="pb-2 font-medium">Created</th>
               </tr>
             </thead>
             <tbody>
@@ -204,7 +217,7 @@ export default function Dashboard() {
                     </span>
                   </td>
                   <td className="py-2.5 text-gray-500 tabular-nums">
-                    {lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleDateString() : '—'}
+                    {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
                   </td>
                 </tr>
               ))}
@@ -220,7 +233,10 @@ export default function Dashboard() {
             <p className="text-xs uppercase tracking-wider font-medium text-gray-400">Data Source</p>
             <p className="text-sm mt-1">
               Convex cloud <span className="text-gray-500">·</span> {sourceOfTruth?.totalLeads || stats.total} leads
-              <span className="text-gray-500"> · Re-sync creates {stats.total} updated, 0 new</span>
+              <span className="text-gray-500"> · Re-sync updates Meta/source fields only</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Reporting uses Meta lead creation date.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">

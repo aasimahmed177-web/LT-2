@@ -2,6 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { getLeads } from '../api'
 import LeadDrawer from '../LeadDrawer'
 
+function getMetaCreated(lead: any): string {
+  return lead?.fullResponse?.created_time || lead.ingestedAt || ''
+}
+
+function isTestLead(lead: any): boolean {
+  return !!lead?.name?.includes('test lead: dummy data')
+}
+
 export default function Leads() {
   const [allLeads, setAllLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,9 +31,10 @@ export default function Leads() {
     loadLeads()
   }, [])
 
-  const filtered = useMemo(() => {
+  const processed = useMemo(() => {
     let result = allLeads
 
+    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -37,11 +46,30 @@ export default function Leads() {
       )
     }
 
+    // Stage filter
     if (stageFilter) {
       result = result.filter((l) => l.stage === stageFilter)
     }
 
-    return result
+    // Separate test leads and sort: real leads first (newest Meta created), test leads at bottom
+    const real = result.filter((l) => !isTestLead(l))
+    const test = result.filter((l) => isTestLead(l))
+
+    // Sort real leads by Meta created_time descending (newest first)
+    real.sort((a, b) => {
+      const da = getMetaCreated(a)
+      const db = getMetaCreated(b)
+      return db.localeCompare(da)
+    })
+
+    // Test leads sorted amongst themselves
+    test.sort((a, b) => {
+      const da = getMetaCreated(a)
+      const db = getMetaCreated(b)
+      return db.localeCompare(da)
+    })
+
+    return { real, test }
   }, [allLeads, searchQuery, stageFilter])
 
   const stages = useMemo(() => {
@@ -53,7 +81,7 @@ export default function Leads() {
     const m: Record<string, string> = {
       Lead: 'bg-indigo-100 text-indigo-700',
       Contact: 'bg-amber-100 text-amber-700',
-      prospect: 'bg-blue-100 text-blue-700',
+      Prospect: 'bg-blue-100 text-blue-700',
       ConversionLead: 'bg-purple-100 text-purple-700',
       Purchase: 'bg-emerald-100 text-emerald-700',
       NotQualified: 'bg-red-100 text-red-700',
@@ -108,7 +136,7 @@ export default function Leads() {
           <div className="p-8 text-center text-sm text-muted">Loading leads...</div>
         ) : error ? (
           <div className="p-8 text-center text-sm text-red-500">Error: {error}</div>
-        ) : filtered.length === 0 ? (
+        ) : processed.real.length === 0 && processed.test.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted">
             {searchQuery || stageFilter ? 'No leads match your search' : 'No leads yet. Go to Settings and sync Meta leads.'}
           </div>
@@ -122,12 +150,11 @@ export default function Leads() {
                   <th className="p-3 font-medium">Email</th>
                   <th className="p-3 font-medium">Campaign</th>
                   <th className="p-3 font-medium">Stage</th>
-                  <th className="p-3 font-medium">Source</th>
                   <th className="p-3 font-medium">Created</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((lead: any) => (
+                {processed.real.map((lead: any) => (
                   <tr
                     key={lead._id}
                     onClick={() => setSelectedLeadId(lead._id)}
@@ -142,14 +169,47 @@ export default function Leads() {
                         {lead.stage}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <span className="text-xs text-gray-400">{lead.platform || 'meta'}</span>
-                    </td>
                     <td className="p-3 text-gray-500 tabular-nums text-xs">
-                      {lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}
+                      {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleString() : '—'}
                     </td>
                   </tr>
                 ))}
+
+                {/* Test leads separator + rows */}
+                {processed.test.length > 0 && (
+                  <>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <td colSpan={6} className="p-2 text-[11px] text-muted font-medium pl-3">
+                        Meta Test Leads ({processed.test.length})
+                      </td>
+                    </tr>
+                    {processed.test.map((lead: any) => (
+                      <tr
+                        key={lead._id}
+                        onClick={() => setSelectedLeadId(lead._id)}
+                        className="border-b border-gray-50 hover:bg-gray-100/30 cursor-pointer transition-colors opacity-60"
+                      >
+                        <td className="p-3 font-medium text-gray-500">
+                          {lead.name || '—'}
+                          <span className="ml-1.5 text-[10px] font-medium px-1 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            Test
+                          </span>
+                        </td>
+                        <td className="p-3 text-gray-400">{lead.phone || '—'}</td>
+                        <td className="p-3 text-gray-400 max-w-[200px] truncate">{lead.email || '—'}</td>
+                        <td className="p-3 text-gray-400 max-w-[150px] truncate">{lead.campaignName || '—'}</td>
+                        <td className="p-3">
+                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${stageBadge(lead.stage)}`}>
+                            {lead.stage}
+                          </span>
+                        </td>
+                        <td className="p-3 text-gray-400 tabular-nums text-xs">
+                          {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
               </tbody>
             </table>
           </div>

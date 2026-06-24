@@ -92,3 +92,7 @@ export function getEventsCounts() {
 export function getLastImportResult() {
   return json<any>(`${API_BASE}/meta/last-import-result`)
 }
+
+export function getLeadEvents(id: string) {
+  return json<any>(`${API_BASE}/leads/${id}/events`)
+}

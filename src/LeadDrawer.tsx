@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   getLead, updateLeadStage, getLeadHistory,
   getLeadNotes, addLeadNote, getLeadTasks, addLeadTask, toggleLeadTask,
+  getLeadEvents,
 } from './api'
 
 const STAGES = [
@@ -53,6 +54,7 @@ export default function LeadDrawer({
   const [history, setHistory] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [newNote, setNewNote] = useState('')
@@ -65,16 +67,18 @@ export default function LeadDrawer({
     setLoading(true)
     setLoadError(null)
     try {
-      const [l, h, n, t] = await Promise.all([
+      const [l, h, n, t, e] = await Promise.all([
         getLead(leadId),
         getLeadHistory(leadId),
         getLeadNotes(leadId),
         getLeadTasks(leadId),
+        getLeadEvents(leadId),
       ])
       setLead(l)
       setHistory(h.history || h || [])
       setNotes(n.notes || n || [])
       setTasks(t.tasks || t || [])
+      setEvents(e.events || e || [])
     } catch (err: any) {
       console.error('Drawer load error:', err)
       setLoadError(err.message || 'Failed to load lead')
@@ -155,6 +159,15 @@ export default function LeadDrawer({
     Invalid: 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200/50',
   }
 
+  const statusBadge = (status: string) => {
+    const m: Record<string, string> = {
+      pending: 'bg-amber-100 text-amber-700',
+      sent: 'bg-emerald-100 text-emerald-700',
+      failed: 'bg-red-100 text-red-700',
+    }
+    return m[status] || 'bg-gray-100 text-gray-600'
+  }
+
   return (
     <>
       <div className="drawer-overlay" onClick={onClose} />
@@ -195,10 +208,9 @@ export default function LeadDrawer({
               <p className="text-xs text-gray-400 mt-2">ID: {leadId}</p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* === CRM STATUS === */}
               <SectionBox title="CRM Status" accent="border-indigo-400">
-                {/* Stage Buttons */}
                 <div>
                   <p className="text-xs font-medium text-gray-500 mb-2">Current Stage</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -218,38 +230,16 @@ export default function LeadDrawer({
                     ))}
                   </div>
                 </div>
-
-                {/* Stage History */}
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Stage History</p>
-                  {history.length === 0 ? (
-                    <p className="text-xs text-muted">No stage changes yet</p>
-                  ) : (
-                    <div className="space-y-1 max-h-28 overflow-y-auto">
-                      {history.map((h: any) => (
-                        <div key={h._id} className="text-xs bg-white rounded-lg p-2 flex justify-between border border-gray-100">
-                          <span className="text-gray-700">
-                            {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
-                          </span>
-                          <span className="text-gray-400">{new Date(h.changedAt).toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Stage Changed Timestamp */}
                 {lead.stageChangedAt && (
                   <p className="text-xs text-muted mt-2">
-                    Stage last changed: {new Date(lead.stageChangedAt).toLocaleString()}
+                    Last changed: {new Date(lead.stageChangedAt).toLocaleString()}
                   </p>
                 )}
               </SectionBox>
 
-              {/* === META / SOURCE DATA === */}
-              <SectionBox title="Meta / Source Data" accent="border-amber-400">
-                {/* Contact Info from Meta */}
-                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+              {/* === CONTACT === */}
+              <SectionBox title="Contact" accent="border-amber-400">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Phone</span>
                     <p className="text-gray-800">{lead.phone || '—'}</p>
@@ -258,53 +248,65 @@ export default function LeadDrawer({
                     <span className="text-muted text-xs">Email</span>
                     <p className="text-gray-800">{lead.email || '—'}</p>
                   </div>
-                  {budget && (
-                    <div>
-                      <span className="text-muted text-xs">Budget</span>
-                      <p className="text-gray-800">{budget}</p>
-                    </div>
-                  )}
-                  {purpose && (
-                    <div>
-                      <span className="text-muted text-xs">Purpose</span>
-                      <p className="text-gray-800">{purpose}</p>
-                    </div>
-                  )}
                 </div>
+              </SectionBox>
 
-                {/* Campaign Info */}
-                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+              {/* === QUALIFICATION === */}
+              <SectionBox title="Qualification" accent="border-blue-400">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted text-xs">Budget</span>
+                    <p className="text-gray-800">{budget || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Purpose</span>
+                    <p className="text-gray-800">{purpose || '—'}</p>
+                  </div>
+                </div>
+              </SectionBox>
+
+              {/* === CAMPAIGN SOURCE === */}
+              <SectionBox title="Campaign Source" accent="border-cyan-400">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted text-xs">Campaign</span>
                     <p className="text-gray-800">{lead.campaignName || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Ad / Ad Set</span>
-                    <p className="text-gray-800">{lead.adName || lead.adSetName || '—'}</p>
+                    <span className="text-muted text-xs">Ad</span>
+                    <p className="text-gray-800">{lead.adName || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Ad Set</span>
+                    <p className="text-gray-800">{lead.adSetName || '—'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Source</span>
                     <p className="text-gray-800">{lead.platform || 'meta'}</p>
                   </div>
-                  <div>
+                </div>
+              </SectionBox>
+
+              {/* === META / SYSTEM DATA === */}
+              <SectionBox title="Meta / System Data" accent="border-gray-400">
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted text-xs">Meta Lead ID</span>
+                    <p className="text-gray-800 font-mono text-xs">{lead.metaLeadId || '—'}</p>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted text-xs">Meta Page ID</span>
                     <p className="text-gray-800 font-mono text-xs">{lead.pageId || '—'}</p>
                   </div>
-                </div>
-
-                {/* Timestamps */}
-                <div className="text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted text-xs">Meta Created</span>
                     <p className="text-gray-800 text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
                   </div>
-                  <div className="flex justify-between mt-1">
+                  <div className="flex justify-between">
                     <span className="text-muted text-xs">Imported At</span>
                     <p className="text-gray-800 text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
                   </div>
                 </div>
-
-                {/* Raw Field Data */}
                 <div className="mt-3">
                   <button
                     onClick={() => setShowRaw(!showRaw)}
@@ -325,59 +327,98 @@ export default function LeadDrawer({
                 </div>
               </SectionBox>
 
-              {/* === NOTES & TASKS === */}
-              <SectionBox title="Notes &amp; Tasks" accent="border-emerald-400">
-                {/* Notes */}
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Notes</p>
-                  <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
-                    {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
-                    {notes.map((n: any) => (
-                      <div key={n._id} className="text-xs bg-white rounded-lg p-2.5 border border-gray-100">
-                        <p className="text-gray-700">{n.content}</p>
-                        <p className="text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                      placeholder="Add a note..."
-                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
-                  </div>
+              {/* === NOTES === */}
+              <SectionBox title="Notes" accent="border-emerald-400">
+                <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
+                  {notes.length === 0 && <p className="text-xs text-muted">No notes</p>}
+                  {notes.map((n: any) => (
+                    <div key={n._id} className="text-xs bg-white rounded-lg p-2.5 border border-gray-100">
+                      <p className="text-gray-700">{n.content}</p>
+                      <p className="text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                    </div>
+                  ))}
                 </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                    placeholder="Add a note..."
+                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                </div>
+              </SectionBox>
 
-                {/* Tasks */}
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Tasks</p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto mb-2">
-                    {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
-                    {tasks.map((t: any) => (
-                      <div key={t._id} className="flex items-center gap-2 text-sm bg-white rounded-lg p-2 border border-gray-100">
-                        <input
-                          type="checkbox"
-                          checked={t.done}
-                          onChange={() => handleToggleTask(t._id, !t.done)}
-                          className="rounded border-gray-300 accent-accent"
-                        />
-                        <span className={t.done ? 'line-through text-muted' : 'text-gray-700'}>{t.content}</span>
+              {/* === TASKS === */}
+              <SectionBox title="Tasks" accent="border-emerald-400">
+                <div className="space-y-1.5 max-h-36 overflow-y-auto mb-2">
+                  {tasks.length === 0 && <p className="text-xs text-muted">No tasks</p>}
+                  {tasks.map((t: any) => (
+                    <div key={t._id} className="flex items-center gap-2 text-sm bg-white rounded-lg p-2 border border-gray-100">
+                      <input
+                        type="checkbox"
+                        checked={t.done}
+                        onChange={() => handleToggleTask(t._id, !t.done)}
+                        className="rounded border-gray-300 accent-accent"
+                      />
+                      <span className={t.done ? 'line-through text-muted' : 'text-gray-700'}>{t.content}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                    placeholder="Add a task..."
+                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
+                </div>
+              </SectionBox>
+
+              {/* === STAGE HISTORY === */}
+              <SectionBox title="Stage History" accent="border-purple-400">
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {history.length === 0 ? (
+                    <p className="text-xs text-muted">No stage changes yet</p>
+                  ) : (
+                    history.map((h: any) => (
+                      <div key={h._id} className="text-xs bg-white rounded-lg p-2 flex justify-between border border-gray-100">
+                        <span className="text-gray-700">
+                          {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
+                        </span>
+                        <span className="text-gray-400">{new Date(h.changedAt).toLocaleString()}</span>
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={newTask}
-                      onChange={(e) => setNewTask(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                      placeholder="Add a task..."
-                      className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-lg hover:bg-indigo-500">Add</button>
-                  </div>
+                    ))
+                  )}
+                </div>
+              </SectionBox>
+
+              {/* === CRM EVENT HISTORY === */}
+              <SectionBox title="CRM Event History" accent="border-rose-400">
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {events.length === 0 ? (
+                    <p className="text-xs text-muted">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
+                  ) : (
+                    events.map((ev: any) => (
+                      <div key={ev._id} className="text-xs bg-white rounded-lg p-2 border border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-700">{ev.eventName}</span>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusBadge(ev.status)}`}>
+                            {ev.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between mt-1 text-gray-400">
+                          <span>Stage: {ev.stage}</span>
+                          <span>{new Date(ev.createdAt).toLocaleString()}</span>
+                        </div>
+                        {ev.attempts > 0 && <p className="text-gray-400 mt-0.5">Attempts: {ev.attempts}</p>}
+                        {ev.error && <p className="text-red-500 mt-0.5">Error: {ev.error}</p>}
+                      </div>
+                    ))
+                  )}
                 </div>
               </SectionBox>
             </div>

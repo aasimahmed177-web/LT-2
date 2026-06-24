@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getEvents, getEventsCounts } from '../api'
 
 export default function Events() {
   const [events, setEvents] = useState<any[]>([])
   const [counts, setCounts] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('')
 
   useEffect(() => {
     Promise.all([getEvents(), getEventsCounts()])
@@ -15,6 +16,11 @@ export default function Events() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  const filtered = useMemo(() => {
+    if (!statusFilter) return events
+    return events.filter((ev) => ev.status === statusFilter)
+  }, [events, statusFilter])
 
   if (loading) {
     return <div className="flex items-center justify-center h-full"><div className="text-gray-400 text-sm">Loading events...</div></div>
@@ -51,11 +57,29 @@ export default function Events() {
         ))}
       </div>
 
+      {/* Status Filter */}
+      <div className="flex gap-2 items-center">
+        <span className="text-xs text-muted font-medium">Filter:</span>
+        {['', 'pending', 'sent', 'failed'].map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              statusFilter === s
+                ? 'bg-accent text-white'
+                : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            {s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All'}
+          </button>
+        ))}
+      </div>
+
       {/* Events Table */}
       <div className="bg-card rounded-xl border border-card-border overflow-hidden">
-        {events.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted">
-            No CRM events yet. Change a lead stage to create events.
+            {statusFilter ? `No ${statusFilter} events` : 'No CRM events yet. Change a lead stage to create events.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -73,7 +97,7 @@ export default function Events() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((ev: any) => (
+                {filtered.map((ev: any) => (
                   <tr key={ev._id} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="p-3 font-medium text-gray-800">{ev.eventName}</td>
                     <td className="p-3">

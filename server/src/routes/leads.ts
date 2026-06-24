@@ -112,6 +112,19 @@ router.get("/:id/history", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/leads/:id/events
+router.get("/:id/events", async (req: Request, res: Response) => {
+  try {
+    const events = await getConvex().query("crm:listEventsByLead", {
+      leadId: req.params.id as any,
+    });
+    res.json({ events });
+  } catch (err: any) {
+    console.error("Events list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch events", detail: err.message });
+  }
+});
+
 // GET /api/leads/:id/notes
 router.get("/:id/notes", async (req: Request, res: Response) => {
   try {
