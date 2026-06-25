@@ -10,7 +10,7 @@
   --color-card: #ffffff;
   --color-card-border: #ebebeb;
   --color-muted: #8b8b8b;
-  /* Stage dot colors — kept subtle for indicators only */
+  /* Stage dot colors */
   --color-stage-lead: #0a0a0a;
   --color-stage-contacted: #0a0a0a;
   --color-stage-prospect: #0a0a0a;
@@ -67,10 +67,67 @@ body {
 }
 
 /* Chart bar animation */
-.animate-bar { animation: barGrow 0.8s ease-out forwards; }
+.animate-bar { animation: barGrow 0.6s ease-out forwards; }
 @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
 /* Label style for section headers */
 .section-label {
   @apply text-[11px] uppercase tracking-widest font-medium text-muted;
+}
+
+/* Premium pill badge */
+.pill {
+  @apply inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full;
+}
+
+/* Subtle number styling for KPIs */
+.kpi-value {
+  @apply text-[28px] font-bold text-[#0a0a0a] tabular-nums tracking-tight leading-none;
+}
+
+/* Table header styling */
+.table-header {
+  @apply text-left text-[11px] uppercase tracking-wider font-medium text-muted;
+}
+
+/* Card hover lift */
+.card-hover {
+  @apply transition-all duration-150;
+}
+.card-hover:hover {
+  @apply border-[#d4d4d4];
+}
+
+/* Chart tooltip */
+.chart-tooltip {
+  @apply absolute bg-white border border-card-border rounded-lg shadow-lg px-3 py-2 text-xs pointer-events-none z-10;
+  transform: translate(-50%, -100%);
+}
+
+/* Stage pill - black/white only */
+.stage-pill {
+  @apply inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-[#e5e5e5] bg-white text-[#6b6b6b];
+}
+.stage-pill-active {
+  @apply bg-[#0a0a0a] text-white border-[#0a0a0a];
+}
+
+/* Filter button */
+.filter-btn {
+  @apply h-8 px-3 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors cursor-pointer;
+}
+.filter-btn-active {
+  @apply bg-[#0a0a0a] text-white border-[#0a0a0a];
+}
+
+/* Subtle loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
 }

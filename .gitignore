@@ -27,6 +27,12 @@ convex/.temp
 # Verification outputs and temp test files
 verification/*.log
 
+# Agent skill installation artifacts
+.agents/
+.claude/skills/*
+!skills-lock.json
+skills-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

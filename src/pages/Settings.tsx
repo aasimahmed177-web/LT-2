@@ -73,7 +73,6 @@ export default function Settings() {
       if (editPixelId !== (clientConfig?.config?.pixelId || '')) payload.pixelId = editPixelId
       if (Object.keys(payload).length === 0) { setEditing(false); setSaving(false); return }
       await updateClientConfig(currentClientId, payload)
-      // Refresh client config
       const fresh = await getClient(currentClientId)
       setClientConfig(fresh)
       setSaveSuccess(true)
@@ -96,7 +95,6 @@ export default function Settings() {
         newClientPageId.trim() || undefined,
         newClientPixelId.trim() || undefined,
       )
-      // Refresh client list and switch to new client
       const data = await fetchClients()
       const newClient = data.clients.find((c: any) => c.id === created.id)
       if (newClient) {
@@ -114,28 +112,29 @@ export default function Settings() {
   }
 
   const ConfigRow = ({ label, ok, detail, warning }: { label: string; ok: boolean; detail?: string; warning?: string }) => (
-    <div className="flex items-center gap-3 py-2">
-      <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-400' : warning ? 'bg-amber-400' : 'bg-red-400'}`} />
-      <span className="text-sm text-gray-700">{label}</span>
-      <span className={`text-xs ${ok ? 'text-emerald-600' : warning ? 'text-amber-600' : 'text-red-500'}`}>
+    <div className="flex items-center gap-3 py-1.5">
+      <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-500' : warning ? 'bg-amber-400' : 'bg-red-400'}`} />
+      <span className="text-sm text-[#0a0a0a]">{label}</span>
+      <span className={`text-xs font-medium ${ok ? 'text-emerald-600' : warning ? 'text-amber-600' : 'text-red-500'}`}>
         {ok ? 'Configured' : warning || 'Not configured'}
       </span>
-      {detail && <span className="text-xs text-muted ml-1">{detail}</span>}
+      {detail && <span className="text-xs text-muted ml-1 font-mono">{detail}</span>}
     </div>
   )
 
   const displayResult = result || lastResult
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+          <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Settings</h1>
           <p className="text-sm text-muted mt-0.5">Meta integration and data management</p>
         </div>
         <button
           onClick={() => setShowAddClient(!showAddClient)}
-          className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-indigo-500 transition-colors"
+          className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 transition-opacity"
         >
           {showAddClient ? 'Cancel' : '+ Add Client'}
         </button>
@@ -143,11 +142,11 @@ export default function Settings() {
 
       {/* Add Client Form */}
       {showAddClient && (
-        <div className="bg-card rounded-xl border border-card-border p-5">
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">New Client</h2>
+        <div className="border border-card-border rounded-xl p-5">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-4">New Client</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted block mb-1">Client Name *</label>
+              <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Client Name *</label>
               <input
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
@@ -159,7 +158,7 @@ export default function Settings() {
               )}
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Meta Page ID (optional)</label>
+              <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Meta Page ID (optional)</label>
               <input
                 value={newClientPageId}
                 onChange={(e) => setNewClientPageId(e.target.value)}
@@ -168,7 +167,7 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="text-xs text-muted block mb-1">Meta Pixel / Dataset ID (optional)</label>
+              <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Meta Pixel / Dataset ID (optional)</label>
               <input
                 value={newClientPixelId}
                 onChange={(e) => setNewClientPixelId(e.target.value)}
@@ -183,7 +182,7 @@ export default function Settings() {
               <button
                 onClick={handleCreate}
                 disabled={creating || !newClientName.trim()}
-                className="px-4 py-2 bg-[#0a0a0a] text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors"
+                className="h-8 px-4 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {creating ? 'Creating...' : 'Create Client'}
               </button>
@@ -193,23 +192,23 @@ export default function Settings() {
       )}
 
       {/* Meta Configuration */}
-      <div className="bg-card rounded-xl border border-card-border p-5">
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">Meta Configuration</h2>
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Meta Configuration</h2>
         {healthLoading ? (
           <p className="text-sm text-muted">Checking configuration...</p>
         ) : health ? (
           <div>
-            <div className="space-y-1">
-              <ConfigRow label="Meta Page ID" ok={health.pageIdConfigured} />
-              <ConfigRow label="Meta Access Token" ok={health.metaConfigured} />
+            <div className="space-y-0.5">
+              <ConfigRow label="Meta Page ID" ok={health.pageIdConfigured} detail={health.pageId} />
+              <ConfigRow label="Meta Access Token" ok={health.tokenConfigured} />
               <ConfigRow label="Pixel / Dataset ID" ok={health.pixelIdConfigured} detail={health.pixelId} />
             </div>
             {!health.metaConfigured && (
-              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800">
-                <p className="font-medium">Meta integration is not fully configured</p>
-                <p className="text-xs text-amber-700 mt-1">
-                  {!health.pageIdConfigured && !health.metaConfigured ? 'META_PAGE_ID is missing. ' : ''}
-                  {health.pageIdConfigured && !health.metaConfigured ? 'META_ACCESS_TOKEN is missing or invalid. ' : ''}
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p className="text-xs font-medium text-amber-800">Meta integration is not fully configured</p>
+                <p className="text-[11px] text-amber-700 mt-1">
+                  {!health.pageIdConfigured ? 'META_PAGE_ID is missing. ' : ''}
+                  {health.pageIdConfigured && !health.tokenConfigured ? 'META_ACCESS_TOKEN is missing or invalid. ' : ''}
                   Add the required environment variables to .env.local and restart the server.
                 </p>
               </div>
@@ -222,17 +221,17 @@ export default function Settings() {
 
       {/* Client Configuration (editable) */}
       {configLoading ? (
-        <div className="bg-card rounded-xl border border-card-border p-5">
+        <div className="border border-card-border rounded-xl p-5">
           <p className="text-sm text-muted">Loading client configuration...</p>
         </div>
       ) : clientConfig && (
-        <div className="bg-card rounded-xl border border-card-border p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-800">Client Configuration</h2>
+        <div className="border border-card-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Client Configuration</h2>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="text-xs font-medium text-accent hover:text-indigo-600 transition-colors"
+                className="text-[11px] font-medium text-muted hover:text-[#0a0a0a] transition-colors"
               >
                 Edit
               </button>
@@ -242,7 +241,7 @@ export default function Settings() {
           {editing ? (
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted block mb-1">Client Name</label>
+                <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Client Name</label>
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -250,11 +249,11 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted block mb-1">Slug</label>
-                <p className="text-sm text-gray-500 px-3 py-1.5 bg-gray-50 rounded-md">{clientConfig.id}</p>
+                <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Slug</label>
+                <p className="text-sm text-muted px-3 py-1.5 bg-gray-50 rounded-md font-mono">{clientConfig.id}</p>
               </div>
               <div>
-                <label className="text-xs text-muted block mb-1">Meta Page ID</label>
+                <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Meta Page ID</label>
                 <input
                   value={editPageId}
                   onChange={(e) => setEditPageId(e.target.value)}
@@ -263,7 +262,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted block mb-1">Meta Pixel / Dataset ID</label>
+                <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Meta Pixel / Dataset ID</label>
                 <input
                   value={editPixelId}
                   onChange={(e) => setEditPixelId(e.target.value)}
@@ -272,7 +271,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted block mb-1">Token Status</label>
+                <label className="text-[11px] text-muted block mb-1 uppercase tracking-wider">Token Status</label>
                 <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
                   clientConfig.config?.tokenConfigured
                     ? 'bg-emerald-100 text-emerald-700'
@@ -286,39 +285,39 @@ export default function Settings() {
               <div className="flex gap-2 justify-end pt-1">
                 <button
                   onClick={() => { setEditing(false); setSaveError(null) }}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-colors"
+                  className="h-8 px-3 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
+                  className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted">Name:</span>
-                <span className="font-medium text-gray-800">{clientConfig.name || currentClient?.name || clientConfig.id}</span>
+                <span className="text-muted text-[11px] uppercase tracking-wider">Name</span>
+                <span className="font-medium text-[#0a0a0a]">{clientConfig.name || currentClient?.name || clientConfig.id}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted">Slug:</span>
-                <span className="font-mono text-xs text-gray-600">{clientConfig.id}</span>
+                <span className="text-muted text-[11px] uppercase tracking-wider">Slug</span>
+                <span className="font-mono text-xs text-muted">{clientConfig.id}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted">Page ID:</span>
-                <span className="font-mono text-xs">{clientConfig.config?.pageId || '—'}</span>
+                <span className="text-muted text-[11px] uppercase tracking-wider">Page ID</span>
+                <span className="font-mono text-xs text-muted">{clientConfig.config?.pageId || '—'}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted">Pixel/Dataset ID:</span>
-                <span className="font-mono text-xs">{clientConfig.config?.pixelId || '—'}</span>
+                <span className="text-muted text-[11px] uppercase tracking-wider">Pixel/Dataset ID</span>
+                <span className="font-mono text-xs text-muted">{clientConfig.config?.pixelId || '—'}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted">Token:</span>
+                <span className="text-muted text-[11px] uppercase tracking-wider">Token</span>
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                   clientConfig.config?.tokenConfigured
                     ? 'bg-emerald-100 text-emerald-700'
@@ -329,16 +328,16 @@ export default function Settings() {
               </div>
               {lastResult && lastResult.lastSyncedAt && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">Last synced:</span>
-                  <span className="text-xs text-gray-600">{new Date(lastResult.lastSyncedAt).toLocaleString()}</span>
+                  <span className="text-muted text-[11px] uppercase tracking-wider">Last synced</span>
+                  <span className="text-xs text-muted">{new Date(lastResult.lastSyncedAt).toLocaleString()}</span>
                 </div>
               )}
               {clientConfig.forms && clientConfig.forms.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted mb-1.5">Imported Forms ({clientConfig.forms.length})</p>
+                <div className="pt-3 border-t border-card-border mt-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted font-medium mb-2">Imported Forms ({clientConfig.forms.length})</p>
                   <div className="flex flex-wrap gap-1.5">
                     {clientConfig.forms.map((f: any) => (
-                      <span key={f.formId} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      <span key={f.formId} className="text-xs bg-gray-50 border border-card-border text-muted px-2 py-0.5 rounded-full">
                         {f.formName}
                       </span>
                     ))}
@@ -351,13 +350,13 @@ export default function Settings() {
       )}
 
       {/* Sync Leads */}
-      <div className="bg-card rounded-xl border border-card-border p-5">
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">Sync Meta Leads</h2>
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Sync Meta Leads</h2>
         <p className="text-xs text-muted mb-4">Manually pull the latest leads from Meta. Dedup is automatic. CRM fields (stage, notes, tasks, history) are never overwritten.</p>
         <button
           onClick={handleImport}
           disabled={importing}
-          className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
+          className="h-9 px-5 bg-[#0a0a0a] text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center gap-2"
         >
           {importing ? (
             <>
@@ -368,9 +367,7 @@ export default function Settings() {
         </button>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
-            {error}
-          </div>
+          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">{error}</div>
         )}
 
         {displayResult && (
@@ -401,9 +398,9 @@ export default function Settings() {
                 { label: 'Total Fetched', value: displayResult.leadsFetched },
                 { label: 'Total in DB', value: displayResult.total },
               ].map((s) => (
-                <div key={s.label} className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-muted">{s.label}</p>
-                  <p className="text-lg font-bold text-gray-800 tabular-nums">{s.value}</p>
+                <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-3">
+                  <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
+                  <p className="text-lg font-bold text-[#0a0a0a] tabular-nums mt-1">{s.value}</p>
                 </div>
               ))}
             </div>
@@ -419,31 +416,31 @@ export default function Settings() {
 
             {displayResult.forms && displayResult.forms.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted mb-2">Per-form breakdown:</p>
+                <p className="text-[11px] uppercase tracking-wider font-medium text-muted mb-2">Per-form breakdown</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-left text-muted border-b border-gray-100">
-                        <th className="pb-1.5 pr-3 font-medium">Form</th>
-                        <th className="pb-1.5 pr-3 font-medium">Status</th>
-                        <th className="pb-1.5 pr-3 font-medium">Leads</th>
-                        <th className="pb-1.5 font-medium">Error</th>
+                      <tr className="text-left text-muted border-b border-card-border">
+                        <th className="pb-1.5 pr-3 font-medium text-[10px] uppercase tracking-wider">Form</th>
+                        <th className="pb-1.5 pr-3 font-medium text-[10px] uppercase tracking-wider">Status</th>
+                        <th className="pb-1.5 pr-3 font-medium text-[10px] uppercase tracking-wider">Leads</th>
+                        <th className="pb-1.5 font-medium text-[10px] uppercase tracking-wider">Error</th>
                       </tr>
                     </thead>
                     <tbody>
                       {displayResult.forms.map((f: any) => (
                         <tr key={f.formId} className="border-b border-gray-50">
-                          <td className="py-1.5 pr-3 text-gray-700 max-w-[200px] truncate" title={f.formName}>
+                          <td className="py-1.5 pr-3 text-muted max-w-[200px] truncate" title={f.formName}>
                             {f.formName}
                           </td>
                           <td className="py-1.5 pr-3">
-                            <span className={`px-1.5 py-0.5 rounded-full font-medium ${
-                              f.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                              f.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-muted'
                             }`}>
                               {f.status}
                             </span>
                           </td>
-                          <td className="py-1.5 pr-3 tabular-nums">{f.leadsFetched}</td>
+                          <td className="py-1.5 pr-3 tabular-nums text-muted">{f.leadsFetched}</td>
                           <td className="py-1.5 text-red-500">{f.error || '—'}</td>
                         </tr>
                       ))}
@@ -461,33 +458,32 @@ export default function Settings() {
       </div>
 
       {/* Source of Truth */}
-      <div className="bg-card rounded-xl border border-card-border p-5">
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">Data Source</h2>
-        {source && (
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Data Source</h2>
+        {source ? (
           <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="font-medium text-gray-700">Convex Cloud</span>
-              <span className="text-muted">— {source.totalLeads} total leads</span>
+            <div className="flex items-center gap-3 py-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-sm text-[#0a0a0a]">Convex Cloud</span>
+              <span className="text-xs text-muted">— {source.totalLeads} total leads</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-400" />
-              <span className="font-medium text-gray-700">Meta Leads</span>
-              <span className="text-muted">— {source.totalLeads} (100%)</span>
+            <div className="flex items-center gap-3 py-1">
+              <span className="w-2 h-2 rounded-full bg-[#555555]" />
+              <span className="text-sm text-[#0a0a0a]">Meta Leads</span>
+              <span className="text-xs text-muted">— {source.totalLeads} (100%)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-gray-300" />
-              <span className="font-medium text-gray-700">Demo Leads</span>
-              <span className="text-muted">— 0</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {Object.entries(source.byStage || {}).map(([stage, count]) => (
-                <span key={stage} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                  {stage}: {count as number}
-                </span>
-              ))}
-            </div>
+            {source.byStage && Object.keys(source.byStage).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-card-border">
+                {Object.entries(source.byStage).map(([stage, count]) => (
+                  <span key={stage} className="text-xs bg-gray-50 border border-card-border text-muted px-2 py-0.5 rounded-full">
+                    {stage}: {count as number}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
+        ) : (
+          <p className="text-xs text-muted">Loading...</p>
         )}
       </div>
     </div>

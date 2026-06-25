@@ -15,18 +15,22 @@ export default function Layout() {
     <div className="flex h-full">
       {/* Sidebar */}
       <aside className="w-52 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
-        <div className="px-5 py-5 border-b border-sidebar-border">
+        {/* Logo */}
+        <div className="px-4 py-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center text-white text-[11px] font-bold tracking-tight">
+            <div className="w-7 h-7 rounded-md bg-[#0a0a0a] flex items-center justify-center text-white text-[11px] font-bold tracking-tight">
               LT
             </div>
-            <span className="font-semibold text-[14px] text-[#0a0a0a] tracking-tight">LeadTrace</span>
+            <div className="flex flex-col">
+              <span className="text-[13px] font-semibold text-[#0a0a0a] tracking-tight leading-none">LeadTrace</span>
+              <span className="text-[9px] text-muted mt-0.5 tracking-wider uppercase">CRM</span>
+            </div>
           </div>
         </div>
 
         {/* Client Selector */}
         <div className="px-3 py-3 border-b border-sidebar-border">
-          <p className="text-[10px] uppercase tracking-wider text-muted font-medium mb-1.5 px-2">Client</p>
+          <p className="text-[9px] uppercase tracking-widest text-muted font-medium mb-1.5 px-2">Workspace</p>
           <select
             value={currentClientId}
             onChange={(e) => setCurrentClientId(e.target.value)}
@@ -37,19 +41,20 @@ export default function Layout() {
             ))}
           </select>
           {currentClient?.config?.tokenConfigured === false && (
-            <p className="text-[10px] text-amber-600 mt-1 px-2">Not configured</p>
+            <p className="text-[9px] text-amber-600 mt-1 px-2 tracking-wide">Not configured</p>
           )}
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        {/* Navigation */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-100 ${
                   isActive
-                    ? 'bg-accent text-white'
+                    ? 'bg-[#0a0a0a] text-white'
                     : 'text-muted hover:bg-sidebar-hover hover:text-[#0a0a0a]'
                 }`
               }
@@ -58,10 +63,15 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="px-5 py-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-2 text-[11px] text-muted">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-            Convex cloud
+
+        {/* Status footer */}
+        <div className="px-4 py-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <span className="relative flex w-2 h-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0a0a0a] opacity-20" />
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-[#0a0a0a]" />
+            </span>
+            <span className="text-[10px] text-muted tracking-wide">Convex cloud</span>
           </div>
         </div>
       </aside>
