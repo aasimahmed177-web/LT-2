@@ -92,12 +92,19 @@ router.get("/:id", async (req: Request, res: Response) => {
 // PUT /api/leads/:id/stage
 router.put("/:id/stage", async (req: Request, res: Response) => {
   try {
-    const { stage } = req.body;
+    const { stage, reason } = req.body;
+    if (!stage) {
+      res.status(400).json({ error: "stage is required" });
+      return;
+    }
     const lead = await getConvex().query("leads:getById", { id: req.params.id });
     if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
-    const oldStage = lead.stage;
-    await getConvex().mutation("crm:updateStage", { leadId: req.params.id, stage });
-    res.json({ success: true, from: oldStage, to: stage });
+    await getConvex().mutation("crm:updateStage", {
+      leadId: req.params.id as any,
+      stage,
+      reason: reason || undefined,
+    });
+    res.json({ success: true, stage });
   } catch (err: any) {
     console.error("Stage change error:", err.message);
     res.status(500).json({ error: "Failed to update stage", detail: err.message });
@@ -112,6 +119,19 @@ router.get("/:id/history", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("History error:", err.message);
     res.status(500).json({ error: "Failed to fetch history", detail: err.message });
+  }
+});
+
+// GET /api/leads/:id/events
+router.get("/:id/events", async (req: Request, res: Response) => {
+  try {
+    const events = await getConvex().query("crm:listEventsByLead", {
+      leadId: req.params.id as any,
+    });
+    res.json({ events });
+  } catch (err: any) {
+    console.error("Events list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch events", detail: err.message });
   }
 });
 
@@ -152,9 +172,17 @@ router.get("/:id/tasks", async (req: Request, res: Response) => {
 // POST /api/leads/:id/tasks
 router.post("/:id/tasks", async (req: Request, res: Response) => {
   try {
-    const { content } = req.body;
-    const taskResult: any = await getConvex().mutation("crm:addTask", { leadId: req.params.id, content });
-    res.json({ id: taskResult.id });
+    const { content, dueDate } = req.body;
+    if (!content) {
+      res.status(400).json({ error: "content is required" });
+      return;
+    }
+    const result = await getConvex().mutation("crm:addTask", {
+      leadId: req.params.id as any,
+      content,
+      dueDate: dueDate || undefined,
+    });
+    res.json(result);
   } catch (err: any) {
     console.error("Task create error:", err.message);
     res.status(500).json({ error: "Failed to create task", detail: err.message });

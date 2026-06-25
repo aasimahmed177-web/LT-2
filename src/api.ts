@@ -45,11 +45,11 @@ export function getLead(id: string) {
   return json<any>(`${API_BASE}/leads/${id}`)
 }
 
-export function updateLeadStage(id: string, stage: string) {
+export function updateLeadStage(id: string, stage: string, reason?: string) {
   return json<any>(`${API_BASE}/leads/${id}/stage`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stage }),
+    body: JSON.stringify({ stage, reason }),
   })
 }
 
@@ -73,11 +73,11 @@ export function getLeadTasks(id: string) {
   return json<any>(`${API_BASE}/leads/${id}/tasks`)
 }
 
-export function addLeadTask(id: string, content: string) {
+export function addLeadTask(id: string, content: string, dueDate?: string) {
   return json<any>(`${API_BASE}/leads/${id}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, dueDate }),
   })
 }
 
@@ -103,4 +103,8 @@ export function getEventsCounts(clientId?: string) {
 
 export function getLastImportResult(clientId?: string) {
   return json<any>(withClient(`${API_BASE}/meta/last-import-result`, clientId))
+}
+
+export function getLeadEvents(id: string) {
+  return json<any>(`${API_BASE}/leads/${id}/events`)
 }

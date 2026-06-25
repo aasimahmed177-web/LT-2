@@ -2,10 +2,10 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useClient } from './ClientContext'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '◉' },
-  { to: '/leads', label: 'Leads', icon: '◈' },
-  { to: '/events', label: 'Events', icon: '◎' },
-  { to: '/settings', label: 'Settings', icon: '⚙' },
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/leads', label: 'Leads' },
+  { to: '/events', label: 'Events' },
+  { to: '/settings', label: 'Settings' },
 ]
 
 export default function Layout() {
@@ -14,13 +14,13 @@ export default function Layout() {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
+      <aside className="w-52 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
         <div className="px-5 py-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-xs font-bold">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center text-white text-[11px] font-bold tracking-tight">
               LT
             </div>
-            <span className="font-semibold text-[15px] text-gray-800">LeadTrace</span>
+            <span className="font-semibold text-[14px] text-[#0a0a0a] tracking-tight">LeadTrace</span>
           </div>
         </div>
 
@@ -47,28 +47,27 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-medium transition-colors ${
+                `flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-sidebar-active text-gray-900'
-                    : 'text-gray-500 hover:bg-sidebar-hover hover:text-gray-700'
+                    ? 'bg-accent text-white'
+                    : 'text-muted hover:bg-sidebar-hover hover:text-[#0a0a0a]'
                 }`
               }
             >
-              <span className="w-4 text-center text-sm opacity-60">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
         </nav>
         <div className="px-5 py-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <div className="flex items-center gap-2 text-[11px] text-muted">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
             Convex cloud
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50">
+      <main className="flex-1 overflow-y-auto bg-white">
         <Outlet />
       </main>
     </div>

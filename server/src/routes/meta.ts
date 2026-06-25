@@ -167,7 +167,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
             email,
             phone,
             formName,
-            formId,
+formId,
           });
 
           if (result.action === "inserted") totalImported++;
@@ -192,7 +192,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
       total: counts.total,
       forms: formResults,
       errors: formResults.filter((f) => f.error).map((f) => ({ formId: f.formId, formName: f.formName, error: f.error })),
-      clientId,
+clientId,
     };
 
     // Persist last sync result
@@ -200,7 +200,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
       console.error("Failed to persist import result:", err.message);
     });
 
-    // Complete sync run
+// Complete sync run
     if (syncRunId) {
       try {
         await getConvex().mutation("clients:completeSyncRun", {
@@ -217,7 +217,6 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
         console.error("Failed to complete sync run:", err.message);
       }
     }
-
     res.json(result);
   } catch (err: any) {
     // Fail sync run if one was created
