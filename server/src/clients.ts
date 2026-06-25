@@ -47,6 +47,13 @@ const logicalIdToConvex = new Map<string, string>() // logicalId -> convexId
 
 const DEFAULT_CLIENT_ID = "default"
 
+// Orphaned client documents that should be excluded from all results.
+// These exist in Convex but are not valid active clients.
+const EXCLUDED_CLIENT_IDS = new Set([
+  "k17019zsfpqxq1thy2vvj1s0hh89aqdd", // test client created during dev (slug: test-client)
+  "k17dqc3b2gx087e6nhm66gasbd89arhh", // test client created during dev (slug: test)
+])
+
 function initDefaultClient() {
   const pageId = process.env.META_PAGE_ID
   const tokenConfigured = !!(process.env.META_ACCESS_TOKEN && pageId)
@@ -89,7 +96,16 @@ async function syncFromConvex(): Promise<void> {
       const firstClient = convexClients[0]
       logicalIdToConvex.set(DEFAULT_CLIENT_ID, firstClient._id)
     }
+    // Also drop excluded clients from the in-memory cache
+    for (const excludedId of EXCLUDED_CLIENT_IDS) {
+      inMemoryClients.delete(excludedId)
+      inMemoryMetaConfigs.delete(excludedId)
+      inMemorySyncRuns.delete(excludedId)
+      inMemoryLeadForms.delete(excludedId)
+    }
+
     for (const c of convexClients) {
+      if (EXCLUDED_CLIENT_IDS.has(c._id)) continue
       const logicalId = c._id
       convexIdMap.set(logicalId, logicalId)
       logicalIdToConvex.set(logicalId, logicalId)
@@ -180,6 +196,7 @@ export async function autoBackfillMetaConfig(): Promise<void> {
 
 export function getClients(): Client[] {
   const all = Array.from(inMemoryClients.values())
+    .filter((c) => !EXCLUDED_CLIENT_IDS.has(c.id))
   if (!useConvexBackend) return all
   // Deduplicate: if there's a Convex client for "default-meta-client", only return the Convex-backed entry
   const seen = new Set<string>()
@@ -192,7 +209,11 @@ export function getClients(): Client[] {
 }
 
 export function getClient(id: string): Client | undefined {
-  return inMemoryClients.get(id) || inMemoryClients.get(DEFAULT_CLIENT_ID)
+  const c = inMemoryClients.get(id)
+  if (c && !EXCLUDED_CLIENT_IDS.has(c.id)) return c
+  const fallback = inMemoryClients.get(DEFAULT_CLIENT_ID)
+  if (fallback && !EXCLUDED_CLIENT_IDS.has(fallback.id)) return fallback
+  return undefined
 }
 
 export function getDefaultClientId(): string { return DEFAULT_CLIENT_ID }

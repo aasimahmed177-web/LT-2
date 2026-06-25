@@ -50,6 +50,26 @@ export const create = mutation({
   },
 });
 
+export const remove = mutation({
+  args: { id: v.id("clients") },
+  handler: async (ctx, args) => {
+    const client = await ctx.db.get(args.id);
+    if (!client) throw new Error("Client not found");
+    // Delete associated config, forms, sync runs
+    const configs = await ctx.db.query("clientMetaConfigs").withIndex("by_clientId", (q) => q.eq("clientId", args.id)).collect();
+    for (const c of configs) await ctx.db.delete(c._id);
+    const forms = await ctx.db.query("leadForms").withIndex("by_clientId", (q) => q.eq("clientId", args.id)).collect();
+    for (const f of forms) await ctx.db.delete(f._id);
+    const runs = await ctx.db.query("syncRuns").withIndex("by_clientId", (q) => q.eq("clientId", args.id)).collect();
+    for (const r of runs) await ctx.db.delete(r._id);
+    // Unassign leads from this client
+    const leads = await ctx.db.query("leads").withIndex("by_clientId", (q) => q.eq("clientId", args.id)).collect();
+    for (const l of leads) await ctx.db.patch(l._id, { clientId: undefined });
+    // Delete the client
+    await ctx.db.delete(args.id);
+  },
+});
+
 export const updateName = mutation({
   args: { id: v.id("clients"), name: v.string() },
   handler: async (ctx, args) => {
