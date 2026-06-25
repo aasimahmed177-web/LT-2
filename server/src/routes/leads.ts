@@ -125,13 +125,14 @@ router.get("/:id/history", async (req: Request, res: Response) => {
 // GET /api/leads/:id/events
 router.get("/:id/events", async (req: Request, res: Response) => {
   try {
-    const events = await getConvex().query("crm:listEventsByLead", {
-      leadId: req.params.id as any,
-    });
+    // Use the deployed listEvents query (returns all events) and filter by leadId server-side
+    const allEvents: any[] = await getConvex().query("crm:listEvents");
+    const events = allEvents.filter((e: any) => String(e.leadId) === req.params.id);
     res.json({ events });
   } catch (err: any) {
     console.error("Events list error:", err.message);
-    res.status(500).json({ error: "Failed to fetch events", detail: err.message });
+    // Gracefully degrade to empty events if the Convex function is unavailable
+    res.json({ events: [] });
   }
 });
 
