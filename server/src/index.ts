@@ -6,7 +6,7 @@ import metaRoutes from "./routes/meta.js";
 import leadsRoutes from "./routes/leads.js";
 import statsRoutes from "./routes/stats.js";
 import eventsRoutes from "./routes/events.js";
-import { getClients, getClientMetaConfig, getClientLeadForms, resolveClientId, checkDeployStatus, backfillDefaultClient, isConvexBackend } from "./clients.js";
+import { getClients, getClientMetaConfig, getClientLeadForms, resolveClientId, checkDeployStatus, backfillDefaultClient, isConvexBackend, autoBackfillMetaConfig } from "./clients.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.resolve(__dirname, "../../dist");
@@ -78,4 +78,6 @@ app.get("*", (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`LeadTrace API running on port ${PORT}`);
+  // Auto-backfill Meta config on startup (async, non-blocking)
+  autoBackfillMetaConfig()
 });

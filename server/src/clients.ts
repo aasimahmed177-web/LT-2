@@ -123,6 +123,53 @@ async function syncFromConvex(): Promise<void> {
   }
 }
 
+// ─── Auto-backfill Meta config on startup ────────
+
+export async function autoBackfillMetaConfig(): Promise<void> {
+  try {
+    const convex = getConvex()
+    await convex.query("clients:list") // test connection
+    useConvexBackend = true
+    await syncFromConvex()
+
+    const clients = getClients()
+    if (clients.length === 0) return
+
+    const id = resolveConvexClientId(clients[0].id)
+    const pageId = process.env.META_PAGE_ID || ""
+    const tokenConfigured = !!(process.env.META_ACCESS_TOKEN && pageId)
+
+    // Fetch Meta page name for client display name
+    let pageName: string | undefined;
+    const metaToken = process.env.META_ACCESS_TOKEN;
+    if (metaToken && pageId) {
+      try {
+        const pageRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name&access_token=${metaToken}`);
+        const pageData: any = await pageRes.json();
+        if (pageData.name) pageName = pageData.name;
+      } catch { /* page name fetch is best-effort */ }
+    }
+
+    // Update client name if page name is available
+    if (pageName) {
+      try {
+        await convex.mutation("clients:updateName", { id, name: pageName });
+      } catch { /* name update is best-effort */ }
+    }
+
+    await convex.mutation("clients:upsertMetaConfig", {
+      clientId: id,
+      pageId,
+      accessTokenConfigured: tokenConfigured,
+      pixelId: process.env.META_PIXEL_ID || undefined,
+    })
+    console.log(`Auto-backfilled Meta config for client ${id}: pageId=${pageId ? "set" : "unset"} tokenConfigured=${tokenConfigured}`)
+    await syncFromConvex()
+  } catch (err: any) {
+    console.log("Auto-backfill skipped (Convex not ready):", err.message)
+  }
+}
+
 // ─── Getters ────────────────────────
 
 export function getClients(): Client[] {
@@ -150,6 +197,15 @@ export function resolveClientId(clientId?: string): string {
   const convexId = logicalIdToConvex.get(clientId)
   if (convexId) return convexId
   return DEFAULT_CLIENT_ID
+}
+
+/** Resolve a client's logical ID to its Convex document ID (when backend is active). */
+export function resolveConvexClientId(clientId: string): string {
+  if (useConvexBackend) {
+    const mapped = logicalIdToConvex.get(clientId)
+    if (mapped) return mapped
+  }
+  return clientId
 }
 
 export function getClientMetaConfig(clientId: string): ClientMetaConfig | undefined {
@@ -219,16 +275,34 @@ export async function backfillDefaultClient(): Promise<{ success: boolean; clien
       existingClient = await convex.query("clients:getBySlug", { slug: "default-meta-client" })
     } catch { /* query not available yet */ }
 
+    // Try to fetch Meta page name for client display name
+    let pageName = "Default Meta Client";
+    const metaToken = process.env.META_ACCESS_TOKEN;
+    const metaPageId = process.env.META_PAGE_ID;
+    if (metaToken && metaPageId) {
+      try {
+        const pageRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=name&access_token=${metaToken}`);
+        const pageData: any = await pageRes.json();
+        if (pageData.name) {
+          pageName = pageData.name;
+        }
+      } catch { /* page name fetch is best-effort */ }
+    }
+
     let clientId: string;
     if (existingClient) {
       clientId = existingClient._id;
+      // Update client name if page name is available
+      if (pageName !== "Default Meta Client") {
+        await convex.mutation("clients:updateName", { id: clientId, name: pageName });
+      }
       console.log("Using existing client:", clientId);
     } else {
-      clientId = await convex.mutation("clients:create", { name: "Default Meta Client", slug: "default-meta-client", status: "active" })
+      clientId = await convex.mutation("clients:create", { name: pageName, slug: "default-meta-client", status: "active" })
     }
 
-    const pageId = process.env.META_PAGE_ID || ""
-    const tokenConfigured = !!(process.env.META_ACCESS_TOKEN && pageId)
+    const pageId = metaPageId || ""
+    const tokenConfigured = !!(metaToken && pageId)
     await convex.mutation("clients:upsertMetaConfig", { clientId, pageId, accessTokenConfigured: tokenConfigured, pixelId: process.env.META_PIXEL_ID || undefined })
     const assignResult: { assigned: number } = await convex.mutation("leads:assignToClient", { clientId })
     useConvexBackend = true

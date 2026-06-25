@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { getConvex } from "../convexClient.js";
-import { resolveClientId } from "../clients.js";
+import { resolveClientId, resolveConvexClientId } from "../clients.js";
 
 const router = Router();
 
@@ -85,14 +85,31 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
   }
 
   const clientId = resolveClientId(_req.query.clientId as string);
+  const convexClientId = resolveConvexClientId(clientId);
 
   try {
+    // Step 0: Create sync run tracking
+    let syncRunId: string | null = null;
+    try {
+      syncRunId = await getConvex().mutation("clients:createSyncRun", { clientId: convexClientId, formsScanned: 0, leadsFetched: 0 });
+    } catch { /* sync run tracking is best-effort */ }
+
     // Step 1: Get page-scoped access token
     const pageToken = await getPageAccessToken(META_PAGE_ID, META_ACCESS_TOKEN);
 
     // Step 2: Get all leadgen forms for the page (paginated)
     const formsBaseUrl = `https://graph.facebook.com/v21.0/${META_PAGE_ID}/leadgen_forms?access_token=${pageToken}&fields=id,name,status`;
     const { allData: forms, pagesFetched: formsPages } = await paginatedFetch(formsBaseUrl, 100);
+
+    // Persist forms in leadForms table
+    try {
+      await getConvex().mutation("clients:setLeadForms", {
+        clientId: convexClientId,
+        forms: forms.map((f: any) => ({ formId: f.id, formName: f.name || f.id, status: f.status || "ACTIVE" })),
+      });
+    } catch (err: any) {
+      console.error("Failed to persist lead forms:", err.message);
+    }
 
     let totalImported = 0;
     let totalUpdated = 0;
@@ -134,7 +151,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
           const { name, email, phone } = extractContactFields(fieldData);
 
           const result = await getConvex().mutation("leads:upsertMetaLead", {
-            clientId,
+            clientId: convexClientId,
             metaLeadId,
             adId: lead.ad_id,
             adName: lead.ad_name,
@@ -183,8 +200,30 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
       console.error("Failed to persist import result:", err.message);
     });
 
+    // Complete sync run
+    if (syncRunId) {
+      try {
+        await getConvex().mutation("clients:completeSyncRun", {
+          syncRunId,
+          created: totalImported,
+          updated: totalUpdated,
+          skipped: 0,
+          total: counts.total,
+          perForm: formResults.map((f) => ({ formId: f.formId, formName: f.formName, status: f.status, leadsFetched: f.leadsFetched, error: f.error })),
+        });
+      } catch (err: any) {
+        console.error("Failed to complete sync run:", err.message);
+      }
+    }
+
     res.json(result);
   } catch (err: any) {
+    // Fail sync run if one was created
+    if (syncRunId) {
+      try {
+        await getConvex().mutation("clients:failSyncRun", { syncRunId, error: err.message });
+      } catch { /* ignore */ }
+    }
     console.error("Import error:", err);
     res.status(500).json({ error: "Import failed", detail: err.message });
   }

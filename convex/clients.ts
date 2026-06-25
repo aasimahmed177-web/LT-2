@@ -50,6 +50,13 @@ export const create = mutation({
   },
 });
 
+export const updateName = mutation({
+  args: { id: v.id("clients"), name: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { name: args.name });
+  },
+});
+
 // ─────────── Meta Config ───────────
 
 export const getMetaConfig = query({

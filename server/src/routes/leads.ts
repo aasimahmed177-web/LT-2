@@ -25,9 +25,9 @@ router.get("/enriched", async (req: Request, res: Response) => {
     const enriched = await Promise.all(
       (leads as any[]).map(async (lead: any) => {
         const [notes, tasks, history] = await Promise.allSettled([
-          getConvex().query("notes:listByLeadId", { leadId: lead._id }),
-          getConvex().query("tasks:listByLeadId", { leadId: lead._id }),
-          getConvex().query("leadStageHistory:listByLeadId", { leadId: lead._id }),
+          getConvex().query("crm:listNotes", { leadId: lead._id }),
+          getConvex().query("crm:listTasks", { leadId: lead._id }),
+          getConvex().query("crm:listStageHistory", { leadId: lead._id }),
         ]);
         return {
           ...lead,
@@ -96,7 +96,7 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
     const lead = await getConvex().query("leads:getById", { id: req.params.id });
     if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
     const oldStage = lead.stage;
-    await getConvex().mutation("crm:changeStage", { leadId: req.params.id, newStage: stage });
+    await getConvex().mutation("crm:updateStage", { leadId: req.params.id, stage });
     res.json({ success: true, from: oldStage, to: stage });
   } catch (err: any) {
     console.error("Stage change error:", err.message);
@@ -107,7 +107,7 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
 // GET /api/leads/:id/history
 router.get("/:id/history", async (req: Request, res: Response) => {
   try {
-    const history = await getConvex().query("leadStageHistory:listByLeadId", { leadId: req.params.id });
+    const history = await getConvex().query("crm:listStageHistory", { leadId: req.params.id });
     res.json({ history });
   } catch (err: any) {
     console.error("History error:", err.message);
@@ -118,7 +118,7 @@ router.get("/:id/history", async (req: Request, res: Response) => {
 // GET /api/leads/:id/notes
 router.get("/:id/notes", async (req: Request, res: Response) => {
   try {
-    const notes = await getConvex().query("notes:listByLeadId", { leadId: req.params.id });
+    const notes = await getConvex().query("crm:listNotes", { leadId: req.params.id });
     res.json({ notes });
   } catch (err: any) {
     console.error("Notes error:", err.message);
@@ -130,8 +130,8 @@ router.get("/:id/notes", async (req: Request, res: Response) => {
 router.post("/:id/notes", async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-    const noteId = await getConvex().mutation("notes:create", { leadId: req.params.id, content });
-    res.json({ id: noteId });
+    const noteResult: any = await getConvex().mutation("crm:addNote", { leadId: req.params.id, content });
+    res.json({ id: noteResult.id });
   } catch (err: any) {
     console.error("Note create error:", err.message);
     res.status(500).json({ error: "Failed to create note", detail: err.message });
@@ -141,7 +141,7 @@ router.post("/:id/notes", async (req: Request, res: Response) => {
 // GET /api/leads/:id/tasks
 router.get("/:id/tasks", async (req: Request, res: Response) => {
   try {
-    const tasks = await getConvex().query("tasks:listByLeadId", { leadId: req.params.id });
+    const tasks = await getConvex().query("crm:listTasks", { leadId: req.params.id });
     res.json({ tasks });
   } catch (err: any) {
     console.error("Tasks error:", err.message);
@@ -153,8 +153,8 @@ router.get("/:id/tasks", async (req: Request, res: Response) => {
 router.post("/:id/tasks", async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-    const taskId = await getConvex().mutation("tasks:create", { leadId: req.params.id, content });
-    res.json({ id: taskId });
+    const taskResult: any = await getConvex().mutation("crm:addTask", { leadId: req.params.id, content });
+    res.json({ id: taskResult.id });
   } catch (err: any) {
     console.error("Task create error:", err.message);
     res.status(500).json({ error: "Failed to create task", detail: err.message });
@@ -165,7 +165,7 @@ router.post("/:id/tasks", async (req: Request, res: Response) => {
 router.patch("/:id/tasks/:taskId", async (req: Request, res: Response) => {
   try {
     const { done } = req.body;
-    await getConvex().mutation("tasks:toggle", { taskId: req.params.taskId, done });
+    await getConvex().mutation("crm:toggleTask", { taskId: req.params.taskId, done });
     res.json({ success: true });
   } catch (err: any) {
     console.error("Task toggle error:", err.message);
