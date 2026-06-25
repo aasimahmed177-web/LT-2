@@ -268,6 +268,9 @@ export function getClientLeadForms(clientId: string): any[] {
 // ─── Env values ─────────────────────
 
 export function getDefaultMetaToken(): string | undefined { return process.env.META_ACCESS_TOKEN }
+
+/** Re-sync in-memory client cache from Convex (used after client create/update). */
+export function resyncClients(): Promise<void> { return syncFromConvex(); }
 export function getDefaultPageId(): string | undefined { return process.env.META_PAGE_ID }
 
 // ─── Backfill ────────────────────────
