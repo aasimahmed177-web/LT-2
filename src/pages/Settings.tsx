@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient } from '../api'
+import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients } from '../api'
 import { useClient } from '../ClientContext'
 
 export default function Settings() {
-  const { currentClientId } = useClient()
+  const { currentClientId, setCurrentClientId, currentClient } = useClient()
   const [health, setHealth] = useState<any>(null)
   const [source, setSource] = useState<any>(null)
   const [lastResult, setLastResult] = useState<any>(null)
@@ -12,11 +12,33 @@ export default function Settings() {
   const [error, setError] = useState<string | null>(null)
   const [clientConfig, setClientConfig] = useState<any>(null)
 
+  // Client edit state
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPageId, setEditPageId] = useState('')
+  const [editPixelId, setEditPixelId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  // Add client state
+  const [showAddClient, setShowAddClient] = useState(false)
+  const [newClientName, setNewClientName] = useState('')
+  const [newClientPageId, setNewClientPageId] = useState('')
+  const [newClientPixelId, setNewClientPixelId] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
   useEffect(() => {
     getHealth(currentClientId).then(setHealth).catch(() => setHealth({ status: 'error' }))
     getSourceOfTruth(currentClientId).then(setSource).catch(() => {})
     getLastImportResult(currentClientId).then(setLastResult).catch(() => {})
-    getClient(currentClientId).then(setClientConfig).catch(() => {})
+    getClient(currentClientId).then((c) => {
+      setClientConfig(c)
+      setEditName(c.name || '')
+      setEditPageId(c.config?.pageId || '')
+      setEditPixelId(c.config?.pixelId || '')
+    }).catch(() => {})
   }, [currentClientId])
 
   const handleImport = async () => {
@@ -36,6 +58,57 @@ export default function Settings() {
     }
   }
 
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveError(null)
+    setSaveSuccess(false)
+    try {
+      const payload: any = {}
+      if (editName !== clientConfig?.name) payload.name = editName
+      if (editPageId !== (clientConfig?.config?.pageId || '')) payload.pageId = editPageId
+      if (editPixelId !== (clientConfig?.config?.pixelId || '')) payload.pixelId = editPixelId
+      if (Object.keys(payload).length === 0) { setEditing(false); setSaving(false); return }
+      await updateClientConfig(currentClientId, payload)
+      // Refresh client config
+      const fresh = await getClient(currentClientId)
+      setClientConfig(fresh)
+      setSaveSuccess(true)
+      setEditing(false)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (e: any) {
+      setSaveError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!newClientName.trim()) return
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const created = await createClient(
+        newClientName.trim(),
+        newClientPageId.trim() || undefined,
+        newClientPixelId.trim() || undefined,
+      )
+      // Refresh client list and switch to new client
+      const data = await fetchClients()
+      const newClient = data.clients.find((c: any) => c.id === created.id)
+      if (newClient) {
+        setCurrentClientId(newClient.id)
+      }
+      setShowAddClient(false)
+      setNewClientName('')
+      setNewClientPageId('')
+      setNewClientPixelId('')
+    } catch (e: any) {
+      setCreateError(e.message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const ConfigRow = ({ label, ok }: { label: string; ok: boolean }) => (
     <div className="flex items-center gap-3 py-2">
       <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-400' : 'bg-red-400'}`} />
@@ -48,10 +121,69 @@ export default function Settings() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-        <p className="text-sm text-muted mt-0.5">Meta integration and data management</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+          <p className="text-sm text-muted mt-0.5">Meta integration and data management</p>
+        </div>
+        <button
+          onClick={() => setShowAddClient(!showAddClient)}
+          className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-indigo-500 transition-colors"
+        >
+          {showAddClient ? 'Cancel' : '+ Add Client'}
+        </button>
       </div>
+
+      {/* Add Client Form */}
+      {showAddClient && (
+        <div className="bg-card rounded-xl border border-card-border p-5">
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">New Client</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted block mb-1">Client Name *</label>
+              <input
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                placeholder="e.g. Acme Real Estate"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+              />
+              {newClientName.trim() && (
+                <p className="text-[11px] text-muted mt-1">Slug: {newClientName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'client'}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Meta Page ID (optional)</label>
+              <input
+                value={newClientPageId}
+                onChange={(e) => setNewClientPageId(e.target.value)}
+                placeholder="e.g. 1135528059640106"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Meta Pixel / Dataset ID (optional)</label>
+              <input
+                value={newClientPixelId}
+                onChange={(e) => setNewClientPixelId(e.target.value)}
+                placeholder="e.g. 123456789"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+              />
+            </div>
+            {createError && (
+              <p className="text-xs text-red-500">{createError}</p>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newClientName.trim()}
+                className="px-4 py-2 bg-[#0a0a0a] text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors"
+              >
+                {creating ? 'Creating...' : 'Create Client'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Meta Configuration */}
       <div className="bg-card rounded-xl border border-card-border p-5">
@@ -69,34 +201,129 @@ export default function Settings() {
         )}
       </div>
 
-      {/* Client Configuration */}
+      {/* Client Configuration (editable) */}
       {clientConfig && (
         <div className="bg-card rounded-xl border border-card-border p-5">
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">Client Configuration</h2>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Page ID:</span>
-              <span className="font-mono text-xs">{clientConfig.config?.pageId || '—'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Token configured:</span>
-              <span className={`text-xs font-medium ${clientConfig.config?.tokenConfigured ? 'text-emerald-600' : 'text-red-500'}`}>
-                {clientConfig.config?.tokenConfigured ? 'Yes' : 'No'}
-              </span>
-            </div>
-            {clientConfig.forms && clientConfig.forms.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted mb-1.5">Imported Forms ({clientConfig.forms.length})</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {clientConfig.forms.map((f: any) => (
-                    <span key={f.formId} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                      {f.formName}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-800">Client Configuration</h2>
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs font-medium text-accent hover:text-indigo-600 transition-colors"
+              >
+                Edit
+              </button>
             )}
           </div>
+
+          {editing ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted block mb-1">Client Name</label>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted block mb-1">Slug</label>
+                <p className="text-sm text-gray-500 px-3 py-1.5 bg-gray-50 rounded-md">{clientConfig.id}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted block mb-1">Meta Page ID</label>
+                <input
+                  value={editPageId}
+                  onChange={(e) => setEditPageId(e.target.value)}
+                  placeholder="e.g. 1135528059640106"
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted block mb-1">Meta Pixel / Dataset ID</label>
+                <input
+                  value={editPixelId}
+                  onChange={(e) => setEditPixelId(e.target.value)}
+                  placeholder="e.g. 123456789"
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted block mb-1">Token Status</label>
+                <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
+                  clientConfig.config?.tokenConfigured
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {clientConfig.config?.tokenConfigured ? 'Configured' : 'Not configured'}
+                </span>
+              </div>
+              {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+              {saveSuccess && <p className="text-xs text-emerald-600">Saved successfully</p>}
+              <div className="flex gap-2 justify-end pt-1">
+                <button
+                  onClick={() => { setEditing(false); setSaveError(null) }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Name:</span>
+                <span className="font-medium text-gray-800">{clientConfig.name || currentClient?.name || clientConfig.id}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Slug:</span>
+                <span className="font-mono text-xs text-gray-600">{clientConfig.id}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Page ID:</span>
+                <span className="font-mono text-xs">{clientConfig.config?.pageId || '—'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Pixel/Dataset ID:</span>
+                <span className="font-mono text-xs">{clientConfig.config?.pixelId || '—'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Token:</span>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  clientConfig.config?.tokenConfigured
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {clientConfig.config?.tokenConfigured ? 'Configured' : 'Not configured'}
+                </span>
+              </div>
+              {lastResult && lastResult.lastSyncedAt && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted">Last synced:</span>
+                  <span className="text-xs text-gray-600">{new Date(lastResult.lastSyncedAt).toLocaleString()}</span>
+                </div>
+              )}
+              {clientConfig.forms && clientConfig.forms.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted mb-1.5">Imported Forms ({clientConfig.forms.length})</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {clientConfig.forms.map((f: any) => (
+                      <span key={f.formId} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        {f.formName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

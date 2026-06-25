@@ -108,3 +108,19 @@ export function getLastImportResult(clientId?: string) {
 export function getLeadEvents(id: string) {
   return json<any>(`${API_BASE}/leads/${id}/events`)
 }
+
+export function createClient(name: string, pageId?: string, pixelId?: string) {
+  return json<any>(`${API_BASE}/clients`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, pageId, pixelId }),
+  })
+}
+
+export function updateClientConfig(id: string, data: { name?: string; pageId?: string; pixelId?: string }) {
+  return json<any>(`${API_BASE}/clients/${id}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
