@@ -4,6 +4,46 @@ import { resolveClientId } from "../clients.js";
 
 const router = Router();
 
+// CAPI: fire-and-forget send of the most recent pending event for a lead
+async function triggerCapiAfterStageChange(leadId: string, convexLeadId: string) {
+  try {
+    // Find the most recent pending CAPI event for this lead
+    const events: any[] = await getConvex().query("crm:listEventsByLead", { leadId: convexLeadId as any });
+    const pendingEvent = events.find((e: any) => e.status === "pending" && e.eventId);
+    if (!pendingEvent) return; // No CAPI event to send
+
+    // Call the CAPI send endpoint internally
+    const pixelId = process.env.META_PIXEL_ID;
+    const isDryRun = process.env.META_CAPI_DRY_RUN !== "false";
+    const metaToken = process.env.META_ACCESS_TOKEN;
+
+    if (!pixelId || !metaToken) {
+      // Mark as skipped if CAPI not configured
+      console.log(`[CAPI] Skipping event ${pendingEvent.eventId}: CAPI not configured (pixel=${!!pixelId}, token=${!!metaToken})`);
+      return;
+    }
+
+    // Send the event via the helper
+    const url = `http://localhost:${process.env.PORT || "3001"}/api/meta/send-capi-event`;
+    const capiRes = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventId: pendingEvent._id }),
+    });
+    const capiData: any = await capiRes.json();
+    if (capiData.success) {
+      console.log(`[CAPI] Event ${pendingEvent.eventName} sent for lead ${leadId}: ${capiData.status}`);
+    } else {
+      console.log(`[CAPI] Event ${pendingEvent.eventName} failed for lead ${leadId}: ${capiData.error}`);
+    }
+  } catch (err: any) {
+    // Never let CAPI failure bubble up
+    console.error("[CAPI] Async send error:", err.message);
+  }
+}
+
+const router = Router();
+
 // GET /api/leads
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -99,11 +139,22 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
     }
     const lead = await getConvex().query("leads:getById", { id: req.params.id });
     if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
+
+    const convexLeadId = req.params.id;
+    const clientId = resolveClientId(req.query.clientId as string);
+
     await getConvex().mutation("crm:updateStage", {
-      leadId: req.params.id as any,
+      leadId: convexLeadId as any,
       stage,
       reason: reason || undefined,
+      clientId,
     });
+
+    // Fire-and-forget CAPI send (non-blocking, stage change always succeeds)
+    triggerCapiAfterStageChange(lead.metaLeadId || convexLeadId, convexLeadId).catch((e) => {
+      console.error("[CAPI] Background send error:", e.message);
+    });
+
     res.json({ success: true, stage });
   } catch (err: any) {
     console.error("Stage change error:", err.message);

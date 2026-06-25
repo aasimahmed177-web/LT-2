@@ -124,3 +124,17 @@ export function updateClientConfig(id: string, data: { name?: string; pageId?: s
     body: JSON.stringify(data),
   })
 }
+
+// ─── CAPI API Functions ──────────────────────────────────────────
+
+export function getCapiStatus() {
+  return json<any>(`${API_BASE}/meta/capi-status`)
+}
+
+export function sendCapiEvent(eventId: string) {
+  return json<any>(`${API_BASE}/meta/send-capi-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId }),
+  })
+}

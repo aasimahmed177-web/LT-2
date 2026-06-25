@@ -94,9 +94,17 @@ export default defineSchema({
     createdAt: v.string(),
     attempts: v.number(),
     error: v.optional(v.string()),
+    clientId: v.optional(v.string()),
+    eventId: v.optional(v.string()),
+    lastAttemptAt: v.optional(v.string()),
+    response: v.optional(v.string()),
+    action_source: v.optional(v.string()),
+    eventTime: v.optional(v.number()),
+    updatedAt: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_eventId", ["eventId"]),
 
   notes: defineTable({
     leadId: v.id("leads"),
