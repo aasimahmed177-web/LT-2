@@ -11,6 +11,8 @@ export default function Settings() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [clientConfig, setClientConfig] = useState<any>(null)
+  const [healthLoading, setHealthLoading] = useState(true)
+  const [configLoading, setConfigLoading] = useState(true)
 
   // Client edit state
   const [editing, setEditing] = useState(false)
@@ -30,7 +32,9 @@ export default function Settings() {
   const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
-    getHealth(currentClientId).then(setHealth).catch(() => setHealth({ status: 'error' }))
+    setHealthLoading(true)
+    setConfigLoading(true)
+    getHealth(currentClientId).then(setHealth).catch(() => setHealth({ status: 'error', metaConfigured: false, pageIdConfigured: false, pixelIdConfigured: false })).finally(() => setHealthLoading(false))
     getSourceOfTruth(currentClientId).then(setSource).catch(() => {})
     getLastImportResult(currentClientId).then(setLastResult).catch(() => {})
     getClient(currentClientId).then((c) => {
@@ -38,7 +42,7 @@ export default function Settings() {
       setEditName(c.name || '')
       setEditPageId(c.config?.pageId || '')
       setEditPixelId(c.config?.pixelId || '')
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setConfigLoading(false))
   }, [currentClientId])
 
   const handleImport = async () => {
@@ -109,11 +113,14 @@ export default function Settings() {
     }
   }
 
-  const ConfigRow = ({ label, ok }: { label: string; ok: boolean }) => (
+  const ConfigRow = ({ label, ok, detail, warning }: { label: string; ok: boolean; detail?: string; warning?: string }) => (
     <div className="flex items-center gap-3 py-2">
-      <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-400' : 'bg-red-400'}`} />
+      <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-400' : warning ? 'bg-amber-400' : 'bg-red-400'}`} />
       <span className="text-sm text-gray-700">{label}</span>
-      <span className="text-xs text-muted">{ok ? 'Configured' : 'Not configured'}</span>
+      <span className={`text-xs ${ok ? 'text-emerald-600' : warning ? 'text-amber-600' : 'text-red-500'}`}>
+        {ok ? 'Configured' : warning || 'Not configured'}
+      </span>
+      {detail && <span className="text-xs text-muted ml-1">{detail}</span>}
     </div>
   )
 
@@ -188,21 +195,37 @@ export default function Settings() {
       {/* Meta Configuration */}
       <div className="bg-card rounded-xl border border-card-border p-5">
         <h2 className="text-sm font-semibold text-gray-800 mb-3">Meta Configuration</h2>
-        {health ? (
-          <div className="space-y-1">
-            <ConfigRow label="Meta Page ID" ok={!!health.pageId} />
-            <ConfigRow label="Meta Access Token" ok={health.metaConfigured} />
-            {health.pageId && (
-              <p className="text-xs text-muted mt-2">Page ID: {health.pageId}...</p>
+        {healthLoading ? (
+          <p className="text-sm text-muted">Checking configuration...</p>
+        ) : health ? (
+          <div>
+            <div className="space-y-1">
+              <ConfigRow label="Meta Page ID" ok={health.pageIdConfigured} />
+              <ConfigRow label="Meta Access Token" ok={health.metaConfigured} />
+              <ConfigRow label="Pixel / Dataset ID" ok={health.pixelIdConfigured} detail={health.pixelId} />
+            </div>
+            {!health.metaConfigured && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800">
+                <p className="font-medium">Meta integration is not fully configured</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  {!health.pageIdConfigured && !health.metaConfigured ? 'META_PAGE_ID is missing. ' : ''}
+                  {health.pageIdConfigured && !health.metaConfigured ? 'META_ACCESS_TOKEN is missing or invalid. ' : ''}
+                  Add the required environment variables to .env.local and restart the server.
+                </p>
+              </div>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted">Loading health check...</p>
+          <p className="text-sm text-red-500">Failed to check configuration</p>
         )}
       </div>
 
       {/* Client Configuration (editable) */}
-      {clientConfig && (
+      {configLoading ? (
+        <div className="bg-card rounded-xl border border-card-border p-5">
+          <p className="text-sm text-muted">Loading client configuration...</p>
+        </div>
+      ) : clientConfig && (
         <div className="bg-card rounded-xl border border-card-border p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-800">Client Configuration</h2>
@@ -334,9 +357,14 @@ export default function Settings() {
         <button
           onClick={handleImport}
           disabled={importing}
-          className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
         >
-          {importing ? 'Syncing...' : 'Sync Meta Leads'}
+          {importing ? (
+            <>
+              <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Syncing...
+            </>
+          ) : 'Sync Meta Leads'}
         </button>
 
         {error && (
@@ -347,11 +375,22 @@ export default function Settings() {
 
         {displayResult && (
           <div className="mt-4 space-y-3">
-            {displayResult.lastSyncedAt && (
-              <p className="text-xs text-muted">
-                Last synced: {new Date(displayResult.lastSyncedAt).toLocaleString()}
-              </p>
-            )}
+            <div className="flex items-center gap-3 mb-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Sync OK
+              </span>
+              {displayResult.lastSyncedAt && (
+                <span className="text-xs text-muted">
+                  {new Date(displayResult.lastSyncedAt).toLocaleString()}
+                </span>
+              )}
+              {displayResult.errors?.length > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+                  {displayResult.errors.length} error{displayResult.errors.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-3 gap-3">
               {[

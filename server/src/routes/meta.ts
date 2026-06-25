@@ -10,10 +10,15 @@ const META_PAGE_ID = process.env.META_PAGE_ID;
 // GET /api/meta/health
 router.get("/health", (_req: Request, res: Response) => {
   const clientId = resolveClientId(_req.query.clientId as string);
+  const pixelId = process.env.META_PIXEL_ID;
   res.json({
     status: "ok",
     metaConfigured: !!(META_ACCESS_TOKEN && META_PAGE_ID),
     pageId: META_PAGE_ID ? META_PAGE_ID.substring(0, 5) + "..." : null,
+    pageIdConfigured: !!META_PAGE_ID,
+    tokenConfigured: !!META_ACCESS_TOKEN,
+    pixelIdConfigured: !!pixelId,
+    pixelId: pixelId ? pixelId.substring(0, 4) + "..." : null,
     clientId,
   });
 });
