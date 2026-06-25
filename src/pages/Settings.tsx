@@ -1,29 +1,33 @@
 import { useState, useEffect } from 'react'
-import { getHealth, importLeads, getSourceOfTruth, getLastImportResult } from '../api'
+import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient } from '../api'
+import { useClient } from '../ClientContext'
 
 export default function Settings() {
+  const { currentClientId } = useClient()
   const [health, setHealth] = useState<any>(null)
   const [source, setSource] = useState<any>(null)
   const [lastResult, setLastResult] = useState<any>(null)
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [clientConfig, setClientConfig] = useState<any>(null)
 
   useEffect(() => {
-    getHealth().then(setHealth).catch(() => setHealth({ status: 'error' }))
-    getSourceOfTruth().then(setSource).catch(() => {})
-    getLastImportResult().then(setLastResult).catch(() => {})
-  }, [])
+    getHealth(currentClientId).then(setHealth).catch(() => setHealth({ status: 'error' }))
+    getSourceOfTruth(currentClientId).then(setSource).catch(() => {})
+    getLastImportResult(currentClientId).then(setLastResult).catch(() => {})
+    getClient(currentClientId).then(setClientConfig).catch(() => {})
+  }, [currentClientId])
 
   const handleImport = async () => {
     setImporting(true)
     setError(null)
     setResult(null)
     try {
-      const res = await importLeads()
+      const res = await importLeads(currentClientId)
       setResult(res)
       setLastResult({ ...res, lastSyncedAt: new Date().toISOString() })
-      const fresh = await getSourceOfTruth()
+      const fresh = await getSourceOfTruth(currentClientId)
       setSource(fresh)
     } catch (e: any) {
       setError(e.message)
@@ -64,6 +68,37 @@ export default function Settings() {
           <p className="text-sm text-muted">Loading health check...</p>
         )}
       </div>
+
+      {/* Client Configuration */}
+      {clientConfig && (
+        <div className="bg-card rounded-xl border border-card-border p-5">
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">Client Configuration</h2>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted">Page ID:</span>
+              <span className="font-mono text-xs">{clientConfig.config?.pageId || '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted">Token configured:</span>
+              <span className={`text-xs font-medium ${clientConfig.config?.tokenConfigured ? 'text-emerald-600' : 'text-red-500'}`}>
+                {clientConfig.config?.tokenConfigured ? 'Yes' : 'No'}
+              </span>
+            </div>
+            {clientConfig.forms && clientConfig.forms.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted mb-1.5">Imported Forms ({clientConfig.forms.length})</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {clientConfig.forms.map((f: any) => (
+                    <span key={f.formId} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      {f.formName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Sync Leads */}
       <div className="bg-card rounded-xl border border-card-border p-5">

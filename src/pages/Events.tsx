@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react'
 import { getEvents, getEventsCounts } from '../api'
+import { useClient } from '../ClientContext'
 
 export default function Events() {
+  const { currentClientId } = useClient()
   const [events, setEvents] = useState<any[]>([])
   const [counts, setCounts] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getEvents(), getEventsCounts()])
+    Promise.all([getEvents(currentClientId), getEventsCounts(currentClientId)])
       .then(([e, c]) => {
         setEvents(e.events || e || [])
         setCounts(c)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }, [currentClientId])
 
   if (loading) {
     return <div className="flex items-center justify-center h-full"><div className="text-gray-400 text-sm">Loading events...</div></div>

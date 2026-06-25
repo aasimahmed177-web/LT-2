@@ -2,7 +2,53 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  clients: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    status: v.string(),
+    createdAt: v.string(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"]),
+
+  clientMetaConfigs: defineTable({
+    clientId: v.id("clients"),
+    pageId: v.optional(v.string()),
+    accessTokenConfigured: v.boolean(),
+    pixelId: v.optional(v.string()),
+    createdAt: v.string(),
+  })
+    .index("by_clientId", ["clientId"]),
+
+  leadForms: defineTable({
+    clientId: v.id("clients"),
+    formId: v.string(),
+    formName: v.string(),
+    status: v.string(),
+    importedAt: v.string(),
+  })
+    .index("by_clientId", ["clientId"])
+    .index("by_formId", ["formId"]),
+
+  syncRuns: defineTable({
+    clientId: v.id("clients"),
+    startedAt: v.string(),
+    finishedAt: v.optional(v.string()),
+    status: v.string(),
+    formsScanned: v.number(),
+    leadsFetched: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    skipped: v.number(),
+    total: v.number(),
+    perForm: v.any(),
+    error: v.optional(v.string()),
+  })
+    .index("by_clientId", ["clientId"])
+    .index("by_status", ["status"]),
+
   leads: defineTable({
+    clientId: v.optional(v.id("clients")),
     metaLeadId: v.string(),
     adId: v.optional(v.string()),
     adName: v.optional(v.string()),
@@ -20,9 +66,12 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
+    formName: v.optional(v.string()),
+    formId: v.optional(v.string()),
   })
     .index("by_metaLeadId", ["metaLeadId"])
-    .index("by_stage", ["stage"]),
+    .index("by_stage", ["stage"])
+    .index("by_clientId", ["clientId"]),
 
   leadStageHistory: defineTable({
     leadId: v.id("leads"),
@@ -31,6 +80,7 @@ export default defineSchema({
     toStage: v.string(),
     changedAt: v.string(),
     changedBy: v.optional(v.string()),
+    reason: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
     .index("by_metaLeadId", ["metaLeadId"]),
@@ -62,10 +112,12 @@ export default defineSchema({
     done: v.boolean(),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
+    dueDate: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"]),
 
   importResults: defineTable({
+    clientId: v.optional(v.id("clients")),
     data: v.any(),
     createdAt: v.string(),
   }),

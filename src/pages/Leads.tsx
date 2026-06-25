@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getLeads } from '../api'
+import { useClient } from '../ClientContext'
 import LeadDrawer from '../LeadDrawer'
 
 export default function Leads() {
+  const { currentClientId } = useClient()
   const [allLeads, setAllLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,7 +15,7 @@ export default function Leads() {
   const loadLeads = () => {
     setLoading(true)
     setError(null)
-    getLeads()
+    getLeads(currentClientId)
       .then((data) => setAllLeads(data.leads || []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -21,7 +23,7 @@ export default function Leads() {
 
   useEffect(() => {
     loadLeads()
-  }, [])
+  }, [currentClientId])
 
   const filtered = useMemo(() => {
     let result = allLeads

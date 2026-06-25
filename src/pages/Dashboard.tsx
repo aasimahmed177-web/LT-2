@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
+import { useClient } from '../ClientContext'
 
 export default function Dashboard() {
+  const { currentClientId } = useClient()
   const [stats, setStats] = useState<any>(null)
   const [recentLeads, setRecentLeads] = useState<any[]>([])
   const [sourceOfTruth, setSourceOfTruth] = useState<any>(null)
@@ -9,18 +11,23 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      getStats(),
-      getLeads(),
-      getSourceOfTruth(),
+      getStats(currentClientId),
+      getLeads(currentClientId),
+      getSourceOfTruth(currentClientId),
     ])
       .then(([s, l, t]) => {
         setStats(s)
         setRecentLeads((l.leads || []).slice(0, 8))
         setSourceOfTruth(t)
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err)
+        setStats({ total: 0, last24h: 0, newToday: 0, pendingCrmEvents: 0, contacted: 0, prospects: 0, conversionLeads: 0, purchases: 0, notQualified: 0, funnel: [], activityByDate: {}, byStage: {} })
+        setRecentLeads([])
+        setSourceOfTruth(null)
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [currentClientId])
 
   if (loading) {
     return (

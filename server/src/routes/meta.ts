@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { getConvex } from "../convexClient.js";
+import { resolveClientId } from "../clients.js";
 
 const router = Router();
 
@@ -8,10 +9,12 @@ const META_PAGE_ID = process.env.META_PAGE_ID;
 
 // GET /api/meta/health
 router.get("/health", (_req: Request, res: Response) => {
+  const clientId = resolveClientId(_req.query.clientId as string);
   res.json({
     status: "ok",
     metaConfigured: !!(META_ACCESS_TOKEN && META_PAGE_ID),
     pageId: META_PAGE_ID ? META_PAGE_ID.substring(0, 5) + "..." : null,
+    clientId,
   });
 });
 
@@ -81,6 +84,8 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
     return;
   }
 
+  const clientId = resolveClientId(_req.query.clientId as string);
+
   try {
     // Step 1: Get page-scoped access token
     const pageToken = await getPageAccessToken(META_PAGE_ID, META_ACCESS_TOKEN);
@@ -129,6 +134,7 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
           const { name, email, phone } = extractContactFields(fieldData);
 
           const result = await getConvex().mutation("leads:upsertMetaLead", {
+            clientId,
             metaLeadId,
             adId: lead.ad_id,
             adName: lead.ad_name,
@@ -143,6 +149,8 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
             name,
             email,
             phone,
+            formName,
+            formId,
           });
 
           if (result.action === "inserted") totalImported++;
@@ -167,9 +175,10 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
       total: counts.total,
       forms: formResults,
       errors: formResults.filter((f) => f.error).map((f) => ({ formId: f.formId, formName: f.formName, error: f.error })),
+      clientId,
     };
 
-    // Persist last sync result for the Settings page
+    // Persist last sync result
     await getConvex().mutation("importResults:record", { data: result }).catch((err: any) => {
       console.error("Failed to persist import result:", err.message);
     });

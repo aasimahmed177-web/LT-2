@@ -4,18 +4,21 @@ import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
 import Events from './pages/Events'
 import Settings from './pages/Settings'
+import { ClientProvider } from './ClientContext'
 
 function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-    </Routes>
+    <ClientProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </ClientProvider>
   )
 }
 

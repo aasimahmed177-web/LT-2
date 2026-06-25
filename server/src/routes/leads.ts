@@ -1,79 +1,88 @@
 import { Router, Request, Response } from "express";
 import { getConvex } from "../convexClient.js";
+import { resolveClientId } from "../clients.js";
 
 const router = Router();
 
-// GET /api/leads - list all
-router.get("/", async (_req: Request, res: Response) => {
+// GET /api/leads
+router.get("/", async (req: Request, res: Response) => {
   try {
+    const clientId = resolveClientId(req.query.clientId as string);
     const leads = await getConvex().query("leads:list");
-    res.json({ leads });
+    const enriched = (leads as any[]).map((l: any) => ({ ...l, clientId }));
+    res.json({ leads: enriched, clientId });
   } catch (err: any) {
     console.error("Leads list error:", err.message);
     res.status(500).json({ error: "Failed to fetch leads", detail: err.message });
   }
 });
 
-// GET /api/leads/search?q=xxx
+// GET /api/leads/enriched
+router.get("/enriched", async (req: Request, res: Response) => {
+  try {
+    const clientId = resolveClientId(req.query.clientId as string);
+    const leads = await getConvex().query("leads:list");
+    const enriched = await Promise.all(
+      (leads as any[]).map(async (lead: any) => {
+        const [notes, tasks, history] = await Promise.allSettled([
+          getConvex().query("notes:listByLeadId", { leadId: lead._id }),
+          getConvex().query("tasks:listByLeadId", { leadId: lead._id }),
+          getConvex().query("leadStageHistory:listByLeadId", { leadId: lead._id }),
+        ]);
+        return {
+          ...lead,
+          clientId,
+          notes: notes.status === "fulfilled" ? notes.value : [],
+          tasks: tasks.status === "fulfilled" ? tasks.value : [],
+          history: history.status === "fulfilled" ? history.value : [],
+        };
+      })
+    );
+    res.json({ leads: enriched, clientId });
+  } catch (err: any) {
+    console.error("Leads enriched error:", err.message);
+    res.status(500).json({ error: "Failed to fetch enriched leads", detail: err.message });
+  }
+});
+
+// GET /api/leads/search
 router.get("/search", async (req: Request, res: Response) => {
   try {
-    const q = (req.query.q as string || "").toLowerCase().trim();
+    const q = (req.query.q as string || "").toLowerCase();
+    const clientId = resolveClientId(req.query.clientId as string);
     const leads = await getConvex().query("leads:list");
-    if (!q) {
-      res.json({ leads });
-      return;
-    }
     const filtered = (leads as any[]).filter(
-      (l) =>
+      (l: any) =>
         (l.name && l.name.toLowerCase().includes(q)) ||
         (l.email && l.email.toLowerCase().includes(q)) ||
         (l.phone && l.phone.toLowerCase().includes(q)) ||
         (l.metaLeadId && l.metaLeadId.toLowerCase().includes(q))
     );
-    res.json({ leads: filtered });
+    res.json({ leads: filtered, clientId });
   } catch (err: any) {
     console.error("Leads search error:", err.message);
-    res.status(500).json({ error: "Search failed", detail: err.message });
+    res.status(500).json({ error: "Failed to search leads", detail: err.message });
   }
 });
 
-// GET /api/debug/source-of-truth (must be before /:id)
+// GET /api/debug/source-of-truth
 router.get("/source-of-truth", async (_req: Request, res: Response) => {
   try {
-    const [leads, counts] = await Promise.all([
-      getConvex().query("leads:list"),
-      getConvex().query("leads:counts"),
-    ]);
-    res.json({
-      timestamp: new Date().toISOString(),
-      totalLeads: counts.total,
-      byStage: counts.byStage,
-      leads: (leads as any[]).map((l: any) => ({
-        id: l._id,
-        metaLeadId: l.metaLeadId,
-        name: l.name,
-        email: l.email,
-        stage: l.stage,
-        campaignName: l.campaignName,
-        ingestedAt: l.ingestedAt,
-        platform: l.platform,
-      })),
-    });
+    const leads = await getConvex().query("leads:list");
+    const counts = await getConvex().query("leads:counts");
+    res.json({ totalLeads: leads.length, byStage: counts.byStage, clientId: resolveClientId(_req.query.clientId as string) });
   } catch (err: any) {
     console.error("Source of truth error:", err.message);
-    res.status(500).json({ error: "Source of truth unavailable", detail: err.message });
+    res.status(500).json({ error: "Failed to fetch source of truth", detail: err.message });
   }
 });
 
 // GET /api/leads/:id
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const lead = await getConvex().query("leads:getById", { id: req.params.id as any });
-    if (!lead) {
-      res.status(404).json({ error: "Lead not found" });
-      return;
-    }
-    res.json(lead);
+    const lead = await getConvex().query("leads:getById", { id: req.params.id });
+    if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
+    res.json({ ...lead, clientId: resolveClientId(req.query.clientId as string) });
   } catch (err: any) {
     console.error("Lead get error:", err.message);
     res.status(500).json({ error: "Failed to fetch lead", detail: err.message });
@@ -84,17 +93,13 @@ router.get("/:id", async (req: Request, res: Response) => {
 router.put("/:id/stage", async (req: Request, res: Response) => {
   try {
     const { stage } = req.body;
-    if (!stage) {
-      res.status(400).json({ error: "stage is required" });
-      return;
-    }
-    await getConvex().mutation("crm:updateStage", {
-      leadId: req.params.id as any,
-      stage,
-    });
-    res.json({ success: true, stage });
+    const lead = await getConvex().query("leads:getById", { id: req.params.id });
+    if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
+    const oldStage = lead.stage;
+    await getConvex().mutation("crm:changeStage", { leadId: req.params.id, newStage: stage });
+    res.json({ success: true, from: oldStage, to: stage });
   } catch (err: any) {
-    console.error("Stage update error:", err.message);
+    console.error("Stage change error:", err.message);
     res.status(500).json({ error: "Failed to update stage", detail: err.message });
   }
 });
@@ -102,9 +107,7 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
 // GET /api/leads/:id/history
 router.get("/:id/history", async (req: Request, res: Response) => {
   try {
-    const history = await getConvex().query("crm:listStageHistory", {
-      leadId: req.params.id as any,
-    });
+    const history = await getConvex().query("leadStageHistory:listByLeadId", { leadId: req.params.id });
     res.json({ history });
   } catch (err: any) {
     console.error("History error:", err.message);
@@ -115,12 +118,10 @@ router.get("/:id/history", async (req: Request, res: Response) => {
 // GET /api/leads/:id/notes
 router.get("/:id/notes", async (req: Request, res: Response) => {
   try {
-    const notes = await getConvex().query("crm:listNotes", {
-      leadId: req.params.id as any,
-    });
+    const notes = await getConvex().query("notes:listByLeadId", { leadId: req.params.id });
     res.json({ notes });
   } catch (err: any) {
-    console.error("Notes list error:", err.message);
+    console.error("Notes error:", err.message);
     res.status(500).json({ error: "Failed to fetch notes", detail: err.message });
   }
 });
@@ -129,30 +130,21 @@ router.get("/:id/notes", async (req: Request, res: Response) => {
 router.post("/:id/notes", async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-    if (!content) {
-      res.status(400).json({ error: "content is required" });
-      return;
-    }
-    const result = await getConvex().mutation("crm:addNote", {
-      leadId: req.params.id as any,
-      content,
-    });
-    res.json(result);
+    const noteId = await getConvex().mutation("notes:create", { leadId: req.params.id, content });
+    res.json({ id: noteId });
   } catch (err: any) {
-    console.error("Note add error:", err.message);
-    res.status(500).json({ error: "Failed to add note", detail: err.message });
+    console.error("Note create error:", err.message);
+    res.status(500).json({ error: "Failed to create note", detail: err.message });
   }
 });
 
 // GET /api/leads/:id/tasks
 router.get("/:id/tasks", async (req: Request, res: Response) => {
   try {
-    const tasks = await getConvex().query("crm:listTasks", {
-      leadId: req.params.id as any,
-    });
+    const tasks = await getConvex().query("tasks:listByLeadId", { leadId: req.params.id });
     res.json({ tasks });
   } catch (err: any) {
-    console.error("Tasks list error:", err.message);
+    console.error("Tasks error:", err.message);
     res.status(500).json({ error: "Failed to fetch tasks", detail: err.message });
   }
 });
@@ -161,18 +153,11 @@ router.get("/:id/tasks", async (req: Request, res: Response) => {
 router.post("/:id/tasks", async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-    if (!content) {
-      res.status(400).json({ error: "content is required" });
-      return;
-    }
-    const result = await getConvex().mutation("crm:addTask", {
-      leadId: req.params.id as any,
-      content,
-    });
-    res.json(result);
+    const taskId = await getConvex().mutation("tasks:create", { leadId: req.params.id, content });
+    res.json({ id: taskId });
   } catch (err: any) {
-    console.error("Task add error:", err.message);
-    res.status(500).json({ error: "Failed to add task", detail: err.message });
+    console.error("Task create error:", err.message);
+    res.status(500).json({ error: "Failed to create task", detail: err.message });
   }
 });
 
@@ -180,15 +165,8 @@ router.post("/:id/tasks", async (req: Request, res: Response) => {
 router.patch("/:id/tasks/:taskId", async (req: Request, res: Response) => {
   try {
     const { done } = req.body;
-    if (typeof done !== "boolean") {
-      res.status(400).json({ error: "done (boolean) is required" });
-      return;
-    }
-    await getConvex().mutation("crm:toggleTask", {
-      taskId: req.params.taskId as any,
-      done,
-    });
-    res.json({ success: true, done });
+    await getConvex().mutation("tasks:toggle", { taskId: req.params.taskId, done });
+    res.json({ success: true });
   } catch (err: any) {
     console.error("Task toggle error:", err.message);
     res.status(500).json({ error: "Failed to toggle task", detail: err.message });

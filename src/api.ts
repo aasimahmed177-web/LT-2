@@ -9,24 +9,36 @@ async function json<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json()
 }
 
-export function getHealth() {
-  return json<{ status: string; metaConfigured: boolean; pageId: string | null }>(`${API_BASE}/meta/health`)
+function withClient(url: string, clientId?: string): string {
+  return clientId ? `${url}${url.includes('?') ? '&' : '?'}clientId=${encodeURIComponent(clientId)}` : url
 }
 
-export function importLeads() {
-  return json<any>(`${API_BASE}/meta/import-leads`, { method: 'POST' })
+export function getClients() {
+  return json<{ clients: any[]; convexBackend: boolean }>(`${API_BASE}/clients`)
 }
 
-export function getLeads() {
-  return json<{ leads: any[] }>(`${API_BASE}/leads`)
+export function getClient(id: string) {
+  return json<any>(`${API_BASE}/clients/${id}`)
 }
 
-export function getSourceOfTruth() {
-  return json<any>(`${API_BASE}/debug/source-of-truth`)
+export function getHealth(clientId?: string) {
+  return json<{ status: string; metaConfigured: boolean; pageId: string | null }>(withClient(`${API_BASE}/meta/health`, clientId))
 }
 
-export function searchLeads(q: string) {
-  return json<{ leads: any[] }>(`${API_BASE}/leads/search?q=${encodeURIComponent(q)}`)
+export function importLeads(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/meta/import-leads`, clientId), { method: 'POST' })
+}
+
+export function getLeads(clientId?: string) {
+  return json<{ leads: any[] }>(withClient(`${API_BASE}/leads`, clientId))
+}
+
+export function getSourceOfTruth(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/debug/source-of-truth`, clientId))
+}
+
+export function searchLeads(q: string, clientId?: string) {
+  return json<{ leads: any[] }>(withClient(`${API_BASE}/leads/search?q=${encodeURIComponent(q)}`, clientId))
 }
 
 export function getLead(id: string) {
@@ -77,18 +89,18 @@ export function toggleLeadTask(id: string, taskId: string, done: boolean) {
   })
 }
 
-export function getStats() {
-  return json<any>(`${API_BASE}/stats`)
+export function getStats(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/stats`, clientId))
 }
 
-export function getEvents() {
-  return json<any>(`${API_BASE}/events`)
+export function getEvents(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/events`, clientId))
 }
 
-export function getEventsCounts() {
-  return json<any>(`${API_BASE}/events/counts`)
+export function getEventsCounts(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/events/counts`, clientId))
 }
 
-export function getLastImportResult() {
-  return json<any>(`${API_BASE}/meta/last-import-result`)
+export function getLastImportResult(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/meta/last-import-result`, clientId))
 }

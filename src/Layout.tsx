@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useClient } from './ClientContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◉' },
@@ -8,6 +9,8 @@ const navItems = [
 ]
 
 export default function Layout() {
+  const { clients, currentClientId, setCurrentClientId, currentClient } = useClient()
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -20,6 +23,24 @@ export default function Layout() {
             <span className="font-semibold text-[15px] text-gray-800">LeadTrace</span>
           </div>
         </div>
+
+        {/* Client Selector */}
+        <div className="px-3 py-3 border-b border-sidebar-border">
+          <p className="text-[10px] uppercase tracking-wider text-muted font-medium mb-1.5 px-2">Client</p>
+          <select
+            value={currentClientId}
+            onChange={(e) => setCurrentClientId(e.target.value)}
+            className="w-full text-xs border border-card-border rounded-md px-2 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors"
+          >
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          {currentClient?.config?.tokenConfigured === false && (
+            <p className="text-[10px] text-amber-600 mt-1 px-2">Not configured</p>
+          )}
+        </div>
+
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems.map((item) => (
             <NavLink
