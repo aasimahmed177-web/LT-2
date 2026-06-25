@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getEvents, getEventsCounts } from '../api'
+import { getEvents, getEventsCounts, sendCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
 
 const statusColors: Record<string, string> = {
   pending: '#a0a0a0',
-  sent: '#0a0a0a',
+  skipped: '#a0a0a0',
+  sent: '#059669',
   failed: '#dc2626',
 }
 
@@ -14,8 +15,10 @@ export default function Events() {
   const [counts, setCounts] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [retrying, setRetrying] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
     Promise.all([getEvents(currentClientId), getEventsCounts(currentClientId)])
       .then(([e, c]) => {
         setEvents(e.events || e || [])
@@ -23,7 +26,21 @@ export default function Events() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [currentClientId])
+  }
+
+  useEffect(() => { load() }, [currentClientId])
+
+  const handleRetry = async (eventId: string) => {
+    setRetrying(eventId)
+    try {
+      await sendCapiEvent(eventId)
+      await load()
+    } catch (err: any) {
+      console.error('Retry error:', err)
+    } finally {
+      setRetrying(null)
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!statusFilter) return events
@@ -92,10 +109,9 @@ export default function Events() {
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Status</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Lead Name</th>
-                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Meta Lead ID</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Created</th>
-                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Attempts</th>
-                <th className="py-2.5 pr-4 text-[11px] uppercase tracking-wider font-medium text-muted">Error</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Sent</th>
+                <th className="py-2.5 pr-4 text-[11px] uppercase tracking-wider font-medium text-muted">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -120,12 +136,37 @@ export default function Events() {
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-muted text-xs">{ev.leadName || '—'}</td>
-                  <td className="py-3 pr-4 text-muted font-mono text-[11px]">{ev.metaLeadId}</td>
                   <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                     {ev.createdAt ? new Date(ev.createdAt).toLocaleString() : '—'}
                   </td>
-                  <td className="py-3 pr-4 text-muted tabular-nums text-xs">{ev.attempts}</td>
-                  <td className="py-3 pr-4 text-red-500 text-xs max-w-[180px] truncate">{ev.error || '—'}</td>
+                  <td className="py-3 pr-4 text-muted tabular-nums text-xs">
+                    {ev.lastAttemptAt ? new Date(ev.lastAttemptAt).toLocaleString() : '—'}
+                  </td>
+                  <td className="py-3 pr-4">
+                    {ev.status === 'failed' ? (
+                      <button
+                        onClick={() => handleRetry(ev._id)}
+                        disabled={retrying === ev._id}
+                        className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                      >
+                        {retrying === ev._id ? 'Retrying...' : 'Retry'}
+                      </button>
+                    ) : ev.status === 'pending' ? (
+                      <button
+                        onClick={() => handleRetry(ev._id)}
+                        disabled={retrying === ev._id}
+                        className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                      >
+                        {retrying === ev._id ? 'Sending...' : 'Send'}
+                      </button>
+                    ) : ev.error ? (
+                      <span className="text-xs text-red-500 max-w-[160px] inline-block truncate" title={ev.error}>{ev.error}</span>
+                    ) : ev.response ? (
+                      <span className="text-xs text-muted max-w-[160px] inline-block truncate" title={ev.response}>{ev.response}</span>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

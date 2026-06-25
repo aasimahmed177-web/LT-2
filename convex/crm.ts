@@ -4,7 +4,17 @@ import { Doc, Id } from "./_generated/dataModel";
 
 // ─── Stage Management ───────────────────────────────────────────────
 
-const STAGE_EVENT_MAP: Record<string, string> = {
+// Maps CRM stages to CAPI event names.
+// Stages not in this map (Lead, NotQualified, etc.) do not generate CAPI events.
+const CAPI_STAGE_EVENT_MAP: Record<string, string> = {
+  Contact: "Contact",
+  Prospect: "QualifiedLead",
+  ConversionLead: "Lead",
+  Purchase: "Purchase",
+};
+
+// Also keep the legacy CRM event mapping for internal tracking
+const CRM_EVENT_MAP: Record<string, string> = {
   ConversionLead: "conversion_lead",
   Purchase: "purchase",
 };
@@ -14,8 +24,9 @@ export const updateStage = mutation({
     leadId: v.id("leads"),
     stage: v.string(),
     reason: v.optional(v.string()),
+    clientId: v.optional(v.string()),
   },
-  handler: async (ctx, { leadId, stage, reason }) => {
+  handler: async (ctx, { leadId, stage, reason, clientId }) => {
     const lead = await ctx.db.get(leadId);
     if (!lead) throw new Error("Lead not found");
 
@@ -36,12 +47,33 @@ export const updateStage = mutation({
       reason: reason || undefined,
     });
 
-    const eventName = STAGE_EVENT_MAP[stage];
-    if (eventName) {
+    // Create CAPI event for positive stage changes
+    const capiEventName = CAPI_STAGE_EVENT_MAP[stage];
+    if (capiEventName) {
+      const eventTime = Math.floor(Date.now() / 1000);
+      const eventId = `${lead.metaLeadId}_${stage}_${eventTime}`;
       await ctx.db.insert("conversionLeadEvents", {
         leadId,
         metaLeadId: lead.metaLeadId,
-        eventName,
+        eventName: capiEventName,
+        stage,
+        status: "pending",
+        createdAt: now,
+        attempts: 0,
+        clientId: clientId || undefined,
+        eventId,
+        action_source: "system_generated",
+        eventTime,
+      });
+    }
+
+    // Also create legacy CRM event for ConversionLead and Purchase
+    const legacyEventName = CRM_EVENT_MAP[stage];
+    if (legacyEventName && !capiEventName) {
+      await ctx.db.insert("conversionLeadEvents", {
+        leadId,
+        metaLeadId: lead.metaLeadId,
+        eventName: legacyEventName,
         stage,
         status: "pending",
         createdAt: now,
@@ -49,7 +81,7 @@ export const updateStage = mutation({
       });
     }
 
-    return { success: true };
+    return { success: true, capiEventCreated: !!capiEventName };
   },
 });
 
@@ -154,6 +186,42 @@ export const listEvents = query({
       ...e,
       leadName: leadMap[e.leadId]?.name ?? null,
     }));
+  },
+});
+
+export const getCapiEventByEventId = query({
+  args: { eventId: v.string() },
+  handler: async (ctx, { eventId }) => {
+    const events = await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+      .collect();
+    return events[0] || null;
+  },
+});
+
+export const updateCapiEventStatus = mutation({
+  args: {
+    eventId: v.id("conversionLeadEvents"),
+    status: v.string(),
+    error: v.optional(v.string()),
+    response: v.optional(v.string()),
+    attempts: v.optional(v.number()),
+  },
+  handler: async (ctx, { eventId, status, error, response, attempts }) => {
+    const now = new Date().toISOString();
+    const patch: any = { status, lastAttemptAt: now, updatedAt: now };
+    if (error !== undefined) patch.error = error;
+    if (response !== undefined) patch.response = response;
+    if (attempts !== undefined) patch.attempts = attempts;
+    await ctx.db.patch(eventId, patch);
+  },
+});
+
+export const getCapiEventById = query({
+  args: { id: v.id("conversionLeadEvents") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
   },
 });
 

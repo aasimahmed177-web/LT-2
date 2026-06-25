@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   getLead, updateLeadStage, getLeadHistory,
   getLeadNotes, addLeadNote, getLeadTasks, addLeadTask, toggleLeadTask,
-  getLeadEvents,
+  getLeadEvents, sendCapiEvent,
 } from './api'
 
 const STAGES = [
@@ -68,6 +68,7 @@ export default function LeadDrawer({
   const [newTaskDueDate, setNewTaskDueDate] = useState('')
   const [updatingStage, setUpdatingStage] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+  const [retryingEvent, setRetryingEvent] = useState<string | null>(null)
 
   // Disqualification reason modal
   const [pendingStage, setPendingStage] = useState<string | null>(null)
@@ -165,6 +166,18 @@ export default function LeadDrawer({
       await load()
     } catch (err) {
       console.error('Toggle task error:', err)
+    }
+  }
+
+  const handleRetryEvent = async (eventId: string) => {
+    setRetryingEvent(eventId)
+    try {
+      await sendCapiEvent(eventId)
+      await load()
+    } catch (err: any) {
+      console.error('Event retry error:', err)
+    } finally {
+      setRetryingEvent(null)
     }
   }
 
@@ -551,6 +564,17 @@ export default function LeadDrawer({
                         </div>
                         {ev.attempts > 0 && <p className="text-muted text-[10px] mt-0.5">Attempts: {ev.attempts}</p>}
                         {ev.error && <p className="text-red-500 text-[10px] mt-0.5">Error: {ev.error}</p>}
+                        {(ev.status === 'failed' || ev.status === 'pending') && (
+                          <div className="mt-1.5">
+                            <button
+                              onClick={() => handleRetryEvent(ev._id)}
+                              disabled={retryingEvent === ev._id}
+                              className="text-[10px] font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                            >
+                              {retryingEvent === ev._id ? (ev.status === 'pending' ? 'Sending...' : 'Retrying...') : ev.status === 'pending' ? 'Send' : 'Retry'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))
                   )}

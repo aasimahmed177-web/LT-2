@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import crypto from "crypto";
 import { getConvex } from "../convexClient.js";
 import { resolveClientId, resolveConvexClientId } from "../clients.js";
 
@@ -6,6 +7,8 @@ const router = Router();
 
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 const META_PAGE_ID = process.env.META_PAGE_ID;
+const META_CAPI_DRY_RUN = process.env.META_CAPI_DRY_RUN !== "false"; // default to dry-run for safety
+const META_TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || null;
 
 // GET /api/meta/health
 router.get("/health", (_req: Request, res: Response) => {
@@ -243,6 +246,175 @@ router.get("/last-import-result", async (_req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Last import result error:", err.message);
     res.json({ lastSyncedAt: null });
+  }
+});
+
+// ─── CAPI Helpers ────────────────────────────────────────────────
+
+function hashValue(val: string): string {
+  return crypto.createHash("sha256").update(val.toLowerCase().trim()).digest("hex");
+}
+
+function normalizePhone(phone: string): string {
+  // Strip all non-digit characters except leading +
+  let cleaned = phone.replace(/[^+\d]/g, "");
+  // Remove leading + if present for Meta's expected format
+  if (cleaned.startsWith("+")) cleaned = cleaned.substring(1);
+  return cleaned;
+}
+
+function splitName(fullName: string): { first: string; last: string } {
+  const parts = fullName.trim().split(/\s+/);
+  const first = parts[0] || "";
+  const last = parts.length > 1 ? parts.slice(1).join(" ") : "";
+  return { first, last };
+}
+
+async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean; response?: string; error?: string }> {
+  const pixelId = process.env.META_PIXEL_ID;
+  if (!pixelId) {
+    return { success: false, error: "META_PIXEL_ID is not configured" };
+  }
+  if (!META_ACCESS_TOKEN) {
+    return { success: false, error: "META_ACCESS_TOKEN is not configured" };
+  }
+
+  try {
+    // Get the event record from Convex
+    const event: any = await getConvex().query("crm:getCapiEventById", { id: convexEventId });
+    if (!event) return { success: false, error: "Event not found" };
+    if (event.status === "sent") return { success: true, response: "Already sent" };
+
+    // Get lead details for user_data hashing
+    const lead: any = await getConvex().query("leads:getById", { id: event.leadId });
+    if (!lead) return { success: false, error: "Lead not found" };
+
+    // Build user_data with hashed fields
+    const userData: Record<string, string> = {};
+    if (lead.email) userData.em = hashValue(lead.email);
+    if (lead.phone) userData.ph = normalizePhone(lead.phone);
+    if (lead.name) {
+      const { first, last } = splitName(lead.name);
+      if (first) userData.fn = hashValue(first);
+      if (last) userData.ln = hashValue(last);
+    }
+    if (lead.metaLeadId) {
+      userData.external_id = hashValue(lead.metaLeadId);
+    }
+
+    // Build custom_data
+    const customData: Record<string, any> = {
+      lead_id: event.leadId,
+      crm_stage: event.stage,
+      source: "leadtrace_crm",
+    };
+    if (lead.metaLeadId) customData.meta_lead_id = lead.metaLeadId;
+    if (lead.formName) customData.form_name = lead.formName;
+    if (lead.campaignName) customData.campaign_name = lead.campaignName;
+    if (lead.adName) customData.ad_name = lead.adName;
+    if (lead.adSetName) customData.adset_name = lead.adSetName;
+
+    // Build the CAPI payload
+    const payload: any = {
+      data: [
+        {
+          event_name: event.eventName,
+          event_time: event.eventTime || Math.floor(Date.now() / 1000),
+          event_id: event.eventId || `${event.metaLeadId}_${event.stage}_${Date.now()}`,
+          action_source: event.action_source || "system_generated",
+          user_data: userData,
+          custom_data: customData,
+        },
+      ],
+    };
+
+    // Add test_event_code if configured
+    if (META_TEST_EVENT_CODE) {
+      payload.test_event_code = META_TEST_EVENT_CODE;
+    }
+
+    // Dry-run check
+    if (META_CAPI_DRY_RUN) {
+      console.log(`[CAPI DRY-RUN] Would send event:`, JSON.stringify(payload, null, 2));
+      return { success: true, response: "Dry-run mode: event recorded but not sent" };
+    }
+
+    // Send to Meta Graph API
+    const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${META_ACCESS_TOKEN}`;
+    const fbRes = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const fbData: any = await fbRes.json();
+
+    if (fbRes.ok && fbData.events_received === 1) {
+      return { success: true, response: `Meta accepted: ${fbData.events_received} event(s) received` };
+    } else {
+      const errMsg = fbData.error?.message || fbData.error?.error_user_msg || JSON.stringify(fbData);
+      return { success: false, error: errMsg, response: JSON.stringify(fbData).substring(0, 500) };
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ─── CAPI Endpoints ──────────────────────────────────────────────
+
+// GET /api/meta/capi-status - check CAPI configuration
+router.get("/capi-status", (_req: Request, res: Response) => {
+  const pixelId = process.env.META_PIXEL_ID;
+  const dryRun = META_CAPI_DRY_RUN;
+  res.json({
+    pixelIdConfigured: !!pixelId,
+    pixelId: pixelId ? pixelId.substring(0, 4) + "..." : null,
+    tokenConfigured: !!META_ACCESS_TOKEN,
+    dryRun,
+    testEventCodeConfigured: !!META_TEST_EVENT_CODE,
+    capiCapable: !!(pixelId && META_ACCESS_TOKEN),
+  });
+});
+
+// POST /api/meta/send-capi-event - send a pending CAPI event by its Convex event ID
+router.post("/send-capi-event", async (_req: Request, res: Response) => {
+  try {
+    const { eventId } = _req.body;
+    if (!eventId) {
+      res.status(400).json({ error: "eventId is required" });
+      return;
+    }
+
+    const result = await sendCapiEvent(eventId);
+
+    // Get current event to read attempts
+    let currentAttempts = 0;
+    try {
+      const event: any = await getConvex().query("crm:getCapiEventById", { id: eventId });
+      currentAttempts = event?.attempts || 0;
+    } catch { /* ignore */ }
+
+    if (result.success) {
+      const status = META_CAPI_DRY_RUN ? "skipped" : "sent";
+      await getConvex().mutation("crm:updateCapiEventStatus", {
+        eventId: eventId as any,
+        status,
+        response: result.response,
+        attempts: currentAttempts + 1,
+      });
+      res.json({ success: true, status, response: result.response });
+    } else {
+      await getConvex().mutation("crm:updateCapiEventStatus", {
+        eventId: eventId as any,
+        status: "failed",
+        error: result.error,
+        response: result.response,
+        attempts: currentAttempts + 1,
+      });
+      res.json({ success: false, status: "failed", error: result.error });
+    }
+  } catch (err: any) {
+    console.error("CAPI send error:", err.message);
+    res.status(500).json({ error: "Failed to send CAPI event", detail: err.message });
   }
 });
 

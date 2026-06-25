@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients } from '../api'
+import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients, getCapiStatus } from '../api'
 import { useClient } from '../ClientContext'
 
 export default function Settings() {
@@ -13,6 +13,8 @@ export default function Settings() {
   const [clientConfig, setClientConfig] = useState<any>(null)
   const [healthLoading, setHealthLoading] = useState(true)
   const [configLoading, setConfigLoading] = useState(true)
+  const [capiStatus, setCapiStatus] = useState<any>(null)
+  const [capiStatusLoading, setCapiStatusLoading] = useState(true)
 
   // Client edit state
   const [editing, setEditing] = useState(false)
@@ -34,6 +36,7 @@ export default function Settings() {
   useEffect(() => {
     setHealthLoading(true)
     setConfigLoading(true)
+    setCapiStatusLoading(true)
     getHealth(currentClientId).then(setHealth).catch(() => setHealth({ status: 'error', metaConfigured: false, pageIdConfigured: false, pixelIdConfigured: false })).finally(() => setHealthLoading(false))
     getSourceOfTruth(currentClientId).then(setSource).catch(() => {})
     getLastImportResult(currentClientId).then(setLastResult).catch(() => {})
@@ -43,6 +46,7 @@ export default function Settings() {
       setEditPageId(c.config?.pageId || '')
       setEditPixelId(c.config?.pixelId || '')
     }).catch(() => {}).finally(() => setConfigLoading(false))
+    getCapiStatus().then(setCapiStatus).catch(() => {}).finally(() => setCapiStatusLoading(false))
   }, [currentClientId])
 
   const handleImport = async () => {
@@ -216,6 +220,43 @@ export default function Settings() {
           </div>
         ) : (
           <p className="text-sm text-red-500">Failed to check configuration</p>
+        )}
+      </div>
+
+      {/* CAPI Configuration */}
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Configuration</h2>
+        {capiStatusLoading ? (
+          <p className="text-sm text-muted">Loading CAPI configuration...</p>
+        ) : capiStatus ? (
+          <div>
+            <div className="space-y-0.5">
+              <ConfigRow label="Pixel / Dataset ID" ok={capiStatus.pixelIdConfigured} detail={capiStatus.pixelId} />
+              <ConfigRow label="Access Token" ok={capiStatus.tokenConfigured} />
+              <ConfigRow label="CAPI Mode" ok={!capiStatus.dryRun} warning={capiStatus.dryRun ? 'Dry-run' : undefined} />
+              <ConfigRow label="Test Event Code" ok={capiStatus.testEventCodeConfigured} />
+            </div>
+            {capiStatus.dryRun && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p className="text-xs font-medium text-amber-800">CAPI is in dry-run mode</p>
+                <p className="text-[11px] text-amber-700 mt-1">
+                  Events are recorded but not sent to Meta. Set META_CAPI_DRY_RUN=false to enable live sending.
+                </p>
+              </div>
+            )}
+            {!capiStatus.tokenConfigured && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p className="text-xs font-medium text-amber-800">CAPI not fully configured</p>
+                <p className="text-[11px] text-amber-700 mt-1">
+                  {!capiStatus.pixelIdConfigured ? 'META_PIXEL_ID is missing. ' : ''}
+                  {capiStatus.pixelIdConfigured && !capiStatus.tokenConfigured ? 'META_ACCESS_TOKEN is missing. ' : ''}
+                  Add the required environment variables to .env.local and restart the server.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-red-500">Failed to check CAPI configuration</p>
         )}
       </div>
 
