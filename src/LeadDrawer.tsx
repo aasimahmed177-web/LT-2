@@ -41,7 +41,7 @@ function cleanPhone(phone: string): string {
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border border-card-border rounded-lg p-4">
-      <p className="text-[11px] uppercase tracking-widest font-medium text-muted mb-3">{title}</p>
+      <p className="text-[10px] uppercase tracking-widest font-medium text-muted mb-3">{title}</p>
       {children}
     </div>
   )
@@ -229,13 +229,18 @@ export default function LeadDrawer({
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-[#0a0a0a] tracking-tight truncate">{lead?.name || 'Unnamed Lead'}</h2>
                 {isTestLead && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted shrink-0">Test</span>
+                  <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted shrink-0">Test</span>
                 )}
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#0a0a0a] text-white shrink-0">{lead?.stage || '—'}</span>
               </div>
-              <p className="text-sm text-muted mt-0.5">{phone || lead?.email || 'No contact info'}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-muted">{phone || lead?.email || 'No contact info'}</span>
+                <span className="text-muted">·</span>
+                <span className="text-xs text-muted">{lead?.platform || 'meta'}</span>
+                <span className="text-muted">·</span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#0a0a0a] text-white">{lead?.stage || '—'}</span>
+              </div>
             </div>
-            <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-xl leading-none ml-3">&times;</button>
+            <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-lg leading-none ml-3 transition-colors">&times;</button>
           </div>
 
           {/* Action Buttons */}
@@ -243,9 +248,9 @@ export default function LeadDrawer({
             {phone && (
               <a
                 href={`tel:${phone}`}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 Call
               </a>
             )}
@@ -254,16 +259,16 @@ export default function LeadDrawer({
                 href={`https://wa.me/${cleanedPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors no-underline"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
                 WhatsApp
               </a>
             )}
             {phone && (
               <button
                 onClick={() => handleCopy(phone, 'phone')}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
               >
                 {copiedLabel === 'phone' ? 'Copied!' : 'Copy phone'}
               </button>
@@ -271,14 +276,14 @@ export default function LeadDrawer({
             {lead?.metaLeadId && (
               <button
                 onClick={() => handleCopy(lead.metaLeadId, 'metaId')}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
               >
                 {copiedLabel === 'metaId' ? 'Copied!' : 'Copy Meta ID'}
               </button>
             )}
             <button
               onClick={() => handleCopy(buildLeadSummary(), 'summary')}
-              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
             >
               {copiedLabel === 'summary' ? 'Copied!' : 'Copy summary'}
             </button>
@@ -303,13 +308,13 @@ export default function LeadDrawer({
               <SectionBox title="CRM Status">
                 <div>
                   <p className="text-xs text-muted mb-2">Current Stage</p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1">
                     {STAGES.map((s) => (
                       <button
                         key={s.key}
                         onClick={() => handleStageClick(s.key)}
                         disabled={updatingStage}
-                        className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-all ${
+                        className={`text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-all duration-100 ${
                           s.key === lead.stage
                             ? 'bg-[#0a0a0a] text-white'
                             : updatingStage
@@ -336,12 +341,12 @@ export default function LeadDrawer({
               <SectionBox title="Contact">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-muted text-xs">Phone</span>
-                    <p className="text-[#0a0a0a]">{phone || '—'}</p>
+                    <span className="text-muted text-[11px] uppercase tracking-wider">Phone</span>
+                    <p className="text-[#0a0a0a] text-sm mt-0.5">{phone || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Email</span>
-                    <p className="text-[#0a0a0a]">{lead.email || '—'}</p>
+                    <span className="text-muted text-[11px] uppercase tracking-wider">Email</span>
+                    <p className="text-[#0a0a0a] text-sm mt-0.5">{lead.email || '—'}</p>
                   </div>
                 </div>
               </SectionBox>
@@ -350,64 +355,64 @@ export default function LeadDrawer({
               <SectionBox title="Qualification">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-muted text-xs">Budget</span>
-                    <p className="text-[#0a0a0a]">{budget || '—'}</p>
+                    <span className="text-muted text-[11px] uppercase tracking-wider">Budget</span>
+                    <p className="text-[#0a0a0a] text-sm mt-0.5">{budget || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Purpose</span>
-                    <p className="text-[#0a0a0a]">{purpose || '—'}</p>
+                    <span className="text-muted text-[11px] uppercase tracking-wider">Purpose</span>
+                    <p className="text-[#0a0a0a] text-sm mt-0.5">{purpose || '—'}</p>
                   </div>
                 </div>
               </SectionBox>
 
-              {/* === CAMPAIGN / SOURCE === */}
-              <SectionBox title="Campaign / Source">
-                <div className="grid grid-cols-2 gap-3 text-sm">
+              {/* === TECHNICAL METADATA === */}
+              <SectionBox title="Technical Metadata">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
-                    <span className="text-muted text-xs">Campaign</span>
-                    <p className="text-[#0a0a0a]">{lead.campaignName || '—'}</p>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Meta Lead ID</span>
+                    <p className="text-[#0a0a0a] text-xs font-mono mt-0.5">{lead.metaLeadId || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Ad</span>
-                    <p className="text-[#0a0a0a]">{lead.adName || '—'}</p>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Convex ID</span>
+                    <p className="text-[#0a0a0a] text-xs font-mono mt-0.5 truncate" title={lead._id}>{lead._id}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Ad Set</span>
-                    <p className="text-[#0a0a0a]">{lead.adSetName || '—'}</p>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Campaign</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.campaignName || '—'}</p>
                   </div>
                   <div>
-                    <span className="text-muted text-xs">Form</span>
-                    <p className="text-[#0a0a0a]">{lead.formName || '—'}</p>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Ad</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.adName || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Ad Set</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.adSetName || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Form</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.formName || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Meta Page ID</span>
+                    <p className="text-[#0a0a0a] text-xs font-mono mt-0.5">{lead.pageId || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Source</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.platform || 'meta'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Meta Created</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-[10px] uppercase tracking-wider">Imported At</span>
+                    <p className="text-[#0a0a0a] text-xs mt-0.5">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-card-border">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-muted text-xs">Source</span>
-                      <p className="text-[#0a0a0a]">{lead.platform || 'meta'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted text-xs">Meta Lead ID</span>
-                      <p className="text-[#0a0a0a] font-mono text-xs">{lead.metaLeadId || '—'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted text-xs">Meta Page ID</span>
-                      <p className="text-[#0a0a0a] font-mono text-xs">{lead.pageId || '—'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted text-xs">Meta Created</span>
-                      <p className="text-[#0a0a0a] text-xs">{metaCreated ? new Date(metaCreated).toLocaleString() : '—'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted text-xs">Imported At</span>
-                      <p className="text-[#0a0a0a] text-xs">{lead.ingestedAt ? new Date(lead.ingestedAt).toLocaleString() : '—'}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3">
                   <button
                     onClick={() => setShowRaw(!showRaw)}
-                    className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors"
+                    className="text-[11px] font-medium text-muted hover:text-[#0a0a0a] transition-colors"
                   >
                     {showRaw ? 'Hide' : 'Show'} raw field data
                   </button>
@@ -426,9 +431,9 @@ export default function LeadDrawer({
 
               {/* === NOTES === */}
               <SectionBox title="Notes">
-                <div className="space-y-2 max-h-40 overflow-y-auto mb-2">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto mb-2">
                   {notes.length === 0 ? (
-                    <p className="text-xs text-muted italic">No notes yet</p>
+                    <p className="text-xs text-muted italic py-2">No notes yet</p>
                   ) : (
                     notes.map((n: any) => (
                       <div key={n._id} className="text-xs bg-[#fafafa] rounded-lg p-2.5 border border-card-border">
@@ -444,9 +449,9 @@ export default function LeadDrawer({
                     onChange={(e) => setNewNote(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
                     placeholder="Add a note..."
-                    className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                    className="flex-1 text-xs border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
-                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90 shrink-0">Add</button>
+                  <button onClick={handleAddNote} className="px-3 py-1.5 bg-[#0a0a0a] text-white text-xs rounded-md hover:opacity-90 transition-opacity shrink-0 font-medium">Add</button>
                 </div>
               </SectionBox>
 
@@ -454,10 +459,10 @@ export default function LeadDrawer({
               <SectionBox title="Tasks">
                 <div className="space-y-1.5 max-h-48 overflow-y-auto mb-2">
                   {sortedTasks.length === 0 ? (
-                    <p className="text-xs text-muted italic">No tasks yet</p>
+                    <p className="text-xs text-muted italic py-2">No tasks yet</p>
                   ) : (
                     sortedTasks.map((t: any) => (
-                      <div key={t._id} className={`flex items-center gap-2 text-sm rounded-lg p-2 border ${t.done ? 'bg-white border-card-border opacity-60' : 'bg-[#fafafa] border-card-border'}`}>
+                      <div key={t._id} className={`flex items-center gap-2 text-xs rounded-lg p-2 border ${t.done ? 'bg-white border-card-border opacity-60' : 'bg-[#fafafa] border-card-border'}`}>
                         <input
                           type="checkbox"
                           checked={t.done}
@@ -487,16 +492,16 @@ export default function LeadDrawer({
                     onChange={(e) => setNewTask(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
                     placeholder="Add a task..."
-                    className="flex-1 text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                    className="flex-1 text-xs border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
                   />
                   <input
                     type="date"
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="text-xs border border-card-border rounded-md px-2 py-1.5 bg-white text-muted focus:outline-none focus:border-[#0a0a0a] w-[130px]"
+                    className="text-xs border border-card-border rounded-md px-2 py-1.5 bg-white text-muted focus:outline-none focus:border-[#0a0a0a] w-[120px]"
                     title="Due date (optional)"
                   />
-                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-accent text-white text-xs rounded-md hover:opacity-90 shrink-0">Add</button>
+                  <button onClick={handleAddTask} className="px-3 py-1.5 bg-[#0a0a0a] text-white text-xs rounded-md hover:opacity-90 transition-opacity shrink-0 font-medium">Add</button>
                 </div>
               </SectionBox>
 
@@ -504,15 +509,17 @@ export default function LeadDrawer({
               <SectionBox title="Stage History">
                 <div className="space-y-1 max-h-36 overflow-y-auto">
                   {history.length === 0 ? (
-                    <p className="text-xs text-muted italic">No stage changes yet</p>
+                    <p className="text-xs text-muted italic py-2">No stage changes yet</p>
                   ) : (
                     history.map((h: any) => (
                       <div key={h._id} className="text-xs bg-[#fafafa] rounded-lg p-2 border border-card-border">
-                        <div className="flex justify-between">
-                          <span className="text-[#0a0a0a] font-medium">
-                            {h.fromStage === 'new' ? 'Lead' : h.fromStage} → {h.toStage === 'new' ? 'Lead' : h.toStage}
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#0a0a0a] font-medium text-xs">
+                            {h.fromStage === 'new' ? 'Lead' : h.fromStage}
+                            <span className="text-muted mx-1">→</span>
+                            {h.toStage === 'new' ? 'Lead' : h.toStage}
                           </span>
-                          <span className="text-muted">{new Date(h.changedAt).toLocaleString()}</span>
+                          <span className="text-muted text-[10px]">{new Date(h.changedAt).toLocaleString()}</span>
                         </div>
                         {h.reason && (
                           <p className="text-muted mt-0.5 text-[10px]">Reason: {h.reason}</p>
@@ -527,23 +534,23 @@ export default function LeadDrawer({
               <SectionBox title="CRM Event History">
                 <div className="space-y-1 max-h-28 overflow-y-auto">
                   {events.length === 0 ? (
-                    <p className="text-xs text-muted italic">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
+                    <p className="text-xs text-muted italic py-2">No CRM events yet. Changing to ConversionLead or Purchase creates an event.</p>
                   ) : (
                     events.map((ev: any) => (
                       <div key={ev._id} className="text-xs bg-[#fafafa] rounded-lg p-2 border border-card-border">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-[#0a0a0a]">{ev.eventName}</span>
+                          <span className="font-medium text-[#0a0a0a] text-xs">{ev.eventName}</span>
                           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted">
                             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusDot(ev.status) }} />
                             {ev.status}
                           </span>
                         </div>
                         <div className="flex justify-between mt-1 text-muted">
-                          <span>Stage: {ev.stage}</span>
-                          <span>{new Date(ev.createdAt).toLocaleString()}</span>
+                          <span className="text-[10px]">Stage: {ev.stage}</span>
+                          <span className="text-[10px]">{new Date(ev.createdAt).toLocaleString()}</span>
                         </div>
-                        {ev.attempts > 0 && <p className="text-muted mt-0.5">Attempts: {ev.attempts}</p>}
-                        {ev.error && <p className="text-red-500 mt-0.5">Error: {ev.error}</p>}
+                        {ev.attempts > 0 && <p className="text-muted text-[10px] mt-0.5">Attempts: {ev.attempts}</p>}
+                        {ev.error && <p className="text-red-500 text-[10px] mt-0.5">Error: {ev.error}</p>}
                       </div>
                     ))
                   )}
@@ -568,7 +575,7 @@ export default function LeadDrawer({
               onChange={(e) => setDisqualReason(e.target.value)}
               placeholder="Reason (optional)..."
               rows={3}
-              className="w-full text-sm border border-card-border rounded-md px-3 py-2 focus:outline-none focus:border-[#0a0a0a] transition-colors resize-none"
+              className="w-full text-xs border border-card-border rounded-md px-3 py-2 focus:outline-none focus:border-[#0a0a0a] transition-colors resize-none"
             />
             <div className="flex justify-end gap-2 mt-4">
               <button

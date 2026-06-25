@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
 import { useClient } from '../ClientContext'
 
@@ -50,7 +50,7 @@ function isInRange(createdTime: string, range: { start: Date; end: Date } | null
 }
 
 export default function Dashboard() {
-  const { currentClientId } = useClient()
+  const { currentClientId, currentClient } = useClient()
   const [stats, setStats] = useState<any>(null)
   const [allLeads, setAllLeads] = useState<any[]>([])
   const [sourceOfTruth, setSourceOfTruth] = useState<any>(null)
@@ -65,6 +65,10 @@ export default function Dashboard() {
   const [formFilter, setFormFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [showTestLeads, setShowTestLeads] = useState(false)
+
+  // Chart hover state
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     setLoading(true)
@@ -113,17 +117,11 @@ export default function Dashboard() {
   // Filtered leads
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead) => {
-      // Date range
       if (!isInRange(getMetaCreated(lead), dateRange)) return false
-      // Stage
       if (stageFilter && lead.stage !== stageFilter) return false
-      // Campaign
       if (campaignFilter && lead.campaignName !== campaignFilter) return false
-      // Form
       if (formFilter && lead.formName !== formFilter) return false
-      // Source
       if (sourceFilter && lead.platform !== sourceFilter) return false
-      // Test/real toggle
       if (!showTestLeads && isTestLead(lead)) return false
       return true
     })
@@ -182,47 +180,69 @@ export default function Dashboard() {
     ? activityEntries.slice(-30)
     : activityEntries.slice(-14)
 
-  const barGap = activitySlice.length > 14 ? 1 : 2
+  const barGap = activitySlice.length > 14 ? 2 : 3
   const chartW = 600
-  const chartH = 140
+  const chartH = 150
   const barCount = activitySlice.length
-  const barWidth = Math.min(28, Math.max(8, (chartW - barCount * barGap) / barCount))
+  const barWidth = Math.min(26, Math.max(8, (chartW - barCount * barGap - 20) / barCount))
+  const padLeft = 10
+  const padTop = 20
+  const padBottom = 20
 
   const FilterSelect = ({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string }) => (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors min-w-[100px]"
+      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors min-w-[110px]"
     >
       <option value="">{placeholder}</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
   )
 
+  const todayStr = new Date().toISOString().substring(0, 10)
+
+  // Generate line points for the overlay
+  const linePoints = activitySlice.map(([date, count], i) => {
+    const x = padLeft + i * (barWidth + barGap) + barWidth / 2
+    const h = chartH - padBottom - ((count as number) / maxActivity) * (chartH - padTop - padBottom)
+    return { x, y: h, date, count: count as number }
+  })
+
+  const linePath = linePoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  const areaPath = linePoints.length > 0
+    ? `${linePath} L${linePoints[linePoints.length - 1].x},${chartH - padBottom} L${linePoints[0].x},${chartH - padBottom} Z`
+    : ''
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted mt-0.5">LeadTrace CRM overview</p>
+          <p className="text-sm text-muted mt-0.5">
+            {currentClient?.name || 'LeadTrace CRM'}
+          </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-          <span>Live</span>
+          <span className="relative flex w-2 h-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-30" />
+            <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+          </span>
+          <span className="text-[11px] font-medium text-emerald-600">Live</span>
         </div>
       </div>
 
-      {/* Date Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Date Preset Filters */}
+      <div className="flex flex-wrap items-center gap-1.5">
         {DATE_PRESETS.map((p) => (
           <button
             key={p.label}
             onClick={() => setDatePreset(p.label)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
               datePreset === p.label
                 ? 'bg-[#0a0a0a] text-white'
-                : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+                : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
             }`}
           >
             {p.label}
@@ -230,198 +250,287 @@ export default function Dashboard() {
         ))}
         <button
           onClick={() => setDatePreset('all')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
             datePreset === 'all'
               ? 'bg-[#0a0a0a] text-white'
-              : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+              : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
           }`}
         >
           All time
         </button>
         <button
           onClick={() => setDatePreset('custom')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
             datePreset === 'custom'
               ? 'bg-[#0a0a0a] text-white'
-              : 'bg-white border border-card-border text-muted hover:text-[#0a0a0a]'
+              : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
           }`}
         >
           Custom
         </button>
         {datePreset === 'custom' && (
-          <div className="flex items-center gap-2 ml-1">
+          <div className="flex items-center gap-1.5 ml-1">
             <input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
+              className="h-7 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
             />
             <span className="text-xs text-muted">—</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
+              className="h-7 px-2 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]"
             />
           </div>
         )}
       </div>
 
       {/* Other Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <FilterSelect value={stageFilter} onChange={setStageFilter} options={filterOptions.stages} placeholder="All stages" />
         <FilterSelect value={campaignFilter} onChange={setCampaignFilter} options={filterOptions.campaigns} placeholder="All campaigns" />
         <FilterSelect value={formFilter} onChange={setFormFilter} options={filterOptions.forms} placeholder="All forms" />
         <FilterSelect value={sourceFilter} onChange={setSourceFilter} options={filterOptions.sources} placeholder="All sources" />
-        <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
+        <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer select-none ml-1">
           <input
             type="checkbox"
             checked={showTestLeads}
             onChange={(e) => setShowTestLeads(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-card-border accent-[#0a0a0a]"
+            className="w-3 h-3 rounded border-card-border accent-[#0a0a0a]"
           />
-          Show test leads
+          Show tests
         </label>
         {hasFilters && (
           <button
             onClick={clearFilters}
-            className="text-xs text-muted hover:text-[#0a0a0a] transition-colors ml-1 underline"
+            className="text-[11px] text-muted hover:text-[#0a0a0a] transition-colors underline ml-1"
           >
             Clear all
           </button>
         )}
       </div>
 
-      {/* Hero Bento: Total Pipeline + Activity Chart */}
-      <div className="grid grid-cols-[1fr_2fr] gap-6">
+      {/* Hero Section: Total Pipeline + Activity Chart */}
+      <div className="grid grid-cols-[1fr_2fr] gap-5">
         {/* Pipeline stat card */}
-        <div className="border border-card-border rounded-lg p-6 flex flex-col justify-between">
+        <div className="border border-card-border rounded-xl p-6 flex flex-col justify-between">
           <div>
             <p className="section-label">Total Pipeline</p>
-            <p className="text-[42px] font-bold text-[#0a0a0a] mt-2 tabular-nums tracking-tight leading-none">
+            <p className="text-[44px] font-bold text-[#0a0a0a] mt-2 tabular-nums tracking-tight leading-none">
               {filteredStats.total}
             </p>
-            {!hasFilters && <p className="text-sm text-muted mt-2">{stats.last24h} in last 24h</p>}
-            {hasFilters && <p className="text-sm text-muted mt-2">Filtered</p>}
+            {!hasFilters && stats && (
+              <p className="text-xs text-muted mt-2">{stats.last24h} in last 24h</p>
+            )}
+            {hasFilters && (
+              <p className="text-xs text-muted mt-2">Filtered view</p>
+            )}
           </div>
-          <div className="flex gap-4 mt-6 pt-6 border-t border-card-border">
+          <div className="flex gap-5 mt-5 pt-5 border-t border-card-border">
             {[
-              { label: 'New today', value: stats.newToday },
-              { label: 'Pending events', value: stats.pendingCrmEvents },
+              { label: 'New today', value: stats?.newToday || 0 },
+              { label: 'Pending events', value: stats?.pendingCrmEvents || 0 },
             ].map((c) => (
               <div key={c.label}>
-                <p className="text-[22px] font-bold text-[#0a0a0a] tabular-nums">{c.value}</p>
-                <p className="text-[11px] text-muted mt-0.5">{c.label}</p>
+                <p className="text-[22px] font-bold text-[#0a0a0a] tabular-nums tracking-tight">{c.value}</p>
+                <p className="text-[10px] text-muted mt-0.5 uppercase tracking-wider">{c.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Activity chart */}
-        <div className="border border-card-border rounded-lg p-6">
-          <p className="section-label">Lead Activity</p>
-          <p className="text-[11px] text-muted mt-0.5 mb-4">{datePreset === 'all' ? 'All time' : `Last ${activitySlice.length} days`}</p>
+        <div className="border border-card-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="section-label">Lead Activity</p>
+              <p className="text-[10px] text-muted mt-0.5">
+                {datePreset === 'all' ? 'All time' : `Last ${activitySlice.length} days`}
+              </p>
+            </div>
+            {hoveredBar !== null && activitySlice[hoveredBar] && (
+              <div className="text-right">
+                <p className="text-xs font-semibold text-[#0a0a0a] tabular-nums">{activitySlice[hoveredBar][1]} leads</p>
+                <p className="text-[10px] text-muted">{activitySlice[hoveredBar][0]}</p>
+              </div>
+            )}
+          </div>
           {activitySlice.length > 0 ? (
-            <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-auto" style={{ height: chartH }}>
-              {/* Grid lines */}
-              {[0.25, 0.5, 0.75, 1].map((pct) => (
-                <line
-                  key={pct}
-                  x1={0} y1={chartH - chartH * pct}
-                  x2={chartW} y2={chartH - chartH * pct}
-                  stroke="#ebebeb" strokeWidth={1}
-                />
-              ))}
-              {/* Bars */}
-              {activitySlice.map(([date, count], i) => {
-                const x = i * (barWidth + barGap) + 10
-                const h = ((count as number) / maxActivity) * (chartH - 20)
-                return (
-                  <g key={date} className="animate-bar" style={{ transformOrigin: `0 ${chartH}px` }}>
-                    <rect
-                      x={x}
-                      y={chartH - 10 - h}
-                      width={barWidth}
-                      height={h}
-                      rx={2}
-                      fill="#0a0a0a"
-                      opacity={0.85}
-                    />
-                    <text
-                      x={x + barWidth / 2}
-                      y={chartH - 18 - h}
-                      textAnchor="middle"
-                      fill="#6b6b6b"
-                      fontSize={10}
+            <div ref={chartRef} className="relative">
+              <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-auto" style={{ height: chartH }}>
+                {/* Grid lines */}
+                {[0.25, 0.5, 0.75, 1].map((pct) => (
+                  <line
+                    key={pct}
+                    x1={0} y1={chartH - padBottom - (chartH - padTop - padBottom) * pct}
+                    x2={chartW} y2={chartH - padBottom - (chartH - padTop - padBottom) * pct}
+                    stroke="#f0f0f0" strokeWidth={1}
+                  />
+                ))}
+
+                {/* Gradient fill for area */}
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0a0a0a" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="#0a0a0a" stopOpacity="0.01" />
+                  </linearGradient>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#0a0a0a" />
+                    <stop offset="100%" stopColor="#555555" />
+                  </linearGradient>
+                </defs>
+
+                {/* Area fill */}
+                {areaPath && (
+                  <path d={areaPath} fill="url(#areaGrad)" />
+                )}
+
+                {/* Line */}
+                {linePath && (
+                  <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                )}
+
+                {/* Bars */}
+                {activitySlice.map(([date, count], i) => {
+                  const x = padLeft + i * (barWidth + barGap)
+                  const h = ((count as number) / maxActivity) * (chartH - padTop - padBottom)
+                  const isToday = date === todayStr
+                  const isHovered = hoveredBar === i
+                  return (
+                    <g
+                      key={date}
+                      className="animate-bar"
+                      style={{ transformOrigin: `${x + barWidth / 2}px ${chartH - padBottom}px` }}
+                      onMouseEnter={() => setHoveredBar(i)}
+                      onMouseLeave={() => setHoveredBar(null)}
                     >
-                      {count as number}
+                      <rect
+                        x={x}
+                        y={chartH - padBottom - h}
+                        width={barWidth}
+                        height={h}
+                        rx={2}
+                        fill={isToday ? '#555555' : '#0a0a0a'}
+                        opacity={isHovered ? 1 : (isToday ? 0.9 : 0.7)}
+                        className="transition-all duration-150"
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {/* Value above bar */}
+                      <text
+                        x={x + barWidth / 2}
+                        y={chartH - padBottom - h - 5}
+                        textAnchor="middle"
+                        fill={isHovered ? '#0a0a0a' : '#a0a0a0'}
+                        fontSize={isHovered ? 10 : 9}
+                        fontWeight={isHovered ? '600' : '400'}
+                        className="transition-all duration-100"
+                      >
+                        {count as number}
+                      </text>
+                      {/* Today indicator dot on line */}
+                      {isToday && (
+                        <circle
+                          cx={x + barWidth / 2}
+                          cy={chartH - padBottom - h}
+                          r={3}
+                          fill="#0a0a0a"
+                        />
+                      )}
+                    </g>
+                  )
+                })}
+
+                {/* Day labels */}
+                {activitySlice.map(([date, _], i) => {
+                  const x = padLeft + i * (barWidth + barGap) + barWidth / 2
+                  const d = new Date(date)
+                  const isToday = date === todayStr
+                  return (
+                    <text
+                      key={`lbl-${date}`}
+                      x={x}
+                      y={chartH - 3}
+                      textAnchor="middle"
+                      fill={isToday ? '#0a0a0a' : '#b0b0b0'}
+                      fontSize={8}
+                      fontWeight={isToday ? '600' : '400'}
+                    >
+                      {dayNames[d.getDay()]}
                     </text>
-                  </g>
-                )
-              })}
-              {/* Day labels */}
-              {activitySlice.map(([date, _], i) => {
-                const x = i * (barWidth + barGap) + 10 + barWidth / 2
-                const d = new Date(date)
-                return (
-                  <text
-                    key={`lbl-${date}`}
-                    x={x}
-                    y={chartH - 2}
-                    textAnchor="middle"
-                    fill="#9e9e9e"
-                    fontSize={9}
-                  >
-                    {dayNames[d.getDay()]}
-                  </text>
-                )
-              })}
-            </svg>
+                  )
+                })}
+              </svg>
+            </div>
           ) : (
-            <div className="text-sm text-muted">No activity data in this range</div>
+            <div className="flex items-center justify-center h-[150px] text-xs text-muted">
+              No activity data in this range
+            </div>
           )}
         </div>
       </div>
 
-      {/* Stats Cards Grid — 8 bento cards */}
+      {/* Stats Cards Grid */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Leads', value: filteredStats.total },
-          { label: 'New Today', value: stats.newToday },
-          { label: 'Contact', value: filteredStats.byStage?.Contact || 0 },
-          { label: 'Prospects', value: filteredStats.byStage?.Prospect || 0 },
-          { label: 'Conv. Leads', value: filteredStats.byStage?.ConversionLead || 0 },
-          { label: 'Purchases', value: filteredStats.byStage?.Purchase || 0 },
-          { label: 'Pending Events', value: stats.pendingCrmEvents },
-          { label: 'Not Qualified', value: filteredStats.byStage?.NotQualified || 0 },
+          { label: 'Total Leads', value: filteredStats.total, secondary: stats?.last24h !== undefined ? `${stats.last24h} in 24h` : null },
+          { label: 'New Today', value: stats?.newToday || 0, secondary: null },
+          { label: 'Contact', value: filteredStats.byStage?.Contact || 0, secondary: null },
+          { label: 'Prospects', value: filteredStats.byStage?.Prospect || 0, secondary: null },
+          { label: 'Conv. Leads', value: filteredStats.byStage?.ConversionLead || 0, secondary: null },
+          { label: 'Purchases', value: filteredStats.byStage?.Purchase || 0, secondary: null },
+          { label: 'Pending Events', value: stats?.pendingCrmEvents || 0, secondary: null },
+          { label: 'Not Qualified', value: filteredStats.byStage?.NotQualified || 0, secondary: null },
         ].map((card) => (
-          <div key={card.label} className="border border-card-border rounded-lg p-4 hover:border-[#d4d4d4] transition-colors">
-            <p className="text-[11px] text-muted font-medium">{card.label}</p>
-            <p className="text-[26px] font-bold text-[#0a0a0a] mt-1 tabular-nums tracking-tight">{card.value}</p>
+          <div
+            key={card.label}
+            className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150"
+          >
+            <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
+            <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums tracking-tight leading-none">{card.value}</p>
+            {card.secondary && (
+              <p className="text-[10px] text-muted mt-2">{card.secondary}</p>
+            )}
           </div>
         ))}
       </div>
 
       {/* Funnel + Stage Distribution */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-5">
         {/* Pipeline Funnel */}
-        <div className="border border-card-border rounded-lg p-5">
-          <h2 className="text-[13px] font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
+        <div className="border border-card-border rounded-xl p-6">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
           <div className="space-y-4">
-            {stageOrder.map((stage) => {
+            {stageOrder.map((stage, idx) => {
               const entry = filteredStats.funnel.find((f: any) => f.stage === stage)
               const count = entry?.count || 0
               const pct = maxFunnel > 0 ? (count / maxFunnel) * 100 : 0
+              const prevCount = idx > 0
+                ? (filteredStats.funnel.find((f: any) => f.stage === stageOrder[idx - 1])?.count || 0)
+                : count
+              const conversion = idx > 0 && prevCount > 0 ? Math.round((count / prevCount) * 100) : null
               return (
                 <div key={stage}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-[#6b6b6b] font-medium">{stageLabels[stage]}</span>
-                    <span className="text-[#0a0a0a] font-semibold tabular-nums">{count}</span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                      <span className="text-xs font-medium text-[#6b6b6b]">{stageLabels[stage]}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums">{count}</span>
+                      {conversion !== null && (
+                        <span className="text-[10px] text-muted tabular-nums">({conversion}%)</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full funnel-bar bg-[#0a0a0a]"
-                      style={{ width: `${pct}%` }}
+                      className="h-full rounded-full funnel-bar"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: idx === stageOrder.length - 1 ? '#555555' : '#0a0a0a',
+                      }}
                     />
                   </div>
                 </div>
@@ -431,42 +540,48 @@ export default function Dashboard() {
         </div>
 
         {/* Stage Distribution */}
-        <div className="border border-card-border rounded-lg p-5">
-          <h2 className="text-[13px] font-semibold text-[#0a0a0a] mb-5">Stage Distribution</h2>
+        <div className="border border-card-border rounded-xl p-6">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Stage Distribution</h2>
           <div className="space-y-3">
-            {Object.entries(filteredStats.byStage).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => (
-              <div key={stage} className="flex items-center gap-3">
-                <span className="text-xs font-medium text-[#6b6b6b] w-20">{stageLabels[stage] || stage}</span>
-                <div className="flex-1 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#0a0a0a]"
-                    style={{ width: `${((count as number) / filteredStats.total) * 100}%` }}
-                  />
+            {Object.entries(filteredStats.byStage).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => {
+              const pct = filteredStats.total > 0 ? Math.round(((count as number) / filteredStats.total) * 100) : 0
+              return (
+                <div key={stage} className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-[#6b6b6b] w-20">{stageLabels[stage] || stage}</span>
+                  <div className="flex-1 h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#0a0a0a] transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[60px] justify-end">
+                    <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums">{count as number}</span>
+                    <span className="text-[10px] text-muted tabular-nums w-10 text-right">{pct}%</span>
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-[#0a0a0a] w-8 text-right tabular-nums">{count as number}</span>
-              </div>
-            ))}
+              )
+            })}
             {Object.keys(filteredStats.byStage).length === 0 && (
-              <p className="text-xs text-muted">No data in this range</p>
+              <p className="text-xs text-muted py-8 text-center">No data in this range</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Recent Leads (filtered) */}
-      <div className="border border-card-border rounded-lg p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[13px] font-semibold text-[#0a0a0a]">Recent Leads</h2>
-          <span className="text-xs text-muted">{filteredStats.total} in range</span>
+      <div className="border border-card-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Recent Leads</h2>
+          <span className="text-[10px] text-muted tabular-nums">{filteredStats.total} leads in range</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs border-b border-card-border">
-                <th className="pb-2.5 font-medium text-muted">Name</th>
-                <th className="pb-2.5 font-medium text-muted">Campaign</th>
-                <th className="pb-2.5 font-medium text-muted">Stage</th>
-                <th className="pb-2.5 font-medium text-muted">Created</th>
+              <tr className="text-left border-b border-card-border bg-[#fafafa]">
+                <th className="px-6 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Name</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Campaign</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
+                <th className="py-2.5 pr-6 text-[11px] uppercase tracking-wider font-medium text-muted">Created</th>
               </tr>
             </thead>
             <tbody>
@@ -474,16 +589,16 @@ export default function Dashboard() {
                 .sort((a, b) => getMetaCreated(b).localeCompare(getMetaCreated(a)))
                 .slice(0, 8)
                 .map((lead: any) => (
-                <tr key={lead._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors">
-                  <td className="py-2.5 pr-4 font-medium text-[#0a0a0a]">{lead.name || '—'}</td>
-                  <td className="py-2.5 pr-4 text-muted">{lead.campaignName || '—'}</td>
-                  <td className="py-2.5 pr-4">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted">
+                <tr key={lead._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors duration-100">
+                  <td className="px-6 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{lead.name || '—'}</td>
+                  <td className="py-3 pr-4 text-muted text-xs">{lead.campaignName || '—'}</td>
+                  <td className="py-3 pr-4">
+                    <span className="stage-pill">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
                       {lead.stage}
                     </span>
                   </td>
-                  <td className="py-2.5 text-muted tabular-nums text-xs">
+                  <td className="py-3 pr-6 text-muted tabular-nums text-xs">
                     {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
                   </td>
                 </tr>
@@ -494,19 +609,22 @@ export default function Dashboard() {
       </div>
 
       {/* Data Source Footer */}
-      <div className="border border-card-border rounded-lg p-5 text-sm text-muted">
+      <div className="border border-card-border rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-widest font-medium text-muted mb-1">Data Source</p>
-            <p>
-              Convex cloud <span className="text-[#d4d4d4]">·</span> {sourceOfTruth?.totalLeads || stats.total} leads
+            <p className="text-[10px] uppercase tracking-wider font-medium text-muted mb-1">Data Source</p>
+            <p className="text-xs text-[#6b6b6b]">
+              Convex cloud <span className="text-[#d4d4d4]">·</span> {sourceOfTruth?.totalLeads || stats?.total || 0} leads
               <span className="text-[#d4d4d4]"> · Re-sync updates Meta/source fields only</span>
             </p>
-            <p className="text-xs text-muted mt-0.5">Reporting uses Meta lead creation date.</p>
+            <p className="text-[10px] text-muted mt-0.5">Reporting uses Meta lead creation date.</p>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-            <span className="text-muted">Live</span>
+          <div className="flex items-center gap-2">
+            <span className="relative flex w-2 h-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-30" />
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+            </span>
+            <span className="text-[10px] font-medium text-emerald-600">Live</span>
           </div>
         </div>
       </div>
