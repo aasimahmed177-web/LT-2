@@ -194,6 +194,8 @@ export const completeSyncRun = mutation({
     skipped: v.number(),
     total: v.number(),
     perForm: v.any(),
+    formsScanned: v.optional(v.number()),
+    leadsFetched: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.syncRunId, {
@@ -204,6 +206,8 @@ export const completeSyncRun = mutation({
       skipped: args.skipped,
       total: args.total,
       perForm: args.perForm,
+      formsScanned: args.formsScanned,
+      leadsFetched: args.leadsFetched,
     });
   },
 });

@@ -86,10 +86,10 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
 
   const clientId = resolveClientId(_req.query.clientId as string);
   const convexClientId = resolveConvexClientId(clientId);
+  let syncRunId: string | null = null;
 
   try {
     // Step 0: Create sync run tracking
-    let syncRunId: string | null = null;
     try {
       syncRunId = await getConvex().mutation("clients:createSyncRun", { clientId: convexClientId, formsScanned: 0, leadsFetched: 0 });
     } catch { /* sync run tracking is best-effort */ }
@@ -210,6 +210,8 @@ router.post("/import-leads", async (_req: Request, res: Response) => {
           skipped: 0,
           total: counts.total,
           perForm: formResults.map((f) => ({ formId: f.formId, formName: f.formName, status: f.status, leadsFetched: f.leadsFetched, error: f.error })),
+          formsScanned: forms.length,
+          leadsFetched: totalFetched,
         });
       } catch (err: any) {
         console.error("Failed to complete sync run:", err.message);

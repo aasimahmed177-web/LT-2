@@ -144,9 +144,15 @@ export async function autoBackfillMetaConfig(): Promise<void> {
     const metaToken = process.env.META_ACCESS_TOKEN;
     if (metaToken && pageId) {
       try {
-        const pageRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name&access_token=${metaToken}`);
-        const pageData: any = await pageRes.json();
-        if (pageData.name) pageName = pageData.name;
+        // First exchange system token for page-scoped token
+        const tokenRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${metaToken}`);
+        const tokenData: any = await tokenRes.json();
+        const pageToken = tokenData.access_token;
+        if (pageToken) {
+          const pageRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name&access_token=${pageToken}`);
+          const pageData: any = await pageRes.json();
+          if (pageData.name) pageName = pageData.name;
+        }
       } catch { /* page name fetch is best-effort */ }
     }
 
@@ -281,10 +287,16 @@ export async function backfillDefaultClient(): Promise<{ success: boolean; clien
     const metaPageId = process.env.META_PAGE_ID;
     if (metaToken && metaPageId) {
       try {
-        const pageRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=name&access_token=${metaToken}`);
-        const pageData: any = await pageRes.json();
-        if (pageData.name) {
-          pageName = pageData.name;
+        // Exchange system token for page-scoped token
+        const tokenRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=access_token&access_token=${metaToken}`);
+        const tokenData: any = await tokenRes.json();
+        const pageToken = tokenData.access_token;
+        if (pageToken) {
+          const pageRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=name&access_token=${pageToken}`);
+          const pageData: any = await pageRes.json();
+          if (pageData.name) {
+            pageName = pageData.name;
+          }
         }
       } catch { /* page name fetch is best-effort */ }
     }
