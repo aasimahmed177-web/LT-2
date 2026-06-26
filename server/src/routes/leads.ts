@@ -42,8 +42,6 @@ async function triggerCapiAfterStageChange(leadId: string, convexLeadId: string)
   }
 }
 
-const router = Router();
-
 // GET /api/leads
 router.get("/", async (req: Request, res: Response) => {
   try {
