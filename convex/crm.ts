@@ -4,6 +4,20 @@ import { Doc, Id } from "./_generated/dataModel";
 
 // ─── Stage Management ───────────────────────────────────────────────
 
+// Stage hierarchy for final-stage-only suppression.
+// Higher number = higher priority. Purchase > ConversionLead > Prospect > Contact > Lead.
+export const STAGE_HIERARCHY: Record<string, number> = {
+  Lead: 0,
+  Contact: 1,
+  Prospect: 2,
+  ConversionLead: 3,
+  Purchase: 4,
+};
+
+// CAPI send mode: "final_stage_only" suppresses lower-stage events when a higher-stage one exists.
+// Set to "all" to disable suppression and send every positive stage change.
+const CAPI_SEND_MODE = "final_stage_only";
+
 // Maps CRM stages to CAPI event names.
 // Stages not in this map (Lead, NotQualified, etc.) do not generate CAPI events.
 const CAPI_STAGE_EVENT_MAP: Record<string, string> = {
@@ -18,6 +32,18 @@ const CRM_EVENT_MAP: Record<string, string> = {
   ConversionLead: "conversion_lead",
   Purchase: "purchase",
 };
+
+// Helper: highest stage score among active events (sent/pending) for a list of events
+function getHighestStageScore(events: any[]): number {
+  let highest = -1;
+  for (const e of events) {
+    if (e.status === "sent" || e.status === "pending") {
+      const score = STAGE_HIERARCHY[e.stage] ?? -1;
+      if (score > highest) highest = score;
+    }
+  }
+  return highest;
+}
 
 export const updateStage = mutation({
   args: {
@@ -52,6 +78,47 @@ export const updateStage = mutation({
     if (capiEventName) {
       const eventTime = Math.floor(Date.now() / 1000);
       const eventId = `${lead.metaLeadId}_${stage}_${eventTime}`;
+      const newStageScore = STAGE_HIERARCHY[stage] ?? -1;
+
+      // Check existing events for this lead
+      const existingEvents = await ctx.db
+        .query("conversionLeadEvents")
+        .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
+        .collect();
+
+      if (CAPI_SEND_MODE === "final_stage_only") {
+        const highestStageScore = getHighestStageScore(existingEvents);
+
+        // If a higher-stage event already exists (sent or pending), suppress this one
+        if (highestStageScore > newStageScore) {
+          await ctx.db.insert("conversionLeadEvents", {
+            leadId,
+            metaLeadId: lead.metaLeadId,
+            eventName: capiEventName,
+            stage,
+            status: "suppressed",
+            createdAt: now,
+            attempts: 0,
+            clientId: clientId || undefined,
+            eventId,
+            action_source: "system_generated",
+            eventTime,
+          });
+          return { success: true, capiEventCreated: true, suppressed: true, reason: `Higher-stage event already exists` };
+        }
+
+        // Suppress any lower-stage pending events (this new stage supersedes them)
+        for (const existing of existingEvents) {
+          const existingScore = STAGE_HIERARCHY[existing.stage] ?? -1;
+          if (existing.status === "pending" && existingScore < newStageScore) {
+            await ctx.db.patch(existing._id, {
+              status: "suppressed",
+              updatedAt: now,
+            });
+          }
+        }
+      }
+
       await ctx.db.insert("conversionLeadEvents", {
         leadId,
         metaLeadId: lead.metaLeadId,
@@ -244,6 +311,9 @@ export const eventsCounts = query({
       pending: events.filter((e) => e.status === "pending").length,
       sent: events.filter((e) => e.status === "sent").length,
       failed: events.filter((e) => e.status === "failed").length,
+      skipped: events.filter((e) => e.status === "skipped").length,
+      cancelled: events.filter((e) => e.status === "cancelled").length,
+      suppressed: events.filter((e) => e.status === "suppressed").length,
       total: events.length,
     };
   },

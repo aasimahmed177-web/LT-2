@@ -5,6 +5,7 @@ import { useClient } from '../ClientContext'
 const statusColors: Record<string, string> = {
   pending: '#a0a0a0',
   skipped: '#a0a0a0',
+  suppressed: '#d97706',
   sent: '#059669',
   failed: '#dc2626',
 }
@@ -59,10 +60,12 @@ export default function Events() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-6 gap-4">
         {[
           { label: 'Pending', value: counts?.pending || 0 },
           { label: 'Sent', value: counts?.sent || 0 },
+          { label: 'Suppressed', value: counts?.suppressed || 0 },
+          { label: 'Skipped', value: counts?.skipped || 0 },
           { label: 'Failed', value: counts?.failed || 0 },
           { label: 'Total', value: counts?.total || 0 },
         ].map((card) => (
@@ -76,7 +79,7 @@ export default function Events() {
       {/* Status Filter */}
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-muted font-medium mr-1">Filter:</span>
-        {['', 'pending', 'sent', 'failed'].map((s) => (
+        {['', 'pending', 'sent', 'suppressed', 'skipped', 'failed'].map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -130,7 +133,12 @@ export default function Events() {
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: statusColors[ev.status] || '#a0a0a0' }}
                       />
-                      <span className={ev.status === 'failed' ? 'text-red-600' : ev.status === 'sent' ? 'text-emerald-600' : 'text-muted'}>
+                      <span className={
+                        ev.status === 'failed' ? 'text-red-600' :
+                        ev.status === 'sent' ? 'text-emerald-600' :
+                        ev.status === 'suppressed' ? 'text-amber-600' :
+                        'text-muted'
+                      }>
                         {ev.status}
                       </span>
                     </span>
@@ -159,6 +167,8 @@ export default function Events() {
                       >
                         {retrying === ev._id ? 'Sending...' : 'Send'}
                       </button>
+                    ) : ev.status === 'suppressed' ? (
+                      <span className="text-xs text-amber-600 font-medium">Superseded</span>
                     ) : ev.error ? (
                       <span className="text-xs text-red-500 max-w-[160px] inline-block truncate" title={ev.error}>{ev.error}</span>
                     ) : ev.response ? (

@@ -10,6 +10,9 @@ const META_PAGE_ID = process.env.META_PAGE_ID;
 const META_CAPI_DRY_RUN = process.env.META_CAPI_DRY_RUN !== "false"; // default to dry-run for safety
 const META_TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || null;
 
+// CAPI send mode: "final_stage_only" prevents sending lower-stage events when a higher-stage one exists.
+const CAPI_SEND_MODE = process.env.CAPI_SEND_MODE || "final_stage_only";
+
 // GET /api/meta/health
 router.get("/health", (_req: Request, res: Response) => {
   const clientId = resolveClientId(_req.query.clientId as string);
