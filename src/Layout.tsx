@@ -4,6 +4,7 @@ import { useClient } from './ClientContext'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/leads', label: 'Leads' },
+  { to: '/telecalling', label: 'Telecalling' },
   { to: '/events', label: 'Events' },
   { to: '/settings', label: 'Settings' },
 ]
