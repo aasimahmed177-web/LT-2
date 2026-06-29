@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getLeads } from '../api'
+import { getLeads, getLeadsEnriched } from '../api'
 import { useClient } from '../ClientContext'
 import LeadDrawer from '../LeadDrawer'
 
@@ -77,6 +77,55 @@ function downloadCsv(rows: any[], filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function downloadReconciliationCsv(leads: any[], filename: string) {
+  const header = [
+    'CRM Lead ID',
+    'Meta Lead ID',
+    'Lead Name',
+    'Phone',
+    'Email',
+    'Current CRM Stage',
+    'Form Name',
+    'Campaign Name',
+    'Adset Name',
+    'Ad Name',
+    'Created Time',
+    'Last Updated Time',
+    'Notes count',
+    'Latest note/comment',
+  ].join(',')
+
+  const lines = leads.map((l) => {
+    const notes = l.notes || []
+    const latestNote = notes.length > 0 ? notes[notes.length - 1].content : ''
+    const lastUpdated = l.stageChangedAt || l.ingestedAt || ''
+    return [
+      escapeCsv(l._id),
+      escapeCsv(l.metaLeadId),
+      escapeCsv(l.name),
+      escapeCsv(l.phone),
+      escapeCsv(l.email),
+      escapeCsv(l.stage),
+      escapeCsv(l.formName),
+      escapeCsv(l.campaignName),
+      escapeCsv(l.adSetName),
+      escapeCsv(l.adName),
+      escapeCsv(getMetaCreated(l)),
+      escapeCsv(lastUpdated),
+      escapeCsv(notes.length),
+      escapeCsv(latestNote),
+    ].join(',')
+  }).join('\n')
+
+  const blob = new Blob([header + '\n' + lines], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const DATE_PRESETS = [
   { label: 'Today', value: 'today' },
   { label: 'Yesterday', value: 'yesterday' },
@@ -102,6 +151,8 @@ export default function Leads() {
   const [formFilter, setFormFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [showTestLeads, setShowTestLeads] = useState(false)
+  const [exportingRecon, setExportingRecon] = useState(false)
+  const [showMappingGuide, setShowMappingGuide] = useState(false)
 
   const loadLeads = () => {
     setLoading(true)
@@ -220,6 +271,19 @@ useEffect(() => {
     downloadCsv(allFiltered, `leads-export-${new Date().toISOString().substring(0, 10)}.csv`)
   }
 
+  const handleReconciliationExport = async () => {
+    setExportingRecon(true)
+    try {
+      const data = await getLeadsEnriched(currentClientId)
+      const enrichedLeads = (data.leads || []).filter((l: any) => !isTestLead(l))
+      downloadReconciliationCsv(enrichedLeads, `crm-reconciliation-${new Date().toISOString().substring(0, 10)}.csv`)
+    } catch (e: any) {
+      console.error('Reconciliation export error:', e)
+    } finally {
+      setExportingRecon(false)
+    }
+  }
+
   const FilterSelect = ({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string }) => (
     <select
       value={value}
@@ -250,7 +314,63 @@ useEffect(() => {
           >
             Export CSV
           </button>
+          <button
+            onClick={handleReconciliationExport}
+            disabled={exportingRecon}
+            className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            {exportingRecon ? 'Exporting...' : 'CRM Reconciliation'}
+          </button>
         </div>
+      </div>
+
+      {/* CRM Reconciliation Helper Section */}
+      <div className="border border-card-border rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowMappingGuide(!showMappingGuide)}
+          className="w-full flex items-center justify-between px-5 py-3 text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors bg-white"
+        >
+          <span>CRM Stage Mapping Guide</span>
+          <span className={`transform transition-transform duration-150 ${showMappingGuide ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+        {showMappingGuide && (
+          <div className="px-5 pb-4 pt-1 border-t border-card-border bg-[#fafafa]">
+            <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Recommended manual mapping from calling team sheet to CRM stages</p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-card-border">
+                  <th className="text-left py-1.5 pr-4 text-muted font-medium">Calling Team Status</th>
+                  <th className="text-left py-1.5 text-muted font-medium">CRM Stage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Contacted — blank (not yet reached)', 'Lead'],
+                  ['Contacted — No', 'NoResponse'],
+                  ['Contacted — Yes', 'Contact'],
+                  ['Interested — Yes', 'Prospect'],
+                  ['Meeting Scheduled — Yes', 'ConversionLead'],
+                  ['Paid / Closed', 'Purchase'],
+                  ['Not interested', 'NotQualified'],
+                  ['Invalid / wrong number', 'Invalid'],
+                  ['Duplicate', 'Duplicate'],
+                ].map(([fromTeam, toCrm]) => (
+                  <tr key={fromTeam} className="border-b border-card-border/50 last:border-0">
+                    <td className="py-1.5 pr-4 text-[#0a0a0a]">{fromTeam}</td>
+                    <td className="py-1.5">
+                      <span className="stage-pill">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                        {toCrm}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Date Presets */}
