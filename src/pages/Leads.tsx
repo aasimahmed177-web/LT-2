@@ -155,6 +155,10 @@ export default function Leads() {
   const [showMappingGuide, setShowMappingGuide] = useState(false)
   const [copiedMetaId, setCopiedMetaId] = useState<string | null>(null)
 
+  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
+  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
+  const stageClass = (s: string) => POSITIVE_STAGES.has(s) ? 'stage-positive' : NEGATIVE_STAGES.has(s) ? 'stage-negative' : 'stage-neutral'
+
   const loadLeads = () => {
     setLoading(true)
     setError(null)
@@ -361,10 +365,10 @@ useEffect(() => {
                   <tr key={fromTeam} className="border-b border-card-border/50 last:border-0">
                     <td className="py-1.5 pr-4 text-[#0a0a0a]">{fromTeam}</td>
                     <td className="py-1.5">
-                      <span className="stage-pill">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-                        {toCrm}
-                      </span>
+                      <span className={stageClass(toCrm)}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(toCrm) ? 'bg-white' : NEGATIVE_STAGES.has(toCrm) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
+                      {toCrm}
+                    </span>
                     </td>
                   </tr>
                 ))}
@@ -499,8 +503,8 @@ useEffect(() => {
                   <td className="py-3 pr-4 text-muted text-xs font-mono">{lead.phone || '—'}</td>
                   <td className="py-3 pr-4 text-muted text-xs max-w-[160px] truncate">{lead.campaignName || '—'}</td>
                   <td className="py-3 pr-4">
-                    <span className="stage-pill">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                    <span className={stageClass(lead.stage)}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(lead.stage) ? 'bg-white' : NEGATIVE_STAGES.has(lead.stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
                       {lead.stage}
                     </span>
                   </td>
@@ -550,8 +554,8 @@ useEffect(() => {
                       <td className="py-3 pr-4 text-muted text-xs font-mono">{lead.phone || '—'}</td>
                       <td className="py-3 pr-4 text-muted text-xs max-w-[160px] truncate">{lead.campaignName || '—'}</td>
                       <td className="py-3 pr-4">
-                        <span className="stage-pill">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#a0a0a0]" />
+                        <span className={stageClass(lead.stage)}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(lead.stage) ? 'bg-white' : NEGATIVE_STAGES.has(lead.stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
                           {lead.stage}
                         </span>
                       </td>

@@ -2,16 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
 
-const statusColors: Record<string, string> = {
-  pending: '#a0a0a0',
-  skipped: '#a0a0a0',
-suppressed: '#d97706',
-  dry_run: '#a0a0a0',
-  sent: '#059669',
-  failed: '#dc2626',
-  cancelled: '#6b7280',
-}
-
 export default function Events() {
   const { currentClientId } = useClient()
   const [events, setEvents] = useState<any[]>([])
@@ -71,6 +61,10 @@ export default function Events() {
   if (loading) {
     return <div className="flex items-center justify-center h-full"><div className="text-muted text-sm">Loading events...</div></div>
   }
+
+  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
+  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
+  const stageClass = (s: string) => POSITIVE_STAGES.has(s) ? 'stage-positive' : NEGATIVE_STAGES.has(s) ? 'stage-negative' : 'stage-neutral'
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -157,25 +151,14 @@ export default function Events() {
                 <tr key={ev._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
                   <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{ev.eventName}</td>
                   <td className="py-3 pr-4">
-                    <span className="stage-pill">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                    <span className={stageClass(ev.stage)}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(ev.stage) ? 'bg-white' : NEGATIVE_STAGES.has(ev.stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
                       {ev.stage}
                     </span>
                   </td>
                   <td className="py-3 pr-4">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: statusColors[ev.status] || '#a0a0a0' }}
-                      />
-                      <span className={
-                        ev.status === 'failed' ? 'text-red-600' :
-                        ev.status === 'sent' ? 'text-emerald-600' :
-                        ev.status === 'suppressed' ? 'text-amber-600' :
-                        'text-muted'
-                      }>
-                        {ev.status}
-                      </span>
+                    <span className={`event-pill-${ev.status === 'dry_run' ? 'skipped' : ev.status}`}>
+                      {ev.status === 'dry_run' ? 'dry-run' : ev.status}
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-muted text-xs">{ev.leadName || '—'}</td>

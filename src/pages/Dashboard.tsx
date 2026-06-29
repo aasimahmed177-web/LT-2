@@ -170,6 +170,10 @@ export default function Dashboard() {
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
 
+  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
+  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
+  const stageClass = (s: string) => POSITIVE_STAGES.has(s) ? 'stage-positive' : NEGATIVE_STAGES.has(s) ? 'stage-negative' : 'stage-neutral'
+
   const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
 
   const activityEntries = Object.entries(filteredStats.activityByDate).sort()
@@ -305,7 +309,7 @@ export default function Dashboard() {
         {hasFilters && (
           <button
             onClick={clearFilters}
-            className="text-[11px] text-muted hover:text-[#0a0a0a] transition-colors underline ml-1"
+            className="text-[11px] text-muted hover:text-[#0a0a0a] transition-all-expo underline ml-1"
           >
             Clear all
           </button>
@@ -550,7 +554,7 @@ export default function Dashboard() {
                   <span className="text-xs font-medium text-[#6b6b6b] w-20">{stageLabels[stage] || stage}</span>
                   <div className="flex-1 h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#0a0a0a] transition-all duration-500"
+                      className={`h-full rounded-full transition-all duration-500 ${NEGATIVE_STAGES.has(stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -589,12 +593,12 @@ export default function Dashboard() {
                 .sort((a, b) => getMetaCreated(b).localeCompare(getMetaCreated(a)))
                 .slice(0, 8)
                 .map((lead: any) => (
-                <tr key={lead._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors duration-100">
+                <tr key={lead._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
                   <td className="px-6 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{lead.name || '—'}</td>
                   <td className="py-3 pr-4 text-muted text-xs">{lead.campaignName || '—'}</td>
                   <td className="py-3 pr-4">
-                    <span className="stage-pill">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                    <span className={stageClass(lead.stage)}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(lead.stage) ? 'bg-white' : NEGATIVE_STAGES.has(lead.stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
                       {lead.stage}
                     </span>
                   </td>
