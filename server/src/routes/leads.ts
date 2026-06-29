@@ -162,7 +162,7 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
     const lead = await getConvex().query("leads:getById", { id: req.params.id });
     if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
 
-    const convexLeadId = req.params.id;
+    const convexLeadId = req.params.id as string;
     const clientId = resolveClientId(req.query.clientId as string);
 
     await getConvex().mutation("crm:updateStage", {
