@@ -153,6 +153,7 @@ export default function Leads() {
   const [showTestLeads, setShowTestLeads] = useState(false)
   const [exportingRecon, setExportingRecon] = useState(false)
   const [showMappingGuide, setShowMappingGuide] = useState(false)
+  const [copiedMetaId, setCopiedMetaId] = useState<string | null>(null)
 
   const loadLeads = () => {
     setLoading(true)
@@ -324,51 +325,63 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* CRM Reconciliation Helper Section */}
+      {/* Manual Sheet Update Guide */}
       <div className="border border-card-border rounded-xl overflow-hidden">
         <button
           onClick={() => setShowMappingGuide(!showMappingGuide)}
           className="w-full flex items-center justify-between px-5 py-3 text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors bg-white"
         >
-          <span>CRM Stage Mapping Guide</span>
+          <span>Manual Sheet Update Guide</span>
           <span className={`transform transition-transform duration-150 ${showMappingGuide ? 'rotate-180' : ''}`}>
             ▼
           </span>
         </button>
         {showMappingGuide && (
-          <div className="px-5 pb-4 pt-1 border-t border-card-border bg-[#fafafa]">
-            <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Recommended manual mapping from calling team sheet to CRM stages</p>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-card-border">
-                  <th className="text-left py-1.5 pr-4 text-muted font-medium">Calling Team Status</th>
-                  <th className="text-left py-1.5 text-muted font-medium">CRM Stage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['Contacted — blank (not yet reached)', 'Lead'],
-                  ['Contacted — No', 'NoResponse'],
-                  ['Contacted — Yes', 'Contact'],
-                  ['Interested — Yes', 'Prospect'],
-                  ['Meeting Scheduled — Yes', 'ConversionLead'],
-                  ['Paid / Closed', 'Purchase'],
-                  ['Not interested', 'NotQualified'],
-                  ['Invalid / wrong number', 'Invalid'],
-                  ['Duplicate', 'Duplicate'],
-                ].map(([fromTeam, toCrm]) => (
-                  <tr key={fromTeam} className="border-b border-card-border/50 last:border-0">
-                    <td className="py-1.5 pr-4 text-[#0a0a0a]">{fromTeam}</td>
-                    <td className="py-1.5">
-                      <span className="stage-pill">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-                        {toCrm}
-                      </span>
-                    </td>
+          <div className="px-5 pb-4 pt-3 border-t border-card-border bg-[#fafafa] space-y-3">
+            <div>
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">How to update CRM stages from the calling sheet</p>
+              <ol className="text-xs text-[#0a0a0a] space-y-1 list-decimal list-inside">
+                <li>Use <strong>Meta Lead ID</strong> (shown in the table below) to find each lead.</li>
+                <li>Open the lead drawer by clicking the row to see full details.</li>
+                <li>Change the stage using the stage buttons in the drawer.</li>
+                <li>Add a call note/comment after updating the stage.</li>
+                <li><strong>Final Lead Stage</strong> in the CRM is the source of truth.</li>
+              </ol>
+            </div>
+            <div className="pt-2 border-t border-card-border/50">
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">CRM stage definitions</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-card-border">
+                    <th className="text-left py-1 pr-4 text-muted font-medium">Stage</th>
+                    <th className="text-left py-1 text-muted font-medium">Meaning</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[
+                    ['Lead', 'Not yet called'],
+                    ['NoResponse', 'Called but not connected'],
+                    ['Contact', 'Connected'],
+                    ['Prospect', 'Interested'],
+                    ['ConversionLead', 'Meeting scheduled'],
+                    ['Purchase', 'Paid / Closed'],
+                    ['NotQualified', 'Not interested / not a fit'],
+                    ['Invalid', 'Wrong number / junk'],
+                    ['Duplicate', 'Duplicate lead'],
+                  ].map(([stage, meaning]) => (
+                    <tr key={stage} className="border-b border-card-border/50 last:border-0">
+                      <td className="py-1 pr-4">
+                        <span className="stage-pill">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                          {stage}
+                        </span>
+                      </td>
+                      <td className="py-1 text-[#0a0a0a]">{meaning}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -433,7 +446,7 @@ useEffect(() => {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, phone, or ID..."
+            placeholder="Search by name, email, phone, or Meta Lead ID..."
             className="w-full h-8 pl-3 pr-3 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] placeholder-muted/60 focus:outline-none focus:border-[#0a0a0a] transition-colors"
           />
         </div>
@@ -483,6 +496,7 @@ useEffect(() => {
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Phone</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Campaign</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Meta ID</th>
                 <th className="py-2.5 pr-4 text-[11px] uppercase tracking-wider font-medium text-muted">Created</th>
               </tr>
             </thead>
@@ -502,6 +516,23 @@ useEffect(() => {
                       {lead.stage}
                     </span>
                   </td>
+                  <td className="py-3 pr-4">
+                    {lead.metaLeadId ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(lead.metaLeadId).then(() => {
+                            setCopiedMetaId(lead._id)
+                            setTimeout(() => setCopiedMetaId(null), 1500)
+                          })
+                        }}
+                        className="font-mono text-[11px] text-muted hover:text-[#0a0a0a] transition-colors truncate max-w-[110px] block text-left"
+                        title={lead.metaLeadId}
+                      >
+                        {copiedMetaId === lead._id ? 'Copied!' : lead.metaLeadId.slice(0, 10) + '…'}
+                      </button>
+                    ) : <span className="text-muted text-[11px]">—</span>}
+                  </td>
                   <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                     {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
                   </td>
@@ -512,7 +543,7 @@ useEffect(() => {
               {processed.test.length > 0 && (
                 <>
                   <tr className="border-b border-card-border bg-[#f5f5f5]">
-                    <td colSpan={5} className="px-4 py-2 text-[10px] text-muted font-medium uppercase tracking-wider">
+                    <td colSpan={6} className="px-4 py-2 text-[10px] text-muted font-medium uppercase tracking-wider">
                       Meta Test Leads ({processed.test.length})
                     </td>
                   </tr>
@@ -535,6 +566,13 @@ useEffect(() => {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#a0a0a0]" />
                           {lead.stage}
                         </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        {lead.metaLeadId ? (
+                          <span className="font-mono text-[11px] text-muted truncate max-w-[110px] block" title={lead.metaLeadId}>
+                            {lead.metaLeadId.slice(0, 10)}…
+                          </span>
+                        ) : <span className="text-muted text-[11px]">—</span>}
                       </td>
                       <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                         {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
