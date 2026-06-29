@@ -193,7 +193,7 @@ export default function Dashboard() {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors min-w-[110px]"
+      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo min-w-[110px]"
     >
       <option value="">{placeholder}</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -239,7 +239,7 @@ export default function Dashboard() {
           <button
             key={p.label}
             onClick={() => setDatePreset(p.label)}
-            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
               datePreset === p.label
                 ? 'bg-[#0a0a0a] text-white'
                 : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -250,7 +250,7 @@ export default function Dashboard() {
         ))}
         <button
           onClick={() => setDatePreset('all')}
-          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
             datePreset === 'all'
               ? 'bg-[#0a0a0a] text-white'
               : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -260,7 +260,7 @@ export default function Dashboard() {
         </button>
         <button
           onClick={() => setDatePreset('custom')}
-          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
             datePreset === 'custom'
               ? 'bg-[#0a0a0a] text-white'
               : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -315,7 +315,7 @@ export default function Dashboard() {
       {/* Hero Section: Total Pipeline + Activity Chart */}
       <div className="grid grid-cols-[1fr_2fr] gap-5">
         {/* Pipeline stat card */}
-        <div className="border border-card-border rounded-xl p-6 flex flex-col justify-between">
+        <div className="border border-card-border rounded-xl p-6 flex flex-col justify-between transition-all-expo hover:border-[#d4d4d4]">
           <div>
             <p className="section-label">Total Pipeline</p>
             <p className="text-[44px] font-bold text-[#0a0a0a] mt-2 tabular-nums tracking-tight leading-none">
@@ -342,7 +342,7 @@ export default function Dashboard() {
         </div>
 
         {/* Activity chart */}
-        <div className="border border-card-border rounded-xl p-6">
+        <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="section-label">Lead Activity</p>
@@ -414,7 +414,7 @@ export default function Dashboard() {
                         rx={2}
                         fill={isToday ? '#555555' : '#0a0a0a'}
                         opacity={isHovered ? 1 : (isToday ? 0.9 : 0.7)}
-                        className="transition-all duration-150"
+                        className="transition-all-expo"
                         style={{ cursor: 'pointer' }}
                       />
                       {/* Value above bar */}
@@ -425,7 +425,7 @@ export default function Dashboard() {
                         fill={isHovered ? '#0a0a0a' : '#a0a0a0'}
                         fontSize={isHovered ? 10 : 9}
                         fontWeight={isHovered ? '600' : '400'}
-                        className="transition-all duration-100"
+                        className="transition-all-expo"
                       >
                         {count as number}
                       </text>
@@ -485,7 +485,7 @@ export default function Dashboard() {
         ].map((card) => (
           <div
             key={card.label}
-            className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150"
+            className="kpi-card"
           >
             <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
             <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums tracking-tight leading-none">{card.value}</p>
@@ -499,7 +499,7 @@ export default function Dashboard() {
       {/* Funnel + Stage Distribution */}
       <div className="grid grid-cols-2 gap-5">
         {/* Pipeline Funnel */}
-        <div className="border border-card-border rounded-xl p-6">
+        <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
           <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
           <div className="space-y-4">
             {stageOrder.map((stage, idx) => {
@@ -524,9 +524,9 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
-                  <div className="h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full funnel-bar"
+                      className="h-full rounded-full funnel-bar-smooth"
                       style={{
                         width: `${pct}%`,
                         backgroundColor: idx === stageOrder.length - 1 ? '#555555' : '#0a0a0a',
@@ -540,7 +540,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stage Distribution */}
-        <div className="border border-card-border rounded-xl p-6">
+        <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
           <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Stage Distribution</h2>
           <div className="space-y-3">
             {Object.entries(filteredStats.byStage).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => {

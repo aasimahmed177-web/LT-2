@@ -143,7 +143,7 @@ export default function Settings() {
         </div>
         <button
           onClick={() => setShowAddClient(!showAddClient)}
-          className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 transition-opacity"
+          className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 transition-all-expo"
         >
           {showAddClient ? 'Cancel' : '+ Add Client'}
         </button>
@@ -151,14 +151,14 @@ export default function Settings() {
 
       {/* CAPI Warning Banners */}
       {systemHealth?.capi?.liveSendingEnabled && (
-        <div className="border border-amber-300 bg-amber-50 rounded-xl px-5 py-4">
+        <div className="warning-banner border border-amber-300 bg-amber-50">
           <p className="text-sm font-semibold text-amber-800">Live CAPI mode is ON</p>
           <p className="text-xs text-amber-700 mt-1">Positive final-stage changes (Contact, Prospect, ConversionLead, Purchase) can send events to Meta.</p>
           <p className="text-xs text-amber-600 mt-0.5">Set <code className="text-amber-800 font-mono text-[11px] bg-amber-100 px-1 rounded">META_CAPI_DRY_RUN=true</code> to disable live sending.</p>
         </div>
       )}
       {systemHealth?.capi?.dryRun && (
-        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4">
+        <div className="warning-banner border border-blue-200 bg-blue-50">
           <p className="text-sm font-semibold text-blue-800">Dry-run mode is ON</p>
           <p className="text-xs text-blue-700 mt-1">Events will be recorded but not sent to Meta.</p>
           <p className="text-xs text-blue-600 mt-0.5">Set <code className="text-blue-800 font-mono text-[11px] bg-blue-100 px-1 rounded">META_CAPI_DRY_RUN=false</code> to enable live sending.</p>
@@ -166,7 +166,7 @@ export default function Settings() {
       )}
 
       {/* System Health */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-4">System Health</h2>
         {systemHealthLoading ? (
           <p className="text-sm text-muted">Loading system health...</p>
@@ -217,7 +217,7 @@ export default function Settings() {
                     { label: 'Dry-run', value: systemHealth.events.dryRun, color: 'text-gray-400' },
                     { label: 'Total', value: systemHealth.events.total, color: 'text-[#0a0a0a]' },
                   ].map((s) => (
-                    <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-2.5 text-center">
+                    <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-2.5 text-center transition-all-expo hover:border-[#d4d4d4]">
                       <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
                       <p className={`text-base font-bold tabular-nums mt-0.5 ${s.color}`}>{s.value}</p>
                     </div>
@@ -257,7 +257,7 @@ export default function Settings() {
       </div>
 
       {/* CAPI Safety Explanation Card */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Safety Overview</h2>
         <div className="space-y-3 text-xs">
           <div>
@@ -299,7 +299,7 @@ export default function Settings() {
 
       {/* Add Client Form */}
       {showAddClient && (
-        <div className="border border-card-border rounded-xl p-5">
+        <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
           <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-4">New Client</h2>
           <div className="space-y-3">
             <div>
@@ -308,7 +308,7 @@ export default function Settings() {
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
                 placeholder="e.g. Acme Real Estate"
-                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
               />
               {newClientName.trim() && (
                 <p className="text-[11px] text-muted mt-1">Slug: {newClientName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'client'}</p>
@@ -320,7 +320,7 @@ export default function Settings() {
                 value={newClientPageId}
                 onChange={(e) => setNewClientPageId(e.target.value)}
                 placeholder="e.g. 1135528059640106"
-                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
               />
             </div>
             <div>
@@ -329,7 +329,7 @@ export default function Settings() {
                 value={newClientPixelId}
                 onChange={(e) => setNewClientPixelId(e.target.value)}
                 placeholder="e.g. 123456789"
-                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
               />
             </div>
             {createError && (
@@ -339,7 +339,7 @@ export default function Settings() {
               <button
                 onClick={handleCreate}
                 disabled={creating || !newClientName.trim()}
-                className="h-8 px-4 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="h-8 px-4 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-all-expo"
               >
                 {creating ? 'Creating...' : 'Create Client'}
               </button>
@@ -349,7 +349,7 @@ export default function Settings() {
       )}
 
       {/* Meta Configuration */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Meta Configuration</h2>
         {healthLoading ? (
           <p className="text-sm text-muted">Checking configuration...</p>
@@ -377,7 +377,7 @@ export default function Settings() {
       </div>
 
       {/* CAPI Configuration */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Configuration</h2>
         {capiStatusLoading ? (
           <p className="text-sm text-muted">Loading CAPI configuration...</p>
@@ -414,7 +414,7 @@ export default function Settings() {
       </div>
 
       {/* CAPI Safety Status */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Safety Status</h2>
         <div className="space-y-2">
           <div className="flex items-center gap-3 py-1.5">
@@ -453,17 +453,17 @@ export default function Settings() {
 
       {/* Client Configuration (editable) */}
       {configLoading ? (
-        <div className="border border-card-border rounded-xl p-5">
+        <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
           <p className="text-sm text-muted">Loading client configuration...</p>
         </div>
       ) : clientConfig && (
-        <div className="border border-card-border rounded-xl p-5">
+        <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Client Configuration</h2>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="text-[11px] font-medium text-muted hover:text-[#0a0a0a] transition-colors"
+                className="text-[11px] font-medium text-muted hover:text-[#0a0a0a] transition-all-expo"
               >
                 Edit
               </button>
@@ -477,7 +477,7 @@ export default function Settings() {
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
                 />
               </div>
               <div>
@@ -490,7 +490,7 @@ export default function Settings() {
                   value={editPageId}
                   onChange={(e) => setEditPageId(e.target.value)}
                   placeholder="e.g. 1135528059640106"
-                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
                 />
               </div>
               <div>
@@ -499,7 +499,7 @@ export default function Settings() {
                   value={editPixelId}
                   onChange={(e) => setEditPixelId(e.target.value)}
                   placeholder="e.g. 123456789"
-                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+                  className="w-full text-sm border border-card-border rounded-md px-3 py-1.5 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
                 />
               </div>
               <div>
@@ -517,14 +517,14 @@ export default function Settings() {
               <div className="flex gap-2 justify-end pt-1">
                 <button
                   onClick={() => { setEditing(false); setSaveError(null) }}
-                  className="h-8 px-3 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-colors"
+                  className="h-8 px-3 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="h-8 px-3 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-all-expo"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -582,13 +582,13 @@ export default function Settings() {
       )}
 
       {/* Sync Leads */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Sync Meta Leads</h2>
         <p className="text-xs text-muted mb-4">Manually pull the latest leads from Meta. Dedup is automatic. CRM fields (stage, notes, tasks, history) are never overwritten.</p>
         <button
           onClick={handleImport}
           disabled={importing}
-          className="h-9 px-5 bg-[#0a0a0a] text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center gap-2"
+          className="h-9 px-5 bg-[#0a0a0a] text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all-expo inline-flex items-center gap-2"
         >
           {importing ? (
             <>
@@ -630,7 +630,7 @@ export default function Settings() {
                 { label: 'Total Fetched', value: displayResult.leadsFetched },
                 { label: 'Total in DB', value: displayResult.total },
               ].map((s) => (
-                <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-3">
+                <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-3 transition-all-expo hover:border-[#d4d4d4]">
                   <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
                   <p className="text-lg font-bold text-[#0a0a0a] tabular-nums mt-1">{s.value}</p>
                 </div>
@@ -690,7 +690,7 @@ export default function Settings() {
       </div>
 
       {/* Source of Truth */}
-      <div className="border border-card-border rounded-xl p-5">
+      <div className="border border-card-border rounded-xl p-5 transition-all-expo hover:border-[#d4d4d4]">
         <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">Data Source</h2>
         {source ? (
           <div className="space-y-2 text-sm">
