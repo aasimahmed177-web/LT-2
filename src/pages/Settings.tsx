@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients, getCapiStatus } from '../api'
+import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients, getCapiStatus, getEventsCounts } from '../api'
 import { useClient } from '../ClientContext'
 
 export default function Settings() {
@@ -15,6 +15,7 @@ export default function Settings() {
   const [configLoading, setConfigLoading] = useState(true)
   const [capiStatus, setCapiStatus] = useState<any>(null)
   const [capiStatusLoading, setCapiStatusLoading] = useState(true)
+  const [eventCounts, setEventCounts] = useState<any>(null)
 
   // Client edit state
   const [editing, setEditing] = useState(false)
@@ -47,6 +48,7 @@ export default function Settings() {
       setEditPixelId(c.config?.pixelId || '')
     }).catch(() => {}).finally(() => setConfigLoading(false))
     getCapiStatus().then(setCapiStatus).catch(() => {}).finally(() => setCapiStatusLoading(false))
+    getEventsCounts(currentClientId).then(setEventCounts).catch(() => {})
   }, [currentClientId])
 
   const handleImport = async () => {
@@ -258,6 +260,44 @@ export default function Settings() {
         ) : (
           <p className="text-sm text-red-500">Failed to check CAPI configuration</p>
         )}
+      </div>
+
+      {/* CAPI Safety Status */}
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Safety Status</h2>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 py-1.5">
+            <span className={`w-2 h-2 rounded-full ${capiStatus?.dryRun ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+            <span className="text-sm text-[#0a0a0a]">Dry-run mode</span>
+            <span className={`text-xs font-medium ${capiStatus?.dryRun ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {capiStatus?.dryRun ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 py-1.5">
+            <span className={`w-2 h-2 rounded-full ${capiStatus?.dryRun ? 'bg-amber-400' : 'bg-red-400'}`} />
+            <span className="text-sm text-[#0a0a0a]">Live sending</span>
+            <span className={`text-xs font-medium ${capiStatus?.dryRun ? 'text-amber-600' : 'text-red-500'}`}>
+              {capiStatus?.dryRun ? 'Disabled' : 'Enabled'}
+            </span>
+          </div>
+          <div className="pt-2 mt-2 border-t border-card-border/50">
+            <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Event counts</p>
+            <div className="grid grid-cols-5 gap-3">
+              {[
+                { label: 'Pending', value: eventCounts?.pending || 0, color: 'text-gray-500' },
+                { label: 'Sent', value: eventCounts?.sent || 0, color: 'text-emerald-600' },
+                { label: 'Failed', value: eventCounts?.failed || 0, color: 'text-red-500' },
+                { label: 'Cancelled', value: eventCounts?.cancelled || 0, color: 'text-gray-400' },
+                { label: 'Skipped', value: eventCounts?.skipped || 0, color: 'text-gray-400' },
+              ].map((s) => (
+                <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
+                  <p className={`text-lg font-bold tabular-nums mt-1 ${s.color}`}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Client Configuration (editable) */}

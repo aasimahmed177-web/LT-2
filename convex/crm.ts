@@ -244,6 +244,9 @@ export const eventsCounts = query({
       pending: events.filter((e) => e.status === "pending").length,
       sent: events.filter((e) => e.status === "sent").length,
       failed: events.filter((e) => e.status === "failed").length,
+      skipped: events.filter((e) => e.status === "skipped").length,
+      dry_run: events.filter((e) => e.status === "dry_run").length,
+      cancelled: events.filter((e) => e.status === "cancelled").length,
       total: events.length,
     };
   },
