@@ -33,6 +33,10 @@ export function getLeads(clientId?: string) {
   return json<{ leads: any[] }>(withClient(`${API_BASE}/leads`, clientId))
 }
 
+export function getLeadsEnriched(clientId?: string) {
+  return json<{ leads: any[] }>(withClient(`${API_BASE}/leads/enriched`, clientId))
+}
+
 export function getSourceOfTruth(clientId?: string) {
   return json<any>(withClient(`${API_BASE}/debug/source-of-truth`, clientId))
 }
