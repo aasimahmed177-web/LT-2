@@ -19,6 +19,8 @@ const STAGES = [
 ]
 
 const DISQUALIFICATION_STAGES = new Set(['NotQualified', 'NoResponse', 'Duplicate', 'Invalid'])
+const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
+const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
 
 function extractFieldValue(fieldData: any[], ...namePatterns: string[]): string {
   for (const field of fieldData || []) {
@@ -283,7 +285,7 @@ export default function LeadDrawer({
                 <span className="text-muted">·</span>
                 <span className="text-xs text-muted">{lead?.platform || 'meta'}</span>
                 <span className="text-muted">·</span>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#0a0a0a] text-white">{lead?.stage || '—'}</span>
+                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${POSITIVE_STAGES.has(lead?.stage) ? 'bg-[#0a0a0a] text-white' : NEGATIVE_STAGES.has(lead?.stage) ? 'bg-[#f5f5f5] text-[#8b8b8b] border border-card-border' : 'bg-white text-[#6b6b6b] border border-[#e5e5e5]'}`}>{lead?.stage || '—'}</span>
               </div>
             </div>
             <button onClick={onClose} className="text-muted hover:text-[#0a0a0a] text-lg leading-none ml-3 transition-all-expo">&times;</button>

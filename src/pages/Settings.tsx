@@ -264,8 +264,8 @@ export default function Settings() {
             <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Stages that send events</p>
             <div className="flex flex-wrap gap-1.5">
               {['Contact', 'Prospect', 'ConversionLead', 'Purchase'].map((s) => (
-                <span key={s} className="stage-pill bg-emerald-50 border-emerald-200 text-emerald-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span key={s} className="stage-positive">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
                   {s}
                 </span>
               ))}
@@ -276,7 +276,7 @@ export default function Settings() {
             <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Stages that never send</p>
             <div className="flex flex-wrap gap-1.5">
               {['Lead', 'NoResponse', 'NotQualified', 'Invalid', 'Duplicate'].map((s) => (
-                <span key={s} className="stage-pill bg-gray-50 border-card-border text-muted">
+                <span key={s} className="stage-negative">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#a0a0a0]" />
                   {s}
                 </span>
