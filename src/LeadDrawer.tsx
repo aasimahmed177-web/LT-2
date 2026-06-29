@@ -3,6 +3,7 @@ import {
   getLead, updateLeadStage, getLeadHistory,
   getLeadNotes, addLeadNote, getLeadTasks, addLeadTask, toggleLeadTask,
   getLeadEvents, sendCapiEvent, cancelCapiEvent,
+getPreviewPayload,
 } from './api'
 
 const STAGES = [
@@ -75,6 +76,8 @@ export default function LeadDrawer({
   const [pendingStage, setPendingStage] = useState<string | null>(null)
   const [disqualReason, setDisqualReason] = useState('')
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null)
+  const [previewPayload, setPreviewPayload] = useState<any>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const load = useCallback(async () => {
     if (!leadId) return
@@ -194,6 +197,20 @@ export default function LeadDrawer({
     }
   }
 
+  const handlePreviewPayload = async () => {
+    if (!leadId || previewLoading) return
+    setPreviewLoading(true)
+    try {
+      const data = await getPreviewPayload(leadId)
+      setPreviewPayload(data)
+    } catch (err: any) {
+      console.error('Preview payload error:', err)
+      setPreviewPayload({ error: err.message || 'Failed to load preview' })
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   const handleCopy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -310,6 +327,13 @@ export default function LeadDrawer({
                 {copiedLabel === 'metaId' ? 'Copied!' : 'Copy Meta ID'}
               </button>
             )}
+            <button
+              onClick={handlePreviewPayload}
+              disabled={previewLoading}
+              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors disabled:opacity-50"
+            >
+              {previewLoading ? 'Loading...' : 'Preview Meta Payload'}
+            </button>
             <button
               onClick={() => handleCopy(buildLeadSummary(), 'summary')}
               className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] transition-colors"
@@ -648,6 +672,81 @@ export default function LeadDrawer({
                 className="px-4 py-2 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
               >
                 {updatingStage ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Meta Payload Preview Modal */}
+      {previewPayload && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-[60]" onClick={() => setPreviewPayload(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl border border-card-border p-6 z-[70] w-[480px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-[#0a0a0a">Meta Payload Preview</h3>
+              <button onClick={() => setPreviewPayload(null)} className="text-muted hover:text-[#0a0a0a] text-lg leading-none transition-colors">&times;</button>
+            </div>
+
+            {previewPayload.error ? (
+              <p className="text-xs text-red-500">{previewPayload.error}</p>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-amber-800 font-medium text-[11px]">{previewPayload.warning}</p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1">Lead Info</p>
+                  <div className="space-y-0.5">
+                    <p><span className="text-muted">Name:</span> {previewPayload.name || '—'}</p>
+                    <p><span className="text-muted">Meta Lead ID:</span> {previewPayload.metaLeadId || '—'}</p>
+                    <p><span className="text-muted">Phone available:</span> {previewPayload.phoneAvailable ? 'Yes' : 'No'}</p>
+                    <p><span className="text-muted">Email available:</span> {previewPayload.emailAvailable ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1">user_data (redacted hashes)</p>
+                  <div className="bg-[#fafafa] rounded-lg p-3 border border-card-border space-y-0.5 font-mono text-[11px]">
+                    {Object.keys(previewPayload.userData || {}).length === 0 ? (
+                      <p className="text-muted italic">No user_data fields available</p>
+                    ) : (
+                      Object.entries(previewPayload.userData || {}).map(([key, val]) => (
+                        <p key={key}>{key}: {val as string}</p>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1">custom_data</p>
+                  <div className="bg-[#fafafa] rounded-lg p-3 border border-card-border space-y-0.5 font-mono text-[11px]">
+                    {Object.entries(previewPayload.customData || {}).map(([key, val]) => (
+                      <p key={key}>{key}: {val !== undefined && val !== null ? String(val) : '—'}</p>
+                    ))}
+                  </div>
+                </div>
+
+                {previewPayload.fieldsMissing?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1">Missing fields</p>
+                    <ul className="list-disc list-inside text-amber-700 space-y-0.5">
+                      {previewPayload.fieldsMissing.map((f: string, i: number) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setPreviewPayload(null)}
+                className="px-4 py-2 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
