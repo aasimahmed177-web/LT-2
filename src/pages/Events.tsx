@@ -81,13 +81,13 @@ export default function Events() {
 
       {/* CAPI Warning Banners */}
       {capiStatus && !capiStatus.dryRun && capiStatus.capiCapable && (
-        <div className="border border-amber-300 bg-amber-50 rounded-xl px-5 py-4">
+        <div className="warning-banner border border-amber-300 bg-amber-50">
           <p className="text-sm font-semibold text-amber-800">Live CAPI mode is ON</p>
           <p className="text-xs text-amber-700 mt-1">Positive final-stage changes can send events to Meta. Events listed below reflect the actual send status.</p>
         </div>
       )}
       {capiStatus && capiStatus.dryRun && (
-        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4">
+        <div className="warning-banner border border-blue-200 bg-blue-50">
           <p className="text-sm font-semibold text-blue-800">Dry-run mode is ON</p>
           <p className="text-xs text-blue-700 mt-1">Events are recorded but not sent to Meta.</p>
         </div>
@@ -104,7 +104,7 @@ export default function Events() {
           { label: 'Cancelled', value: counts?.cancelled || 0 },
           { label: 'Total', value: counts?.total || 0 },
         ].map((card) => (
-          <div key={card.label} className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150">
+          <div key={card.label} className="kpi-card">
             <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
             <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums tracking-tight leading-none">{card.value}</p>
           </div>
@@ -118,7 +118,7 @@ export default function Events() {
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
               statusFilter === s
                 ? 'bg-[#0a0a0a] text-white'
                 : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -154,7 +154,7 @@ export default function Events() {
             </thead>
             <tbody>
               {filtered.map((ev: any) => (
-                <tr key={ev._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors duration-100">
+                <tr key={ev._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
                   <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{ev.eventName}</td>
                   <td className="py-3 pr-4">
                     <span className="stage-pill">
@@ -190,7 +190,7 @@ export default function Events() {
                       <button
                         onClick={() => handleCancel(ev._id)}
                         disabled={cancelling === ev._id}
-                        className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                        className="text-xs font-medium text-red-500 hover:text-red-700 transition-all-expo disabled:opacity-50"
                       >
                         {cancelling === ev._id ? 'Cancelling...' : 'Cancel event'}
                       </button>
@@ -201,14 +201,14 @@ export default function Events() {
                         <button
                           onClick={() => handleRetry(ev._id)}
                           disabled={retrying === ev._id}
-                          className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                          className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-all-expo disabled:opacity-50"
                         >
                           {retrying === ev._id ? 'Retrying...' : 'Retry'}
                         </button>
                         <button
                           onClick={() => handleCancel(ev._id)}
                           disabled={cancelling === ev._id}
-                          className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                          className="text-xs font-medium text-red-500 hover:text-red-700 transition-all-expo disabled:opacity-50"
                         >
                           {cancelling === ev._id ? 'Cancelling...' : 'Cancel'}
                         </button>

@@ -289,7 +289,7 @@ useEffect(() => {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors"
+      className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
     >
       <option value="">{placeholder}</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -311,7 +311,7 @@ useEffect(() => {
           <button
             onClick={handleExport}
             disabled={processed.real.length === 0 && processed.test.length === 0}
-            className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
           >
             Export CSV
           </button>
@@ -329,7 +329,7 @@ useEffect(() => {
       <div className="border border-card-border rounded-xl overflow-hidden">
         <button
           onClick={() => setShowMappingGuide(!showMappingGuide)}
-          className="w-full flex items-center justify-between px-5 py-3 text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors bg-white"
+          className="w-full flex items-center justify-between px-5 py-3 text-xs font-medium text-muted hover:text-[#0a0a0a] transition-all-expo bg-white"
         >
           <span>CRM Stage Mapping Guide</span>
           <span className={`transform transition-transform duration-150 ${showMappingGuide ? 'rotate-180' : ''}`}>
@@ -380,7 +380,7 @@ useEffect(() => {
           <button
             key={p.value}
             onClick={() => setDatePreset(p.value)}
-            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
               datePreset === p.value
                 ? 'bg-[#0a0a0a] text-white'
                 : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -391,7 +391,7 @@ useEffect(() => {
         ))}
         <button
           onClick={() => setDatePreset('all')}
-          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
             datePreset === 'all'
               ? 'bg-[#0a0a0a] text-white'
               : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -401,7 +401,7 @@ useEffect(() => {
         </button>
         <button
           onClick={() => setDatePreset('custom')}
-          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all duration-100 ${
+          className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all-expo ${
             datePreset === 'custom'
               ? 'bg-[#0a0a0a] text-white'
               : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4]'
@@ -435,7 +435,7 @@ useEffect(() => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, phone, or Meta Lead ID..."
-            className="w-full h-8 pl-3 pr-3 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] placeholder-muted/60 focus:outline-none focus:border-[#0a0a0a] transition-colors"
+            className="w-full h-8 pl-3 pr-3 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] placeholder-muted/60 focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
           />
         </div>
         <FilterSelect value={stageFilter} onChange={setStageFilter} options={filterOptions.stages} placeholder="All stages" />
@@ -454,7 +454,7 @@ useEffect(() => {
         {hasFilters && (
           <button
             onClick={clearFilters}
-            className="text-[11px] text-muted hover:text-[#0a0a0a] transition-colors underline whitespace-nowrap"
+            className="text-[11px] text-muted hover:text-[#0a0a0a] transition-all-expo underline whitespace-nowrap"
           >
             Clear filters
           </button>
@@ -493,7 +493,7 @@ useEffect(() => {
                 <tr
                   key={lead._id}
                   onClick={() => setSelectedLeadId(lead._id)}
-                  className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors duration-100 cursor-pointer"
+                  className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer"
                 >
                   <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{lead.name || '—'}</td>
                   <td className="py-3 pr-4 text-muted text-xs font-mono">{lead.phone || '—'}</td>
@@ -539,7 +539,7 @@ useEffect(() => {
                     <tr
                       key={lead._id}
                       onClick={() => setSelectedLeadId(lead._id)}
-                      className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-colors duration-100 cursor-pointer opacity-50"
+                      className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer opacity-50"
                     >
                       <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">
                         <span className="inline-flex items-center gap-1.5">

@@ -327,15 +327,15 @@ export default function Telecalling() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-[11px] text-muted font-medium">Filters:</span>
-        <select value={callerFilter} onChange={(e) => setCallerFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]">
+        <select value={callerFilter} onChange={(e) => setCallerFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo">
           <option value="">All callers</option>
           {uniqueCallers.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={adFilter} onChange={(e) => setAdFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]">
+        <select value={adFilter} onChange={(e) => setAdFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo">
           <option value="">All ads</option>
           {uniqueAds.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a]">
+        <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className="text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo">
           <option value="">All stages</option>
           {uniqueStages.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -345,7 +345,7 @@ export default function Telecalling() {
       </div>
 
       {/* Funnel Visualization */}
-      <div className="border border-card-border rounded-xl overflow-hidden">
+      <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Funnel</h2>
         </div>
@@ -373,7 +373,7 @@ export default function Telecalling() {
       </div>
 
       {/* Funnel Table */}
-      <div className="border border-card-border rounded-xl overflow-hidden">
+      <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
@@ -392,7 +392,7 @@ export default function Telecalling() {
               { label: "Conversion Lead", value: metrics.conversionLeads, prev: metrics.interested },
               { label: "Purchase", value: metrics.purchase, prev: metrics.conversionLeads },
             ].map((row) => (
-              <tr key={row.label} className="border-b border-[#f5f5f5] last:border-0">
+              <tr key={row.label} className="border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-all-expo">
                 <td className="px-5 py-3 font-medium text-[#0a0a0a] text-sm">{row.label}</td>
                 <td className="py-3 tabular-nums font-semibold">{row.value}</td>
                 <td className="py-3 tabular-nums text-muted">{pct(row.value, metrics.total)}</td>
@@ -417,7 +417,7 @@ export default function Telecalling() {
           { label: "Invalid", value: metrics.invalid, sub: pct(metrics.invalid, metrics.total), subLabel: "Invalid Rate" },
           { label: "Purchase", value: metrics.purchase, sub: pct(metrics.purchase, metrics.conversionLeads), subLabel: "Purchase Rate" },
         ].map((card) => (
-          <div key={card.label} className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150">
+          <div key={card.label} className="kpi-card">
             <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
             <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums tracking-tight leading-none">{card.value}</p>
             {card.sub && (
@@ -428,7 +428,7 @@ export default function Telecalling() {
       </div>
 
       {/* Caller Breakdown */}
-      <div className="border border-card-border rounded-xl overflow-hidden">
+      <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Caller Breakdown</h2>
         </div>
@@ -452,7 +452,7 @@ export default function Telecalling() {
           </thead>
           <tbody>
             {callerData.map((r) => (
-              <tr key={r.caller} className="border-b border-[#f5f5f5] last:border-0">
+              <tr key={r.caller} className="border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-all-expo">
                 <td className="px-5 py-3 font-medium text-[#0a0a0a] text-sm">{r.caller}</td>
                 <td className="py-3 tabular-nums font-semibold">{r.total}</td>
                 <td className="py-3 tabular-nums">{r.attempted}</td>
@@ -473,7 +473,7 @@ export default function Telecalling() {
       </div>
 
       {/* Ad Breakdown */}
-      <div className="border border-card-border rounded-xl overflow-hidden">
+      <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Ad Breakdown</h2>
         </div>
@@ -494,7 +494,7 @@ export default function Telecalling() {
           </thead>
           <tbody>
             {adData.map((r) => (
-              <tr key={r.adName} className="border-b border-[#f5f5f5] last:border-0">
+              <tr key={r.adName} className="border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-all-expo">
                 <td className="px-5 py-3 font-medium text-[#0a0a0a] text-sm max-w-[200px] truncate" title={r.adName}>{r.adName}</td>
                 <td className="py-3 text-muted text-xs">{r.caller}</td>
                 <td className="py-3 tabular-nums font-semibold">{r.total}</td>
@@ -512,7 +512,7 @@ export default function Telecalling() {
       </div>
 
       {/* Reason Buckets */}
-      <div className="border border-card-border rounded-xl overflow-hidden">
+      <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Reason Buckets (from Call Comments)</h2>
         </div>
@@ -528,7 +528,7 @@ export default function Telecalling() {
             {reasonBuckets.length === 0 ? (
               <tr><td colSpan={3} className="px-5 py-6 text-center text-muted text-xs">No comments to bucket</td></tr>
             ) : reasonBuckets.map((b) => (
-              <tr key={b.label} className="border-b border-[#f5f5f5] last:border-0">
+              <tr key={b.label} className="border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-all-expo">
                 <td className="px-5 py-3 font-medium text-[#0a0a0a] text-sm">{b.label}</td>
                 <td className="py-3 tabular-nums font-semibold">{b.count}</td>
                 <td className="py-3 pr-5 text-muted text-xs max-w-[400px] truncate" title={b.leads.join(", ")}>

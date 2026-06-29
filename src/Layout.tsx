@@ -19,7 +19,7 @@ export default function Layout() {
         {/* Logo */}
         <div className="px-4 py-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#0a0a0a] flex items-center justify-center text-white text-[11px] font-bold tracking-tight">
+            <div className="w-7 h-7 rounded-lg bg-[#0a0a0a] flex items-center justify-center text-white text-[11px] font-bold tracking-tight transition-transform-expo">
               LT
             </div>
             <div className="flex flex-col">
@@ -53,7 +53,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-100 ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all-expo ${
                   isActive
                     ? 'bg-[#0a0a0a] text-white'
                     : 'text-muted hover:bg-sidebar-hover hover:text-[#0a0a0a]'

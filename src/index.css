@@ -20,6 +20,10 @@
   --color-stage-noresponse: #a0a0a0;
   --color-stage-duplicate: #a0a0a0;
   --color-stage-invalid: #a0a0a0;
+
+  /* Subtle transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 html, body, #root {
@@ -31,6 +35,7 @@ body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   color: #0a0a0a;
   background: #ffffff;
 }
@@ -52,6 +57,7 @@ body {
   inset: 0;
   background: rgba(0, 0, 0, 0.25);
   z-index: 40;
+  animation: fadeIn 200ms var(--ease-out-expo);
 }
 .drawer-panel {
   position: fixed;
@@ -64,6 +70,27 @@ body {
   z-index: 50;
   overflow-y: auto;
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08);
+  animation: slideInRight 250ms var(--ease-out-expo);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* Chart bar animation */
@@ -130,4 +157,101 @@ body {
   background-size: 200px 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 4px;
+}
+
+/* Transition utilities */
+.transition-all-expo {
+  transition: all 150ms var(--ease-out-expo);
+}
+
+.transition-opacity-expo {
+  transition: opacity 200ms var(--ease-out-expo);
+}
+
+.transition-transform-expo {
+  transition: transform 200ms var(--ease-out-expo);
+}
+
+/* Refined input focus — use explicit selectors to avoid Tailwind conflicts */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #0a0a0a;
+  transition: border-color 150ms var(--ease-out-expo);
+}
+
+/* Refined button press state */
+button:active {
+  transform: scale(0.97);
+}
+button:active.stage-pill,
+button:active.stage-btn {
+  transform: scale(0.96);
+}
+
+/* Data table with sticky header */
+.data-table {
+  @apply w-full text-sm;
+}
+.data-table thead {
+  @apply border-b border-card-border;
+}
+.data-table th {
+  @apply text-left text-[11px] uppercase tracking-wider font-medium text-muted px-4 py-2.5;
+  position: sticky;
+  top: 0;
+  background: #fafafa;
+  z-index: 1;
+}
+.data-table td {
+  @apply px-4 py-3 border-b border-[#f5f5f5];
+}
+.data-table tbody tr {
+  transition: background-color 100ms var(--ease-out-expo);
+}
+.data-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+/* KPI card refined */
+.kpi-card {
+  @apply border border-card-border rounded-xl p-5;
+  transition: border-color 150ms var(--ease-out-expo), box-shadow 150ms var(--ease-out-expo);
+}
+.kpi-card:hover {
+  @apply border-[#d4d4d4];
+}
+
+/* Warning banner refined */
+.warning-banner {
+  @apply rounded-xl px-5 py-4;
+  animation: slideUp 200ms var(--ease-out-expo);
+}
+
+/* Modal animation */
+.modal-overlay {
+  animation: fadeIn 150ms var(--ease-out-expo);
+}
+.modal-content {
+  animation: scaleIn 200ms var(--ease-out-expo);
+}
+
+/* Section card refined */
+.section-card {
+  @apply border border-card-border rounded-xl p-5;
+}
+
+/* Stage change button refined */
+.stage-btn {
+  transition: all 120ms var(--ease-out-expo);
+}
+.stage-btn:hover {
+  transform: translateY(-1px);
+}
+.stage-btn:active {
+  transform: scale(0.96);
+}
+
+/* Define smooth for charts */
+.funnel-bar-smooth {
+  transition: width 0.8s var(--ease-out-expo), background-color 0.3s var(--ease-out-expo);
 }
