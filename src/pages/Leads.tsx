@@ -153,6 +153,7 @@ export default function Leads() {
   const [showTestLeads, setShowTestLeads] = useState(false)
   const [exportingRecon, setExportingRecon] = useState(false)
   const [showMappingGuide, setShowMappingGuide] = useState(false)
+  const [copiedMetaId, setCopiedMetaId] = useState<string | null>(null)
 
   const loadLeads = () => {
     setLoading(true)
@@ -324,7 +325,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* CRM Reconciliation Helper Section */}
+{/* CRM Reconciliation Helper Section */}
       <div className="border border-card-border rounded-xl overflow-hidden">
         <button
           onClick={() => setShowMappingGuide(!showMappingGuide)}
@@ -433,7 +434,7 @@ useEffect(() => {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, phone, or ID..."
+            placeholder="Search by name, email, phone, or Meta Lead ID..."
             className="w-full h-8 pl-3 pr-3 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] placeholder-muted/60 focus:outline-none focus:border-[#0a0a0a] transition-colors"
           />
         </div>
@@ -483,6 +484,7 @@ useEffect(() => {
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Phone</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Campaign</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Meta ID</th>
                 <th className="py-2.5 pr-4 text-[11px] uppercase tracking-wider font-medium text-muted">Created</th>
               </tr>
             </thead>
@@ -502,6 +504,23 @@ useEffect(() => {
                       {lead.stage}
                     </span>
                   </td>
+                  <td className="py-3 pr-4">
+                    {lead.metaLeadId ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigator.clipboard.writeText(lead.metaLeadId).then(() => {
+                            setCopiedMetaId(lead._id)
+                            setTimeout(() => setCopiedMetaId(null), 1500)
+                          })
+                        }}
+                        className="font-mono text-[11px] text-muted hover:text-[#0a0a0a] transition-colors truncate max-w-[110px] block text-left"
+                        title={lead.metaLeadId}
+                      >
+                        {copiedMetaId === lead._id ? 'Copied!' : lead.metaLeadId.slice(0, 10) + '…'}
+                      </button>
+                    ) : <span className="text-muted text-[11px]">—</span>}
+                  </td>
                   <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                     {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
                   </td>
@@ -512,7 +531,7 @@ useEffect(() => {
               {processed.test.length > 0 && (
                 <>
                   <tr className="border-b border-card-border bg-[#f5f5f5]">
-                    <td colSpan={5} className="px-4 py-2 text-[10px] text-muted font-medium uppercase tracking-wider">
+                    <td colSpan={6} className="px-4 py-2 text-[10px] text-muted font-medium uppercase tracking-wider">
                       Meta Test Leads ({processed.test.length})
                     </td>
                   </tr>
@@ -535,6 +554,13 @@ useEffect(() => {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#a0a0a0]" />
                           {lead.stage}
                         </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        {lead.metaLeadId ? (
+                          <span className="font-mono text-[11px] text-muted truncate max-w-[110px] block" title={lead.metaLeadId}>
+                            {lead.metaLeadId.slice(0, 10)}…
+                          </span>
+                        ) : <span className="text-muted text-[11px]">—</span>}
                       </td>
                       <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                         {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}

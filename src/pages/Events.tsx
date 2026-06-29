@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getEvents, getEventsCounts, sendCapiEvent } from '../api'
+import { getEvents, getEventsCounts, sendCapiEvent, cancelCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
 
 const statusColors: Record<string, string> = {
   pending: '#a0a0a0',
   skipped: '#a0a0a0',
-  suppressed: '#d97706',
+suppressed: '#d97706',
+  dry_run: '#a0a0a0',
   sent: '#059669',
   failed: '#dc2626',
+  cancelled: '#6b7280',
 }
 
 export default function Events() {
@@ -17,6 +19,8 @@ export default function Events() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
   const [retrying, setRetrying] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -40,6 +44,20 @@ export default function Events() {
       console.error('Retry error:', err)
     } finally {
       setRetrying(null)
+    }
+  }
+
+  const handleCancel = async (eventId: string) => {
+    setCancelling(eventId)
+    setCancelError(null)
+    try {
+      await cancelCapiEvent(eventId)
+      await load()
+    } catch (err: any) {
+      console.error('Cancel error:', err)
+      setCancelError(err.message)
+    } finally {
+      setCancelling(null)
     }
   }
 
@@ -67,6 +85,8 @@ export default function Events() {
           { label: 'Suppressed', value: counts?.suppressed || 0 },
           { label: 'Skipped', value: counts?.skipped || 0 },
           { label: 'Failed', value: counts?.failed || 0 },
+          { label: 'Cancelled', value: counts?.cancelled || 0 },
+          { label: 'Skipped', value: counts?.skipped || 0 },
           { label: 'Total', value: counts?.total || 0 },
         ].map((card) => (
           <div key={card.label} className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150">
@@ -77,9 +97,9 @@ export default function Events() {
       </div>
 
       {/* Status Filter */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[11px] text-muted font-medium mr-1">Filter:</span>
-        {['', 'pending', 'sent', 'suppressed', 'skipped', 'failed'].map((s) => (
+{['', 'pending', 'sent', 'suppressed', 'skipped', 'failed', 'cancelled'].map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -151,24 +171,39 @@ export default function Events() {
                     {ev.lastAttemptAt ? new Date(ev.lastAttemptAt).toLocaleString() : '—'}
                   </td>
                   <td className="py-3 pr-4">
-                    {ev.status === 'failed' ? (
+                    {ev.status === 'pending' ? (
                       <button
-                        onClick={() => handleRetry(ev._id)}
-                        disabled={retrying === ev._id}
-                        className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                        onClick={() => handleCancel(ev._id)}
+                        disabled={cancelling === ev._id}
+                        className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                       >
-                        {retrying === ev._id ? 'Retrying...' : 'Retry'}
+                        {cancelling === ev._id ? 'Cancelling...' : 'Cancel event'}
                       </button>
-                    ) : ev.status === 'pending' ? (
-                      <button
-                        onClick={() => handleRetry(ev._id)}
-                        disabled={retrying === ev._id}
-                        className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
-                      >
-                        {retrying === ev._id ? 'Sending...' : 'Send'}
-                      </button>
-                    ) : ev.status === 'suppressed' ? (
+) : ev.status === 'suppressed' ? (
                       <span className="text-xs text-amber-600 font-medium">Superseded</span>
+                    ) : ev.status === 'failed' ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleRetry(ev._id)}
+                          disabled={retrying === ev._id}
+                          className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
+                        >
+                          {retrying === ev._id ? 'Retrying...' : 'Retry'}
+                        </button>
+                        <button
+                          onClick={() => handleCancel(ev._id)}
+                          disabled={cancelling === ev._id}
+                          className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                        >
+                          {cancelling === ev._id ? 'Cancelling...' : 'Cancel'}
+                        </button>
+                      </div>
+                    ) : ev.status === 'cancelled' ? (
+                      <span className="text-xs text-muted">Cancelled</span>
+                    ) : ev.status === 'skipped' || ev.status === 'dry_run' ? (
+                      <span className="text-xs text-muted">Recorded (dry-run)</span>
+                    ) : ev.status === 'sent' ? (
+                      <span className="text-xs text-muted">—</span>
                     ) : ev.error ? (
                       <span className="text-xs text-red-500 max-w-[160px] inline-block truncate" title={ev.error}>{ev.error}</span>
                     ) : ev.response ? (
@@ -176,6 +211,7 @@ export default function Events() {
                     ) : (
                       <span className="text-xs text-muted">—</span>
                     )}
+                    {cancelError && <span className="text-xs text-red-500 ml-2">{cancelError}</span>}
                   </td>
                 </tr>
               ))}

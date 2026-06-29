@@ -312,6 +312,7 @@ export const eventsCounts = query({
       sent: events.filter((e) => e.status === "sent").length,
       failed: events.filter((e) => e.status === "failed").length,
       skipped: events.filter((e) => e.status === "skipped").length,
+dry_run: events.filter((e) => e.status === "dry_run").length,
       cancelled: events.filter((e) => e.status === "cancelled").length,
       suppressed: events.filter((e) => e.status === "suppressed").length,
       total: events.length,
