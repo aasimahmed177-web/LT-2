@@ -6,6 +6,7 @@ import metaRoutes from "./routes/meta.js";
 import leadsRoutes from "./routes/leads.js";
 import statsRoutes from "./routes/stats.js";
 import eventsRoutes from "./routes/events.js";
+import systemRoutes from "./routes/system.js";
 import { getClients, getClientMetaConfig, getClientLeadForms, resolveClientId, resolveConvexClientId, checkDeployStatus, backfillDefaultClient, isConvexBackend, autoBackfillMetaConfig, resyncClients } from "./clients.js";
 import { getConvex } from "./convexClient.js";
 
@@ -24,6 +25,7 @@ app.use("/api/leads", leadsRoutes);
 app.use("/api/debug", leadsRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/events", eventsRoutes);
+app.use("/api/system", systemRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "leadtrace-api" });

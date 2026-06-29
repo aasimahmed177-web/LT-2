@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients, getCapiStatus, getEventsCounts } from '../api'
+import { getHealth, importLeads, getSourceOfTruth, getLastImportResult, getClient, createClient, updateClientConfig, getClients as fetchClients, getCapiStatus, getEventsCounts, getSystemHealth } from '../api'
 import { useClient } from '../ClientContext'
 
 export default function Settings() {
@@ -16,6 +16,8 @@ export default function Settings() {
   const [capiStatus, setCapiStatus] = useState<any>(null)
   const [capiStatusLoading, setCapiStatusLoading] = useState(true)
   const [eventCounts, setEventCounts] = useState<any>(null)
+  const [systemHealth, setSystemHealth] = useState<any>(null)
+  const [systemHealthLoading, setSystemHealthLoading] = useState(true)
 
   // Client edit state
   const [editing, setEditing] = useState(false)
@@ -49,6 +51,7 @@ export default function Settings() {
     }).catch(() => {}).finally(() => setConfigLoading(false))
     getCapiStatus().then(setCapiStatus).catch(() => {}).finally(() => setCapiStatusLoading(false))
     getEventsCounts(currentClientId).then(setEventCounts).catch(() => {})
+    getSystemHealth(currentClientId).then(setSystemHealth).catch(() => {}).finally(() => setSystemHealthLoading(false))
   }, [currentClientId])
 
   const handleImport = async () => {
@@ -144,6 +147,154 @@ export default function Settings() {
         >
           {showAddClient ? 'Cancel' : '+ Add Client'}
         </button>
+      </div>
+
+      {/* CAPI Warning Banners */}
+      {systemHealth?.capi?.liveSendingEnabled && (
+        <div className="border border-amber-300 bg-amber-50 rounded-xl px-5 py-4">
+          <p className="text-sm font-semibold text-amber-800">Live CAPI mode is ON</p>
+          <p className="text-xs text-amber-700 mt-1">Positive final-stage changes (Contact, Prospect, ConversionLead, Purchase) can send events to Meta.</p>
+          <p className="text-xs text-amber-600 mt-0.5">Set <code className="text-amber-800 font-mono text-[11px] bg-amber-100 px-1 rounded">META_CAPI_DRY_RUN=true</code> to disable live sending.</p>
+        </div>
+      )}
+      {systemHealth?.capi?.dryRun && (
+        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4">
+          <p className="text-sm font-semibold text-blue-800">Dry-run mode is ON</p>
+          <p className="text-xs text-blue-700 mt-1">Events will be recorded but not sent to Meta.</p>
+          <p className="text-xs text-blue-600 mt-0.5">Set <code className="text-blue-800 font-mono text-[11px] bg-blue-100 px-1 rounded">META_CAPI_DRY_RUN=false</code> to enable live sending.</p>
+        </div>
+      )}
+
+      {/* System Health */}
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-4">System Health</h2>
+        {systemHealthLoading ? (
+          <p className="text-sm text-muted">Loading system health...</p>
+        ) : systemHealth ? (
+          <div className="space-y-4">
+            {/* Environment Status */}
+            <div>
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Environment</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <ConfigRow label="Convex URL" ok={systemHealth.convex?.configured} />
+                <ConfigRow label="Meta Page ID" ok={systemHealth.meta?.pageIdConfigured} detail={systemHealth.meta?.pageId} />
+                <ConfigRow label="Meta Pixel / Dataset ID" ok={systemHealth.meta?.pixelIdConfigured} detail={systemHealth.meta?.pixelId} />
+                <ConfigRow label="Meta Access Token" ok={systemHealth.meta?.accessTokenConfigured} detail={systemHealth.meta?.accessTokenPreview || ''} />
+                <ConfigRow label="Test Event Code" ok={systemHealth.meta?.testEventCodeConfigured} />
+              </div>
+            </div>
+
+            {/* CAPI Mode */}
+            <div className="pt-2 border-t border-card-border/50">
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">CAPI Mode</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <ConfigRow label="Dry-run mode" ok={systemHealth.capi?.dryRun} warning={!systemHealth.capi?.dryRun ? 'OFF' : undefined} />
+                <ConfigRow label="Live sending" ok={systemHealth.capi?.liveSendingEnabled} warning={!systemHealth.capi?.liveSendingEnabled ? 'Disabled' : undefined} />
+              </div>
+            </div>
+
+            {/* Client */}
+            <div className="pt-2 border-t border-card-border/50">
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Client</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                <ConfigRow label="Client name" ok={!!systemHealth.client?.name} detail={systemHealth.client?.name || ''} />
+                <ConfigRow label="Total real leads" ok={systemHealth.leads?.totalReal > 0} detail={String(systemHealth.leads?.totalReal || 0)} />
+              </div>
+            </div>
+
+            {/* Event Counts */}
+            {systemHealth.events && (
+              <div className="pt-2 border-t border-card-border/50">
+                <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Event counts</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Sent', value: systemHealth.events.sent, color: 'text-emerald-600' },
+                    { label: 'Pending', value: systemHealth.events.pending, color: 'text-gray-500' },
+                    { label: 'Failed', value: systemHealth.events.failed, color: 'text-red-500' },
+                    { label: 'Suppressed', value: systemHealth.events.suppressed, color: 'text-amber-600' },
+                    { label: 'Skipped', value: systemHealth.events.skipped, color: 'text-gray-400' },
+                    { label: 'Cancelled', value: systemHealth.events.cancelled, color: 'text-gray-400' },
+                    { label: 'Dry-run', value: systemHealth.events.dryRun, color: 'text-gray-400' },
+                    { label: 'Total', value: systemHealth.events.total, color: 'text-[#0a0a0a]' },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
+                      <p className={`text-base font-bold tabular-nums mt-0.5 ${s.color}`}>{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Last event timestamps */}
+            <div className="pt-2 border-t border-card-border/50 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-0.5">Last sent event</p>
+                {systemHealth.lastSentEvent ? (
+                  <p className="text-xs text-[#0a0a0a]">
+                    {systemHealth.lastSentEvent.eventName} — {new Date(systemHealth.lastSentEvent.time).toLocaleString()}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted">None</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-0.5">Last failed event</p>
+                {systemHealth.lastFailedEvent ? (
+                  <div>
+                    <p className="text-xs text-red-600">{systemHealth.lastFailedEvent.eventName} — {new Date(systemHealth.lastFailedEvent.time).toLocaleString()}</p>
+                    <p className="text-xs text-muted mt-0.5 truncate" title={systemHealth.lastFailedEvent.error}>{systemHealth.lastFailedEvent.error}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted">None</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-red-500">Failed to load system health</p>
+        )}
+      </div>
+
+      {/* CAPI Safety Explanation Card */}
+      <div className="border border-card-border rounded-xl p-5">
+        <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-3">CAPI Safety Overview</h2>
+        <div className="space-y-3 text-xs">
+          <div>
+            <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Stages that send events</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['Contact', 'Prospect', 'ConversionLead', 'Purchase'].map((s) => (
+                <span key={s} className="stage-pill bg-emerald-50 border-emerald-200 text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {s}
+                </span>
+              ))}
+            </div>
+            <p className="text-muted mt-1">These positive stages trigger CAPI events (Contact→Contact, Prospect→QualifiedLead, ConversionLead→Lead, Purchase→Purchase).</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Stages that never send</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['Lead', 'NoResponse', 'NotQualified', 'Invalid', 'Duplicate'].map((s) => (
+                <span key={s} className="stage-pill bg-gray-50 border-card-border text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#a0a0a0]" />
+                  {s}
+                </span>
+              ))}
+            </div>
+            <p className="text-muted mt-1">No CAPI events are created for these stages.</p>
+          </div>
+          <div className="pt-2 border-t border-card-border/50 space-y-1">
+            <div className="flex items-start gap-2">
+              <span className="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span className="text-muted"><strong className="text-[#0a0a0a]">Final-stage-only suppression</strong> is active. When a higher-stage event (e.g. Purchase) has been sent, lower-stage events are automatically suppressed.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-emerald-600 font-bold mt-0.5">✓</span>
+              <span className="text-muted"><strong className="text-[#0a0a0a]">CSV cleanup</strong> does not send CAPI events.</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Add Client Form */}

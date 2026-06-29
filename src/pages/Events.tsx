@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getEvents, getEventsCounts, sendCapiEvent, cancelCapiEvent } from '../api'
+import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
 
 const statusColors: Record<string, string> = {
@@ -21,13 +21,15 @@ export default function Events() {
   const [retrying, setRetrying] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [capiStatus, setCapiStatus] = useState<any>(null)
 
   const load = () => {
     setLoading(true)
-    Promise.all([getEvents(currentClientId), getEventsCounts(currentClientId)])
-      .then(([e, c]) => {
+    Promise.all([getEvents(currentClientId), getEventsCounts(currentClientId), getCapiStatus()])
+      .then(([e, c, cs]) => {
         setEvents(e.events || e || [])
         setCounts(c)
+        if (cs) setCapiStatus(cs)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -77,8 +79,22 @@ export default function Events() {
         <p className="text-sm text-muted mt-0.5">Conversion lead events</p>
       </div>
 
+      {/* CAPI Warning Banners */}
+      {capiStatus && !capiStatus.dryRun && capiStatus.capiCapable && (
+        <div className="border border-amber-300 bg-amber-50 rounded-xl px-5 py-4">
+          <p className="text-sm font-semibold text-amber-800">Live CAPI mode is ON</p>
+          <p className="text-xs text-amber-700 mt-1">Positive final-stage changes can send events to Meta. Events listed below reflect the actual send status.</p>
+        </div>
+      )}
+      {capiStatus && capiStatus.dryRun && (
+        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4">
+          <p className="text-sm font-semibold text-blue-800">Dry-run mode is ON</p>
+          <p className="text-xs text-blue-700 mt-1">Events are recorded but not sent to Meta.</p>
+        </div>
+      )}
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-7 gap-4">
         {[
           { label: 'Pending', value: counts?.pending || 0 },
           { label: 'Sent', value: counts?.sent || 0 },
@@ -86,7 +102,6 @@ export default function Events() {
           { label: 'Skipped', value: counts?.skipped || 0 },
           { label: 'Failed', value: counts?.failed || 0 },
           { label: 'Cancelled', value: counts?.cancelled || 0 },
-          { label: 'Skipped', value: counts?.skipped || 0 },
           { label: 'Total', value: counts?.total || 0 },
         ].map((card) => (
           <div key={card.label} className="border border-card-border rounded-xl p-5 hover:border-[#d4d4d4] transition-all duration-150">

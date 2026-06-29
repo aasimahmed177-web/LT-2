@@ -150,3 +150,11 @@ export function cancelCapiEvent(eventId: string) {
     body: JSON.stringify({ eventId }),
   })
 }
+
+export function getSystemHealth(clientId?: string) {
+  return json<any>(withClient(`${API_BASE}/system/health`, clientId))
+}
+
+export function getPreviewPayload(leadId: string) {
+  return json<any>(`${API_BASE}/meta/preview-payload/${leadId}`)
+}
