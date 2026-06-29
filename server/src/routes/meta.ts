@@ -255,12 +255,15 @@ function hashValue(val: string): string {
   return crypto.createHash("sha256").update(val.toLowerCase().trim()).digest("hex");
 }
 
-function normalizePhone(phone: string): string {
-  // Strip all non-digit characters except leading +
-  let cleaned = phone.replace(/[^+\d]/g, "");
-  // Remove leading + if present for Meta's expected format
-  if (cleaned.startsWith("+")) cleaned = cleaned.substring(1);
-  return cleaned;
+function hashPhone(phone: string): string {
+  // Strip all non-digit characters
+  let cleaned = phone.replace(/[^\d]/g, "");
+  // Indian normalization: if 10-digit number, prepend 91
+  if (cleaned.length === 10) {
+    cleaned = "91" + cleaned;
+  }
+  // SHA256 hash the normalized phone (Meta requires hashed ph)
+  return crypto.createHash("sha256").update(cleaned).digest("hex");
 }
 
 function splitName(fullName: string): { first: string; last: string } {
@@ -292,7 +295,7 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     // Build user_data with hashed fields
     const userData: Record<string, string> = {};
     if (lead.email) userData.em = hashValue(lead.email);
-    if (lead.phone) userData.ph = normalizePhone(lead.phone);
+    if (lead.phone) userData.ph = hashPhone(lead.phone);
     if (lead.name) {
       const { first, last } = splitName(lead.name);
       if (first) userData.fn = hashValue(first);
@@ -300,19 +303,25 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     }
     if (lead.metaLeadId) {
       userData.external_id = hashValue(lead.metaLeadId);
+    } else if (lead._id) {
+      userData.external_id = hashValue(lead._id);
     }
 
-    // Build custom_data
+    // Build custom_data — non-sensitive audit fields only
     const customData: Record<string, any> = {
-      lead_id: event.leadId,
       crm_stage: event.stage,
       source: "leadtrace_crm",
     };
     if (lead.metaLeadId) customData.meta_lead_id = lead.metaLeadId;
+    if (lead._id) customData.leadtrace_lead_id = lead._id;
     if (lead.formName) customData.form_name = lead.formName;
-    if (lead.campaignName) customData.campaign_name = lead.campaignName;
-    if (lead.adName) customData.ad_name = lead.adName;
-    if (lead.adSetName) customData.adset_name = lead.adSetName;
+    if (lead.adName) {
+      customData.ad_name = lead.adName;
+      // Derive caller from ad_name
+      const nameLower = lead.adName.toLowerCase();
+      if (nameLower.includes("aparna")) customData.caller = "Aparna";
+      else if (nameLower.includes("suganya")) customData.caller = "Suganya";
+    }
 
     // Build the CAPI payload
     const payload: any = {
@@ -415,6 +424,75 @@ router.post("/send-capi-event", async (_req: Request, res: Response) => {
   } catch (err: any) {
     console.error("CAPI send error:", err.message);
     res.status(500).json({ error: "Failed to send CAPI event", detail: err.message });
+  }
+});
+
+// GET /api/meta/preview-payload/:leadId — safe redacted preview of a CAPI payload for one lead (never sends to Meta)
+router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
+  try {
+    const lead: any = await getConvex().query("leads:getById", { id: req.params.leadId });
+    if (!lead) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    // Build user_data with redacted hashes (first 6 chars only)
+    const userDataPreview: Record<string, string> = {};
+
+    if (lead.email) {
+      const hash = hashValue(lead.email);
+      userDataPreview.em = hash.substring(0, 6) + "...";
+    }
+    if (lead.phone) {
+      const hash = hashPhone(lead.phone);
+      userDataPreview.ph = hash.substring(0, 6) + "...";
+    }
+    if (lead.name) {
+      const { first, last } = splitName(lead.name);
+      if (first) {
+        const hash = hashValue(first);
+        userDataPreview.fn = hash.substring(0, 6) + "...";
+      }
+      if (last) {
+        const hash = hashValue(last);
+        userDataPreview.ln = hash.substring(0, 6) + "...";
+      }
+    }
+    if (lead.metaLeadId) {
+      const hash = hashValue(lead.metaLeadId);
+      userDataPreview.external_id = hash.substring(0, 6) + "...";
+    } else if (lead._id) {
+      const hash = hashValue(lead._id);
+      userDataPreview.external_id = hash.substring(0, 6) + "...";
+    }
+
+    res.json({
+      leadId: lead._id,
+      name: lead.name ? `${lead.name.substring(0, 2)}...` : undefined,
+      phoneAvailable: !!lead.phone,
+      emailAvailable: !!lead.email,
+      metaLeadId: lead.metaLeadId ? `${lead.metaLeadId.substring(0, 6)}...` : undefined,
+      userData: userDataPreview,
+      customData: {
+        crm_stage: lead.stage,
+        source: "leadtrace_crm",
+        meta_lead_id: lead.metaLeadId || undefined,
+        leadtrace_lead_id: lead._id,
+        form_name: lead.formName || undefined,
+        ad_name: lead.adName || undefined,
+      },
+      fieldsPresent: Object.keys(userDataPreview),
+      fieldsMissing: [
+        ...(!lead.email ? ["em (email not available)"] : []),
+        ...(!lead.phone ? ["ph (phone not available)"] : []),
+        ...(!lead.name ? ["fn, ln (name not available)"] : []),
+        ...(!lead.metaLeadId && !lead._id ? ["external_id (no ID available)"] : []),
+      ],
+      warning: "REDACTED PREVIEW — No event was sent to Meta. Hash prefixes shown (first 6 chars).",
+    });
+  } catch (err: any) {
+    console.error("Preview payload error:", err.message);
+    res.status(500).json({ error: "Failed to generate preview" });
   }
 });
 
