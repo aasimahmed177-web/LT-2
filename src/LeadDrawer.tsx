@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   getLead, updateLeadStage, getLeadHistory,
   getLeadNotes, addLeadNote, getLeadTasks, addLeadTask, toggleLeadTask,
-  getLeadEvents, sendCapiEvent,
+  getLeadEvents, sendCapiEvent, cancelCapiEvent,
 } from './api'
 
 const STAGES = [
@@ -69,6 +69,7 @@ export default function LeadDrawer({
   const [updatingStage, setUpdatingStage] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
   const [retryingEvent, setRetryingEvent] = useState<string | null>(null)
+  const [cancellingEvent, setCancellingEvent] = useState<string | null>(null)
 
   // Disqualification reason modal
   const [pendingStage, setPendingStage] = useState<string | null>(null)
@@ -181,6 +182,18 @@ export default function LeadDrawer({
     }
   }
 
+  const handleCancelEvent = async (eventId: string) => {
+    setCancellingEvent(eventId)
+    try {
+      await cancelCapiEvent(eventId)
+      await load()
+    } catch (err: any) {
+      console.error('Event cancel error:', err)
+    } finally {
+      setCancellingEvent(null)
+    }
+  }
+
   const handleCopy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -227,6 +240,9 @@ export default function LeadDrawer({
       pending: '#a0a0a0',
       sent: '#0a0a0a',
       failed: '#dc2626',
+      skipped: '#a0a0a0',
+      dry_run: '#a0a0a0',
+      cancelled: '#6b7280',
     }
     return colors[status] || '#a0a0a0'
   }
@@ -564,14 +580,32 @@ export default function LeadDrawer({
                         </div>
                         {ev.attempts > 0 && <p className="text-muted text-[10px] mt-0.5">Attempts: {ev.attempts}</p>}
                         {ev.error && <p className="text-red-500 text-[10px] mt-0.5">Error: {ev.error}</p>}
-                        {(ev.status === 'failed' || ev.status === 'pending') && (
-                          <div className="mt-1.5">
+                        {(ev.status === 'pending') && (
+                          <div className="mt-1.5 flex gap-2">
+                            <button
+                              onClick={() => handleCancelEvent(ev._id)}
+                              disabled={cancellingEvent === ev._id}
+                              className="text-[10px] font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                            >
+                              {cancellingEvent === ev._id ? 'Cancelling...' : 'Cancel'}
+                            </button>
+                          </div>
+                        )}
+                        {(ev.status === 'failed') && (
+                          <div className="mt-1.5 flex gap-2">
                             <button
                               onClick={() => handleRetryEvent(ev._id)}
                               disabled={retryingEvent === ev._id}
                               className="text-[10px] font-medium text-muted hover:text-[#0a0a0a] transition-colors disabled:opacity-50"
                             >
-                              {retryingEvent === ev._id ? (ev.status === 'pending' ? 'Sending...' : 'Retrying...') : ev.status === 'pending' ? 'Send' : 'Retry'}
+                              {retryingEvent === ev._id ? 'Retrying...' : 'Retry'}
+                            </button>
+                            <button
+                              onClick={() => handleCancelEvent(ev._id)}
+                              disabled={cancellingEvent === ev._id}
+                              className="text-[10px] font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                            >
+                              {cancellingEvent === ev._id ? 'Cancelling...' : 'Cancel'}
                             </button>
                           </div>
                         )}

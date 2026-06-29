@@ -290,6 +290,9 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     const event: any = await getConvex().query("crm:getCapiEventById", { id: convexEventId });
     if (!event) return { success: false, error: "Event not found" };
     if (event.status === "sent") return { success: true, response: "Already sent" };
+    if (event.status === "cancelled") return { success: false, error: "Event has been cancelled" };
+    if (event.status === "skipped") return { success: false, error: "Event was skipped (dry-run), cannot send" };
+    if (event.status === "dry_run") return { success: false, error: "Event is in dry-run state, cannot send" };
 
     // Get lead details for user_data hashing
     const lead: any = await getConvex().query("leads:getById", { id: event.leadId });
@@ -433,7 +436,7 @@ router.post("/send-capi-event", async (_req: Request, res: Response) => {
 // GET /api/meta/preview-payload/:leadId — safe redacted preview of a CAPI payload for one lead (never sends to Meta)
 router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
   try {
-    const lead: any = await getConvex().query("leads:getById", { id: req.params.leadId });
+    const lead: any = await getConvex().query("leads:getById", { id: req.params.leadId as string });
     if (!lead) {
       res.status(404).json({ error: "Lead not found" });
       return;
@@ -496,6 +499,49 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Preview payload error:", err.message);
     res.status(500).json({ error: "Failed to generate preview" });
+  }
+});
+
+// POST /api/meta/cancel-capi-event - cancel a pending/failed CAPI event
+router.post("/cancel-capi-event", async (_req: Request, res: Response) => {
+  try {
+    const { eventId } = _req.body;
+    if (!eventId) {
+      res.status(400).json({ error: "eventId is required" });
+      return;
+    }
+
+    // Get the event to verify it exists and can be cancelled
+    const event: any = await getConvex().query("crm:getCapiEventById", { id: eventId });
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+
+    // Only allow cancelling pending or failed events
+    if (event.status === "sent") {
+      res.status(400).json({ error: "Cannot cancel a sent event" });
+      return;
+    }
+    if (event.status === "cancelled") {
+      res.json({ success: true, status: "cancelled", message: "Event was already cancelled" });
+      return;
+    }
+    if (event.status === "skipped" || event.status === "dry_run") {
+      res.status(400).json({ error: `Cannot cancel an event in '${event.status}' state; use delete only` });
+      return;
+    }
+
+    // Mark as cancelled
+    await getConvex().mutation("crm:updateCapiEventStatus", {
+      eventId: eventId as any,
+      status: "cancelled",
+    });
+
+    res.json({ success: true, status: "cancelled", message: "Event cancelled" });
+  } catch (err: any) {
+    console.error("Cancel event error:", err.message);
+    res.status(500).json({ error: "Failed to cancel event", detail: err.message });
   }
 });
 

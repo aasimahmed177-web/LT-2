@@ -142,3 +142,11 @@ export function sendCapiEvent(eventId: string) {
     body: JSON.stringify({ eventId }),
   })
 }
+
+export function cancelCapiEvent(eventId: string) {
+  return json<any>(`${API_BASE}/meta/cancel-capi-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId }),
+  })
+}
