@@ -582,10 +582,10 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-card-border bg-[#fafafa]">
-                <th className="px-6 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Name</th>
-                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Campaign</th>
-                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
-                <th className="py-2.5 pr-6 text-[11px] uppercase tracking-wider font-medium text-muted">Created</th>
+                <th className="px-6 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Name</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Campaign</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Stage</th>
+                <th className="py-2.5 pr-6 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Created</th>
               </tr>
             </thead>
             <tbody>

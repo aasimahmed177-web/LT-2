@@ -173,7 +173,7 @@ export default function Settings() {
         ) : systemHealth ? (
           <div className="space-y-4">
             {/* Environment Status */}
-            <div>
+            <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Environment</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Convex URL" ok={systemHealth.convex?.configured} />
@@ -185,7 +185,7 @@ export default function Settings() {
             </div>
 
             {/* CAPI Mode */}
-            <div className="pt-2 border-t border-card-border/50">
+            <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">CAPI Mode</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Dry-run mode" ok={systemHealth.capi?.dryRun} warning={!systemHealth.capi?.dryRun ? 'OFF' : undefined} />
@@ -194,7 +194,7 @@ export default function Settings() {
             </div>
 
             {/* Client */}
-            <div className="pt-2 border-t border-card-border/50">
+            <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Client</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Client name" ok={!!systemHealth.client?.name} detail={systemHealth.client?.name || ''} />

@@ -1,1 +1,1 @@
-{"root":["./src/clients.ts","./src/convexClient.ts","./src/index.ts","./src/routes/events.ts","./src/routes/leads.ts","./src/routes/meta.ts","./src/routes/stats.ts"],"errors":true,"version":"5.7.3"}
+{"root":["./src/clients.ts","./src/convexClient.ts","./src/index.ts","./src/routes/events.ts","./src/routes/leads.ts","./src/routes/meta.ts","./src/routes/stats.ts","./src/routes/system.ts"],"version":"5.7.3"}
