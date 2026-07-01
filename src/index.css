@@ -221,6 +221,21 @@ button:active.stage-btn {
   @apply border-[#d4d4d4];
 }
 
+/* Sticky table header helper — add to thead for sticky behavior */
+.table-sticky-header th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fafafa;
+}
+
+/* Settings subsection grouping */
+.setting-subsection {
+  @apply rounded-lg p-4;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
 /* Warning banner refined */
 .warning-banner {
   @apply rounded-xl px-5 py-4;

@@ -377,10 +377,10 @@ export default function Telecalling() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
-              <th className="px-5 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Stage</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Count</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">% of Total</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">% of Previous</th>
+              <th className="px-5 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Stage</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Count</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">% of Total</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">% of Previous</th>
             </tr>
           </thead>
           <tbody>
@@ -435,19 +435,19 @@ export default function Telecalling() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
-              <th className="px-5 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Caller</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Total</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Attempted</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Attempt %</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Connected</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Connect %</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Interested</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Interest %</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Conv. Leads</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">Meeting %</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">No Resp.</th>
-              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted">NQ</th>
-              <th className="py-2.5 pr-5 text-[11px] uppercase tracking-wider font-medium text-muted">Invalid</th>
+              <th className="px-5 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Caller</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Total</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Attempted</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Attempt %</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Connected</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Connect %</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Interested</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Interest %</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Conv. Leads</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Meeting %</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">No Resp.</th>
+              <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">NQ</th>
+              <th className="py-2.5 pr-5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Invalid</th>
             </tr>
           </thead>
           <tbody>
