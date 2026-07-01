@@ -35,7 +35,7 @@ export default function Layout() {
           <select
             value={currentClientId}
             onChange={(e) => setCurrentClientId(e.target.value)}
-            className="w-full text-xs border border-card-border rounded-md px-2 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-colors"
+            className="w-full text-xs border border-card-border rounded-md px-2.5 py-1.5 bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -53,9 +53,9 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all-expo ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all-expo relative ${
                   isActive
-                    ? 'bg-[#0a0a0a] text-white'
+                    ? 'bg-[#0a0a0a] text-white before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-[18px] before:bg-white/80 before:rounded-r-full'
                     : 'text-muted hover:bg-sidebar-hover hover:text-[#0a0a0a]'
                 }`
               }

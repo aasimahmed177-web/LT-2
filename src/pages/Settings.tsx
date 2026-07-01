@@ -217,7 +217,7 @@ export default function Settings() {
                     { label: 'Dry-run', value: systemHealth.events.dryRun, color: 'text-gray-400' },
                     { label: 'Total', value: systemHealth.events.total, color: 'text-[#0a0a0a]' },
                   ].map((s) => (
-                    <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-2.5 text-center transition-all-expo hover:border-[#d4d4d4]">
+                    <div key={s.label} className="bg-white border border-card-border rounded-lg p-3 text-center transition-all-expo hover:border-[#d4d4d4]">
                       <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
                       <p className={`text-base font-bold tabular-nums mt-0.5 ${s.color}`}>{s.value}</p>
                     </div>
@@ -441,7 +441,7 @@ export default function Settings() {
                 { label: 'Cancelled', value: eventCounts?.cancelled || 0, color: 'text-gray-400' },
                 { label: 'Skipped', value: eventCounts?.skipped || 0, color: 'text-gray-400' },
               ].map((s) => (
-                <div key={s.label} className="bg-gray-50 border border-card-border rounded-lg p-3 text-center">
+                <div key={s.label} className="bg-white border border-card-border rounded-lg p-3 text-center transition-all-expo hover:border-[#d4d4d4]">
                   <p className="text-[10px] text-muted uppercase tracking-wider">{s.label}</p>
                   <p className={`text-lg font-bold tabular-nums mt-1 ${s.color}`}>{s.value}</p>
                 </div>

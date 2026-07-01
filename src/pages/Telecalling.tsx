@@ -352,12 +352,12 @@ export default function Telecalling() {
         <div className="p-5">
           <div className="flex items-center gap-0">
             {[
-              { label: "Total", value: metrics.total, color: "bg-gray-900" },
-              { label: "Attempted", value: metrics.attempted, color: "bg-blue-600" },
-              { label: "Connected", value: metrics.connected, color: "bg-emerald-600" },
-              { label: "Interested", value: metrics.interested, color: "bg-amber-500" },
-              { label: "Conv. Lead", value: metrics.conversionLeads, color: "bg-orange-600" },
-              { label: "Purchase", value: metrics.purchase || 0, color: "bg-red-600" },
+              { label: "Total", value: metrics.total, color: "bg-[#0a0a0a]" },
+              { label: "Attempted", value: metrics.attempted, color: "bg-[#2a2a2a]" },
+              { label: "Connected", value: metrics.connected, color: "bg-[#4a4a4a]" },
+              { label: "Interested", value: metrics.interested, color: "bg-[#6a6a6a]" },
+              { label: "Conv. Lead", value: metrics.conversionLeads, color: "bg-[#8a8a8a]" },
+              { label: "Purchase", value: metrics.purchase || 0, color: "bg-[#aaaaaa]" },
             ].map((s) => {
               const pctVal = metrics.total ? s.value / metrics.total : 0
               return (
