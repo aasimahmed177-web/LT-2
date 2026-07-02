@@ -5,12 +5,8 @@ import { previewCsv, applyCsv } from '../api'
 const CAPI_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
 
 function stagePill(stage: string | null): { className: string; label: string } {
-  if (!stage) return { className: 'stage-neutral', label: '—' }
-  const positive = ['Contact', 'Prospect', 'ConversionLead', 'Purchase']
-  const negative = ['NotQualified', 'NoResponse', 'Invalid', 'Duplicate']
-  if (positive.includes(stage)) return { className: 'stage-positive', label: stage }
-  if (negative.includes(stage)) return { className: 'stage-negative', label: stage }
-  return { className: 'stage-neutral', label: stage }
+  if (!stage) return { className: 'stage-badge stage-Lead', label: '—' }
+  return { className: `stage-badge stage-${stage}`, label: stage }
 }
 
 export default function CsvImport() {

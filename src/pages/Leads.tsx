@@ -157,7 +157,7 @@ export default function Leads() {
 
   const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
   const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
-  const stageClass = (s: string) => POSITIVE_STAGES.has(s) ? 'stage-positive' : NEGATIVE_STAGES.has(s) ? 'stage-negative' : 'stage-neutral'
+  const stageClass = (s: string) => `stage-badge stage-${s}`
 
   const loadLeads = () => {
     setLoading(true)

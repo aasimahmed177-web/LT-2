@@ -172,9 +172,7 @@ export default function Dashboard() {
 
   const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
   const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
-  const stageClass = (s: string) => POSITIVE_STAGES.has(s) ? 'stage-positive' : NEGATIVE_STAGES.has(s) ? 'stage-negative' : 'stage-neutral'
-
-  const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
+  const stageClass = (s: string) => `stage-badge stage-${s}`
 
   const activityEntries = Object.entries(filteredStats.activityByDate).sort()
   const maxActivity = Math.max(...activityEntries.map(([, c]) => c as number), 1)
@@ -333,16 +331,28 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex gap-5 mt-5 pt-5 border-t border-card-border">
-            {[
-              { label: 'New today', value: stats?.newToday || 0 },
-              { label: 'Pending events', value: stats?.pendingCrmEvents || 0 },
-            ].map((c) => (
-              <div key={c.label}>
-                <p className="text-[22px] font-bold text-[#0a0a0a] tabular-nums tracking-tight">{c.value}</p>
-                <p className="text-[10px] text-muted mt-0.5 uppercase tracking-wider">{c.label}</p>
-              </div>
-            ))}
+            <div>
+              <p className="text-[22px] font-bold text-[#0a0a0a] tabular-nums tracking-tight">{stats?.newToday || 0}</p>
+              <p className="text-[10px] text-muted mt-0.5 uppercase tracking-wider">New today</p>
+            </div>
+            <div>
+              <p className="text-[22px] font-bold text-[#0a0a0a] tabular-nums tracking-tight">{stats?.pendingCrmEvents || 0}</p>
+              <p className="text-[10px] text-muted mt-0.5 uppercase tracking-wider">Pending events</p>
+            </div>
           </div>
+          {/* Untouched leads alert */}
+          {!hasFilters && filteredStats.byStage?.Lead > 0 && (
+            <div className="mt-3 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⏸</span>
+                <div>
+                  <p className="text-[13px] font-semibold text-amber-900 tabular-nums">{filteredStats.byStage.Lead} untouched</p>
+                  <p className="text-[10px] text-amber-700">Leads not yet contacted</p>
+                </div>
+              </div>
+              <a href="/leads?stage=Lead" className="text-[11px] text-amber-800 underline hover:text-amber-900 font-medium">View all</a>
+            </div>
+          )}
         </div>
 
         {/* Activity chart */}
