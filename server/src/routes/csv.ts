@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { getConvex } from "../convexClient.js";
+import { triggerCapiAfterStageChange } from "../capi.js";
 
 const router = Router();
 
@@ -259,6 +260,11 @@ router.post("/apply", async (req: Request, res: Response) => {
           });
           if (stageResult.capiEventCreated) capiEventsCreated++;
           updated++;
+
+          // Fire-and-forget CAPI send (non-blocking, stage change always succeeds)
+          triggerCapiAfterStageChange(row.metaLeadId, leadId).catch((e: any) => {
+            console.error("[CAPI] Background send error:", e.message);
+          });
         }
 
         // 2. Add call comment as note if present and not a duplicate
