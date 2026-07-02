@@ -174,6 +174,8 @@ export default function Dashboard() {
   const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
   const stageClass = (s: string) => `stage-badge stage-${s}`
 
+  const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
+
   const activityEntries = Object.entries(filteredStats.activityByDate).sort()
   const maxActivity = Math.max(...activityEntries.map(([, c]) => c as number), 1)
 
