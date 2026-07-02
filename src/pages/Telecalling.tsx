@@ -1,18 +1,19 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getLeads } from '../api'
+import { getLeads, getCallActivities } from '../api'
 import { useClient } from '../ClientContext'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-interface TeleCsvEntry {
-  adName: string
-  connected: string
-  interested: string
-  meeting: string
-  purchase: string
-  finalStage: string
-  comments: string
-  lastCallDate: string
+interface CallActivity {
+  metaLeadId: string
+  callPicked?: string
+  interested?: string
+  meetingScheduled?: string
+  purchase?: string
+  callComments?: string
+  caller?: string
+  adName?: string
+  lastCallDate?: string
 }
 
 interface FunnelMetrics {
@@ -59,90 +60,7 @@ interface ReasonBucket {
   leads: string[]
 }
 
-// ─── CSV Data (78 leads) ───────────────────────────────────────────
-
-const CSV_DATA: Record<string, TeleCsvEntry> = {
-  "2256609938208020": { "adName": "aparna_tamil_ registration free", "connected": "Yes", "interested": "Yes", "meeting": "Yes", "purchase": "", "finalStage": "ConversionLead", "comments": "not interested in peacehomes project,asked for a colling time as of now", "lastCallDate": "" },
-  "1015499954503136": { "adName": "aparna_tamil_ registration free", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not looking for anything right now", "lastCallDate": "" },
-  "942934792080626": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Switched Off", "lastCallDate": "" },
-  "1314801077469895": { "adName": "aparna_tamil_ registration free", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "Switched Off", "lastCallDate": "" },
-  "1026740796975622": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not Interested", "lastCallDate": "" },
-  "1293191969517383": { "adName": "aparna_tamil_ registration free", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not Qualified", "lastCallDate": "" },
-  "1548185776801172": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "ConversionLead", "comments": "Zoom Call not done yet", "lastCallDate": "" },
-  "982806241227929": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour \u2013 Copy", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not Qualified", "lastCallDate": "" },
-  "1751453312487302": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "2 calls done, coming to dubai soon", "lastCallDate": "" },
-  "978386811669873": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "Zoom Call not done yet", "lastCallDate": "" },
-  "1544115517187499": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1518276376511556": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "Retail shop, Asking for more time, seeking family decision", "lastCallDate": "" },
-  "1299010888969086": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1486022169885819": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Interested, but doesn;t have money, Will pitch plan", "lastCallDate": "" },
-  "1872115643750151": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "No response", "lastCallDate": "" },
-  "4413817372230152": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "No response", "lastCallDate": "" },
-  "1007575318521634": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not Interested", "lastCallDate": "" },
-  "3881549372141060": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour \u2013 Copy", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Not Qualified", "lastCallDate": "" },
-  "879201414586736": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour \u2013 Copy", "connected": "Yes", "interested": "Yes", "meeting": "Yes", "purchase": "", "finalStage": "ConversionLead", "comments": "Follow-up", "lastCallDate": "" },
-  "1259129046138638": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Language problem, Will update", "lastCallDate": "" },
-  "1821178168863268": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1674781150454075": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "Not connected", "lastCallDate": "" },
-  "1286264990163356": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "Invalid", "comments": "Wrong number", "lastCallDate": "" },
-  "2711415532563468": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1711931063328800": { "adName": "parna_tamil_aldar_ athlon_ApartmentTour \u2013 Copy", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1517408363190068": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1728033158237294": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1595557115239929": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Need retail shop, Not interested", "lastCallDate": "" },
-  "1318854050410887": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "Coming to dubai next month, will update tomorrow", "lastCallDate": "" },
-  "1167384088897058": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "1537189591371793": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "Yes", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "Lead transfer", "lastCallDate": "" },
-  "1646917790771356": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "", "lastCallDate": "" },
-  "2009469146333210": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "984261224376456": { "adName": "Suganya_Tamil_Project_Raw by Imtiaz", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1725196232054111": { "adName": "Suganya_Tamil_Project_Raw by Imtiaz", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1321344990112819": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1347189540706417": { "adName": "Aparna tamil imtiaz 97 lakhs_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1645938083363926": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1334598694733309": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "Client is Busy, will confirm about meeting", "lastCallDate": "" },
-  "1370742041820203": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "2196147511179999": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "778128635388942": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1026264673121257": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1396782139224000": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "NotQualified", "comments": "Junk lead", "lastCallDate": "" },
-  "1004655809095950": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call Not connected, Number not available on whatsapp", "lastCallDate": "" },
-  "1523536869213881": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "2076494959597501": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "Invalid", "comments": "Junk lead", "lastCallDate": "" },
-  "1675082057098046": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "Invalid", "comments": "Junk Lead", "lastCallDate": "" },
-  "1401085918736454": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "1497435768230767": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "27301918972762354": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "", "lastCallDate": "" },
-  "2800489726973022": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "", "purchase": "", "finalStage": "Invalid", "comments": "Junk Lead", "lastCallDate": "" },
-  "1036671742156503": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "ConversionLead", "comments": "Meeting done, Given Requirements.", "lastCallDate": "" },
-  "1791322915558842": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "815118391554804": { "adName": "Suganya_Tamil_Dubai Jabel Ali project", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "2125359638389108": { "adName": "Aparna tamil imtiaz 97 lakhs_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "Yes", "purchase": "", "finalStage": "ConversionLead", "comments": "meeting not done yet", "lastCallDate": "" },
-  "1213246927531886": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "", "meeting": "", "purchase": "", "finalStage": "", "comments": "Same number as above", "lastCallDate": "" },
-  "987032294118112": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Messages not seen", "lastCallDate": "" },
-  "991342487046663": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "", "purchase": "", "finalStage": "Prospect", "comments": "call connected, agreed for meeting , but no reply after that", "lastCallDate": "" },
-  "1008918558570902": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, not on whatsapp", "lastCallDate": "" },
-  "1519121359779815": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "No", "meeting": "No", "purchase": "", "finalStage": "NotQualified", "comments": "Call connected, hasn't given any inquiry, Not interested", "lastCallDate": "" },
-  "2182104152704423": { "adName": "Aparna tamil imtiaz 97 lakhs_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Messages not seen", "lastCallDate": "" },
-  "756297257565093": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "Yes", "interested": "Yes", "meeting": "Yes", "purchase": "", "finalStage": "ConversionLead", "comments": "Call Connected, Client will come to Dubai and attend face to face meeting", "lastCallDate": "" },
-  "1180434020935927": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "1014306490962191": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, received reply on whatsapp , asked for a meeting.", "lastCallDate": "" },
-  "1737487303959142": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "997764493236476": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "27471087179248275": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "1018038653923132": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, received reply on whatsapp , asked for a meeting.", "lastCallDate": "" },
-  "2571778533239746": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not Connected, replied on whatsapp Client right now busy. will connect after some time.", "lastCallDate": "" },
-  "1545486713882181": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "Call Connected, Client right now busy unable to attend meeting, asked for details in whatsapp", "lastCallDate": "" },
-  "1538951874393126": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "No", "interested": "", "meeting": "", "purchase": "", "finalStage": "NoResponse", "comments": "Call not connected, Whatsapp voice note also not seen", "lastCallDate": "" },
-  "1551594123092474": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "2489499314831251": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1594931885383894": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1434766301746575": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1022144776960778": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-  "1759369488738936": { "adName": "Aparna tamil imtiaz 20_booking_17-06-2026", "connected": "", "interested": "", "meeting": "", "purchase": "", "finalStage": "Lead", "comments": "", "lastCallDate": "" },
-}
-
-// ─── Helpers ───────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────
 
 function determineCaller(adName: string): string {
   const lower = adName.toLowerCase()
@@ -175,6 +93,7 @@ function pct(n: number, d: number): string {
 export default function Telecalling() {
   const { currentClientId } = useClient()
   const [leads, setLeads] = useState<any[]>([])
+  const [activities, setActivities] = useState<CallActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [callerFilter, setCallerFilter] = useState("")
   const [adFilter, setAdFilter] = useState("")
@@ -182,25 +101,45 @@ export default function Telecalling() {
 
   useEffect(() => {
     setLoading(true)
-    getLeads(currentClientId)
-      .then((data) => {
-        const ls = data.leads || []
-        // Filter to real leads (78) by checking if metaLeadId is in CSV data
-        setLeads(ls.filter((l: any) => l.metaLeadId && CSV_DATA[l.metaLeadId]))
+    Promise.all([
+      getLeads(currentClientId),
+      getCallActivities(),
+    ])
+      .then(([leadsData, activitiesData]) => {
+        const ls = leadsData.leads || []
+        const acts = activitiesData.activities || []
+        setLeads(ls)
+        setActivities(acts)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [currentClientId])
 
-  // Enrich leads with CSV data
+  // Build lookup map for call activities by metaLeadId
+  const activityMap = useMemo(() => {
+    const map = new Map<string, CallActivity>()
+    for (const a of activities) {
+      if (a.metaLeadId) map.set(a.metaLeadId, a)
+    }
+    return map
+  }, [activities])
+
+  // Enrich leads with call activity data
   const enriched = useMemo(() => {
+    // Only include leads that have call activity data or are in a non-Lead stage
     return leads.map((lead) => {
-      const csv = CSV_DATA[lead.metaLeadId]
-      const adName = csv?.adName || ""
-      const caller = determineCaller(adName)
-      return { ...lead, _csv: csv, _adName: adName, _caller: caller }
+      const activity = activityMap.get(lead.metaLeadId)
+      const adName = activity?.adName || lead.adName || ""
+      const caller = activity?.caller || determineCaller(adName)
+      return {
+        ...lead,
+        _activity: activity,
+        _adName: adName,
+        _caller: caller,
+        _hasCallData: !!activity,
+      }
     })
-  }, [leads])
+  }, [leads, activityMap])
 
   // Apply filters
   const filtered = useMemo(() => {
@@ -217,22 +156,26 @@ export default function Telecalling() {
     const m: FunnelMetrics = { total: 0, notAttempted: 0, attempted: 0, connected: 0, interested: 0, conversionLeads: 0, purchase: 0, noResponse: 0, notQualified: 0, invalid: 0 }
 
     for (const l of filtered) {
-      const csv = l._csv
+      const a = l._activity
       const stage = l.stage
       m.total++
-      if (!csv) continue
 
-      const connectedCsv = csv.connected === "Yes"
-      const connectedStage = ["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(stage) && stage !== "NoResponse" && stage !== "Invalid"
-      const isConnected = connectedCsv || connectedStage
+      const hasCallData = !!a
+      const callPicked = a?.callPicked === "Yes"
+      const callInterested = a?.interested === "Yes"
+      const comments = a?.callComments || ""
 
-      const isAttempted = stage !== "Lead" || csv.connected !== "" || csv.comments !== ""
-      const isInterested = csv.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(stage)
+      // Determine attempted: has call activity or stage indicates attempt was made
+      const isAttempted = stage !== "Lead" || hasCallData
+      // Determine connected: callPicked=Yes OR stage is positive
+      const isConnected = callPicked || ["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(stage) && stage !== "NoResponse" && stage !== "Invalid"
+      // Determine interested: callInterested=Yes OR stage is Prospect+
+      const isInterested = callInterested || ["Prospect", "ConversionLead", "Purchase"].includes(stage)
       const isConvLead = ["ConversionLead", "Purchase"].includes(stage)
-      const isPurchase = stage === "Purchase" || csv.purchase === "Yes"
+      const isPurchase = stage === "Purchase" || a?.purchase === "Yes"
       const isNoResponse = stage === "NoResponse"
       const isNotQualified = stage === "NotQualified"
-      const isInvalid = stage === "Invalid" || stage === "Duplicate" || csv.comments.toLowerCase().includes("wrong number") || csv.comments.toLowerCase().includes("junk")
+      const isInvalid = stage === "Invalid" || stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")
 
       if (isAttempted) m.attempted++
       else m.notAttempted++
@@ -254,17 +197,17 @@ export default function Telecalling() {
       const caller = l._caller
       if (!map.has(caller)) map.set(caller, { caller, total: 0, attempted: 0, connected: 0, interested: 0, conversionLeads: 0, noResponse: 0, notQualified: 0, invalid: 0 })
       const r = map.get(caller)!
+      const a = l._activity
+      const comments = a?.callComments || ""
       r.total++
-      const csv = l._csv
-      if (!csv) continue
-      if (l.stage !== "Lead" || csv.connected !== "" || csv.comments !== "") r.attempted++
-      const isConnected = csv.connected === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
+      if (l.stage !== "Lead" || a) r.attempted++
+      const isConnected = a?.callPicked === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
       if (isConnected) r.connected++
-      if (csv.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
+      if (a?.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
       if (["ConversionLead", "Purchase"].includes(l.stage)) r.conversionLeads++
       if (l.stage === "NoResponse") r.noResponse++
       if (l.stage === "NotQualified") r.notQualified++
-      if (l.stage === "Invalid" || l.stage === "Duplicate" || csv.comments.toLowerCase().includes("wrong number") || csv.comments.toLowerCase().includes("junk")) r.invalid++
+      if (l.stage === "Invalid" || l.stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")) r.invalid++
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [enriched])
@@ -277,33 +220,33 @@ export default function Telecalling() {
       if (!adName) continue
       if (!map.has(adName)) map.set(adName, { adName, caller: l._caller, total: 0, attempted: 0, connected: 0, interested: 0, conversionLeads: 0, noResponse: 0, notQualified: 0, invalid: 0 })
       const r = map.get(adName)!
+      const a = l._activity
+      const comments = a?.callComments || ""
       r.total++
-      const csv = l._csv
-      if (!csv) continue
-      if (l.stage !== "Lead" || csv.connected !== "" || csv.comments !== "") r.attempted++
-      const isConnected = csv.connected === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
+      if (l.stage !== "Lead" || a) r.attempted++
+      const isConnected = a?.callPicked === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
       if (isConnected) r.connected++
-      if (csv.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
+      if (a?.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
       if (["ConversionLead", "Purchase"].includes(l.stage)) r.conversionLeads++
       if (l.stage === "NoResponse") r.noResponse++
       if (l.stage === "NotQualified") r.notQualified++
-      if (l.stage === "Invalid" || l.stage === "Duplicate" || csv.comments.toLowerCase().includes("wrong number") || csv.comments.toLowerCase().includes("junk")) r.invalid++
+      if (l.stage === "Invalid" || l.stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")) r.invalid++
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [enriched])
 
-  // Reason buckets
+  // Reason buckets from call comments
   const reasonBuckets = useMemo(() => {
     const map = new Map<string, ReasonBucket>()
     for (const l of enriched) {
-      const csv = l._csv
-      const comments = csv?.comments || ""
+      const a = l._activity
+      const comments = a?.callComments || ""
       const bucket = bucketReason(comments)
       if (!bucket) continue
       if (!map.has(bucket)) map.set(bucket, { label: bucket, count: 0, leads: [] })
       const b = map.get(bucket)!
       b.count++
-      b.leads.push(l.name || l._csv?.fullName || "Unknown")
+      b.leads.push(l.name || "Unknown")
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count)
   }, [enriched])
@@ -313,6 +256,9 @@ export default function Telecalling() {
   const uniqueAds = useMemo(() => Array.from(new Set(enriched.map((l) => l._adName).filter(Boolean))).sort(), [enriched])
   const uniqueStages = useMemo(() => Array.from(new Set(enriched.map((l) => l.stage))).sort(), [enriched])
 
+  // Count leads with and without call data
+  const withCallData = enriched.filter((l) => l._hasCallData).length
+
   if (loading) {
     return <div className="flex items-center justify-center h-full"><div className="text-muted text-sm">Loading telecalling data...</div></div>
   }
@@ -321,7 +267,10 @@ export default function Telecalling() {
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Telecalling Funnel</h1>
-        <p className="text-sm text-muted mt-0.5">Read-only calling funnel analytics ({metrics.total} real leads)</p>
+        <p className="text-sm text-muted mt-0.5">
+          Calling funnel analytics ({enriched.length} leads, {withCallData} with call data)
+          {!withCallData && <span className="text-amber-600 ml-1">— No call data yet. Import via CSV Import page.</span>}
+        </p>
       </div>
 
       {/* Filters */}
@@ -447,7 +396,7 @@ export default function Telecalling() {
               <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Meeting %</th>
               <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">No Resp.</th>
               <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">NQ</th>
-              <th className="py-2.5 pr-5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Invalid</th>
+              <th className="py-2.5 pr-5 text-[11px] uppercase tracking-writer font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Invalid</th>
             </tr>
           </thead>
           <tbody>
@@ -526,7 +475,7 @@ export default function Telecalling() {
           </thead>
           <tbody>
             {reasonBuckets.length === 0 ? (
-              <tr><td colSpan={3} className="px-5 py-6 text-center text-muted text-xs">No comments to bucket</td></tr>
+              <tr><td colSpan={3} className="px-5 py-6 text-center text-muted text-xs">No comments to bucket. Import call data via CSV Import page.</td></tr>
             ) : reasonBuckets.map((b) => (
               <tr key={b.label} className="border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-all-expo">
                 <td className="px-5 py-3 font-medium text-[#0a0a0a] text-sm">{b.label}</td>

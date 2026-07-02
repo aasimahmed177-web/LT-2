@@ -158,3 +158,27 @@ export function getSystemHealth(clientId?: string) {
 export function getPreviewPayload(leadId: string) {
   return json<any>(`${API_BASE}/meta/preview-payload/${leadId}`)
 }
+
+// ─── CSV Import API Functions ──────────────────────────────────────
+
+export function previewCsv(csvText: string) {
+  return json<any>(`${API_BASE}/csv/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ csvText }),
+  })
+}
+
+export function applyCsv(rows: any[]) {
+  return json<any>(`${API_BASE}/csv/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows }),
+  })
+}
+
+// ─── Call Activities API Functions ─────────────────────────────────
+
+export function getCallActivities() {
+  return json<any>(`${API_BASE}/call-activities`)
+}

@@ -6,6 +6,7 @@ const navItems = [
   { to: '/leads', label: 'Leads' },
   { to: '/telecalling', label: 'Telecalling' },
   { to: '/events', label: 'Events' },
+  { to: '/csv-import', label: 'CSV Import' },
   { to: '/settings', label: 'Settings' },
 ]
 
