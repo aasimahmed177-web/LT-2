@@ -31,40 +31,10 @@ app.use("/api/system", systemRoutes);
 app.use("/api/csv", csvRoutes);
 
 // GET /api/call-activities — return all call activities for telecalling page
-// Reads from structured notes (prefix [CALL_ACTIVITY]) instead of a dedicated callActivities table
 app.get("/api/call-activities", async (_req, res) => {
   try {
     const convex = getConvex();
-    const allLeads: any[] = await convex.query("leads:list");
-
-    // Query notes for all leads in parallel
-    const notesResults = await Promise.allSettled(
-      allLeads.map((lead) =>
-        convex.query("crm:listNotes", { leadId: lead._id })
-      )
-    );
-
-    const activities: any[] = [];
-    const CALL_ACTIVITY_PREFIX = "[CALL_ACTIVITY]";
-
-    for (let i = 0; i < allLeads.length; i++) {
-      const lead = allLeads[i];
-      const result = notesResults[i];
-      if (result.status !== "fulfilled") continue;
-
-      const notes: any[] = result.value;
-      for (const note of notes) {
-        if (note.content && note.content.startsWith(CALL_ACTIVITY_PREFIX)) {
-          try {
-            const payload = JSON.parse(note.content.slice(CALL_ACTIVITY_PREFIX.length));
-            activities.push(payload);
-          } catch {
-            // Skip unparseable call activity notes
-          }
-        }
-      }
-    }
-
+    const activities = await convex.query("callActivities:list");
     res.json({ activities });
   } catch (err: any) {
     console.error("Call activities list error:", err.message);
