@@ -271,27 +271,54 @@ button:active.stage-btn {
   transition: width 0.8s var(--ease-out-expo), background-color 0.3s var(--ease-out-expo);
 }
 
-/* Stage-positive — black filled badge for active/pipeline stages */
-.stage-positive {
+/* Stage badges — per-stage color-coded for scannability */
+.stage-badge {
   @apply inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full;
-  background: #0a0a0a;
-  color: white;
 }
-
-/* Stage-negative — muted badge for disqualified/churned stages */
-.stage-negative {
-  @apply inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full;
-  background: #f5f5f5;
+.stage-Lead {
+  background: #f8f9fa;
+  color: #5b6b7c;
+  border: 1px solid #e2e6ea;
+}
+.stage-Contact {
+  background: #f0faf0;
+  color: #2d6a4f;
+  border: 1px solid #c8e6c9;
+}
+.stage-Prospect {
+  background: #eef4ff;
+  color: #1a56db;
+  border: 1px solid #c3d9ff;
+}
+.stage-ConversionLead {
+  background: #f5f0ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+.stage-Purchase {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.stage-NotQualified {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.stage-NoResponse {
+  background: #f8f9fa;
   color: #8b8b8b;
-  border: 1px solid #ebebeb;
-}
-
-/* Stage-neutral — default bordered badge for Lead, Contact */
-.stage-neutral {
-  @apply inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full;
-  background: white;
-  color: #6b6b6b;
   border: 1px solid #e5e5e5;
+}
+.stage-Invalid {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.stage-Duplicate {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 
 /* Event status pills — distinct visual styles for each status */
