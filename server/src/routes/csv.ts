@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import { getConvex } from "../convexClient.js";
-import { resolveClientId } from "../clients.js";
 
 const router = Router();
 
@@ -10,30 +9,7 @@ const STAGES = ["Lead", "Contact", "Prospect", "ConversionLead", "Purchase", "No
 const VALID_STAGES = new Set(STAGES);
 const CAPI_STAGES = new Set(["Contact", "Prospect", "ConversionLead", "Purchase"]);
 
-// Stage hierarchy for final-stage-only suppression (matches convex/crm.ts)
-const STAGE_HIERARCHY: Record<string, number> = {
-  Lead: 0,
-  Contact: 1,
-  Prospect: 2,
-  ConversionLead: 3,
-  Purchase: 4,
-};
-
 // ─── CSV Parsing ────────────────────────────────────────────────────
-
-interface CsvRow {
-  raw: Record<string, string>;
-  metaLeadId: string;
-  finalStage: string;
-  callComments: string;
-  callPicked: string;
-  interested: string;
-  meetingScheduled: string;
-  purchase: string;
-  caller: string;
-  adName: string;
-  lastCallDate: string;
-}
 
 function parseCsv(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -338,19 +314,6 @@ router.post("/apply", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("CSV apply error:", err.message);
     res.status(500).json({ error: "Failed to apply CSV updates", detail: err.message });
-  }
-});
-
-// ─── GET /api/call-activities ────────────────────────────────────────
-
-router.get("/activities", async (_req: Request, res: Response) => {
-  try {
-    const convex = getConvex();
-    const activities = await convex.query("callActivities:list");
-    res.json({ activities });
-  } catch (err: any) {
-    console.error("Call activities list error:", err.message);
-    res.status(500).json({ error: "Failed to fetch call activities", detail: err.message });
   }
 });
 

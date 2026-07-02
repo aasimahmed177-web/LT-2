@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { previewCsv, applyCsv } from '../api'
 
 const CAPI_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
@@ -13,6 +14,7 @@ function stagePill(stage: string | null): { className: string; label: string } {
 }
 
 export default function CsvImport() {
+  const navigate = useNavigate()
   const [csvText, setCsvText] = useState('')
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<any>(null)
@@ -356,6 +358,17 @@ export default function CsvImport() {
                       <p className={`text-lg font-bold tabular-nums ${applyResult.summary?.errors > 0 ? 'text-red-500' : ''}`}>{applyResult.summary?.errors || 0}</p>
                     </div>
                   </div>
+                  {applyResult.summary?.capiEventsCreated > 0 && (
+                    <div className="mt-3 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
+                      CAPI events are created in <strong>pending</strong> status and will not be sent automatically.{' '}
+                      <button
+                        onClick={() => navigate('/events')}
+                        className="underline font-medium hover:text-amber-900"
+                      >
+                        Review and send from the Events page
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
