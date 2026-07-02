@@ -275,9 +275,10 @@ router.post("/apply", async (req: Request, res: Response) => {
           }
         }
 
-        // 3. Store call activity as a structured note (telecalling reporting — no CAPI)
-        // Uses the notes table since callActivities Convex table isn't deployed
-        const callActivityPayload = {
+        // 3. Store call activity fields (telecalling reporting — no CAPI)
+        await convex.mutation("callActivities:storeCallActivity", {
+          leadId,
+          metaLeadId: row.metaLeadId,
           callPicked: row.callPicked || undefined,
           interested: row.interested || undefined,
           meetingScheduled: row.meetingScheduled || undefined,
@@ -287,11 +288,6 @@ router.post("/apply", async (req: Request, res: Response) => {
           adName: row.adName || undefined,
           lastCallDate: row.lastCallDate || undefined,
           importBatchId: `csv-import-${Date.now()}`,
-          metaLeadId: row.metaLeadId,
-        };
-        await convex.mutation("crm:addNote", {
-          leadId,
-          content: `[CALL_ACTIVITY]${JSON.stringify(callActivityPayload)}`,
         });
         callActivitiesStored++;
 
