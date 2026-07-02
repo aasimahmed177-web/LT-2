@@ -7,6 +7,7 @@ import leadsRoutes from "./routes/leads.js";
 import statsRoutes from "./routes/stats.js";
 import eventsRoutes from "./routes/events.js";
 import systemRoutes from "./routes/system.js";
+import csvRoutes from "./routes/csv.js";
 import { getClients, getClientMetaConfig, getClientLeadForms, resolveClientId, resolveConvexClientId, checkDeployStatus, backfillDefaultClient, isConvexBackend, autoBackfillMetaConfig, resyncClients } from "./clients.js";
 import { getConvex } from "./convexClient.js";
 
@@ -26,6 +27,19 @@ app.use("/api/debug", leadsRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/events", eventsRoutes);
 app.use("/api/system", systemRoutes);
+app.use("/api/csv", csvRoutes);
+
+// GET /api/call-activities — return all call activities for telecalling page
+app.get("/api/call-activities", async (_req, res) => {
+  try {
+    const convex = getConvex();
+    const activities = await convex.query("callActivities:list");
+    res.json({ activities });
+  } catch (err: any) {
+    console.error("Call activities list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch call activities", detail: err.message });
+  }
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "leadtrace-api" });

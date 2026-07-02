@@ -129,4 +129,21 @@ export default defineSchema({
     data: v.any(),
     createdAt: v.string(),
   }),
+
+  callActivities: defineTable({
+    leadId: v.union(v.id("leads"), v.string()),
+    metaLeadId: v.string(),
+    callPicked: v.optional(v.string()),
+    interested: v.optional(v.string()),
+    meetingScheduled: v.optional(v.string()),
+    purchase: v.optional(v.string()),
+    callComments: v.optional(v.string()),
+    caller: v.optional(v.string()),
+    adName: v.optional(v.string()),
+    lastCallDate: v.optional(v.string()),
+    importedAt: v.string(),
+    importBatchId: v.optional(v.string()),
+  })
+    .index("by_metaLeadId", ["metaLeadId"])
+    .index("by_leadId", ["leadId"]),
 });
