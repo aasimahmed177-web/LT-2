@@ -29,8 +29,12 @@ export function importLeads(clientId?: string) {
   return json<any>(withClient(`${API_BASE}/meta/import-leads`, clientId), { method: 'POST' })
 }
 
-export function getLeads(clientId?: string) {
-  return json<{ leads: any[] }>(withClient(`${API_BASE}/leads`, clientId))
+export function getLeads(clientId?: string, params?: { limit?: number; offset?: number; search?: string }) {
+  let url = withClient(`${API_BASE}/leads`, clientId)
+  if (params?.limit) url += `&limit=${params.limit}`
+  if (params?.offset) url += `&offset=${params.offset}`
+  if (params?.search) url += `&search=${encodeURIComponent(params.search)}`
+  return json<{ leads: any[]; total: number; limit: number; offset: number }>(url)
 }
 
 export function getLeadsEnriched(clientId?: string) {

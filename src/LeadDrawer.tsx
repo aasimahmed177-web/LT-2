@@ -5,22 +5,7 @@ import {
   getLeadEvents, sendCapiEvent, cancelCapiEvent,
 getPreviewPayload,
 } from './api'
-
-const STAGES = [
-  { key: 'Lead', label: 'Lead' },
-  { key: 'Contact', label: 'Contact' },
-  { key: 'Prospect', label: 'Prospect' },
-  { key: 'ConversionLead', label: 'Conversion Lead' },
-  { key: 'Purchase', label: 'Purchase' },
-  { key: 'NotQualified', label: 'Not Qualified' },
-  { key: 'NoResponse', label: 'No Response' },
-  { key: 'Duplicate', label: 'Duplicate' },
-  { key: 'Invalid', label: 'Invalid' },
-]
-
-const DISQUALIFICATION_STAGES = new Set(['NotQualified', 'NoResponse', 'Duplicate', 'Invalid'])
-const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
-const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
+import { STAGES, POSITIVE_STAGES, NEGATIVE_STAGES, DISQUALIFICATION_STAGES } from './constants'
 
 function extractFieldValue(fieldData: any[], ...namePatterns: string[]): string {
   for (const field of fieldData || []) {

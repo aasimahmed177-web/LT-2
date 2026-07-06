@@ -162,4 +162,30 @@ app.listen(PORT, () => {
   console.log(`LeadTrace API running on port ${PORT}`);
   // Auto-backfill Meta config on startup (async, non-blocking)
   autoBackfillMetaConfig()
+
+  // Auto-sync Meta leads every 10 minutes
+  const AUTO_SYNC_INTERVAL = parseInt(process.env.AUTO_SYNC_INTERVAL || "600000", 10);
+  if (AUTO_SYNC_INTERVAL > 0) {
+    console.log(`[Auto-sync] Scheduling Meta lead import every ${AUTO_SYNC_INTERVAL / 60000} minutes`);
+    setInterval(async () => {
+      try {
+        const clients = getClients();
+        for (const client of clients) {
+          const clientId = client.id;
+          if (clientId) {
+            const resp = await fetch(`http://localhost:${PORT}/api/meta/import-leads?clientId=${encodeURIComponent(clientId)}`, { method: "POST" });
+            if (resp.ok) {
+              const result = await resp.json();
+              console.log(`[Auto-sync] Imported leads for ${client.name || clientId}: ${result.created} created, ${result.updated} updated`);
+            } else {
+              const errBody = await resp.json().catch(() => ({}));
+              console.error(`[Auto-sync] Failed for ${client.name || clientId}: ${errBody.error || resp.status}`);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error("[Auto-sync] Error:", err.message);
+      }
+    }, AUTO_SYNC_INTERVAL);
+  }
 });
