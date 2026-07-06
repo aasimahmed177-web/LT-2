@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Records | Attio CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#70757f",
+                    "secondary-fixed-dim": "#c7c6c8",
+                    "on-background": "#1a1c1d",
+                    "on-error-container": "#93000a",
+                    "outline-variant": "#c3c6d7",
+                    "surface-dim": "#d9dadb",
+                    "surface-variant": "#e2e2e3",
+                    "on-tertiary": "#ffffff",
+                    "outline": "#737686",
+                    "surface-container": "#eeeeef",
+                    "on-secondary-fixed-variant": "#464749",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#003fa5",
+                    "inverse-on-surface": "#f0f1f2",
+                    "on-primary-fixed": "#001849",
+                    "error-container": "#ffdad6",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#fefcff",
+                    "surface-container-low": "#f3f3f4",
+                    "on-secondary-container": "#626265",
+                    "secondary": "#5e5e60",
+                    "surface-bright": "#f9f9fa",
+                    "inverse-primary": "#b3c5ff",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#1a1c1d",
+                    "obsidian": "#1C1D1F",
+                    "on-tertiary-container": "#fdfcff",
+                    "primary-container": "#2c6bf2",
+                    "tertiary-fixed": "#dee2ee",
+                    "surface-background": "#FFFFFF",
+                    "primary-fixed": "#dbe1ff",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e8e8e9",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "primary": "#0052d1",
+                    "border-subtle": "#E4E7EC",
+                    "surface-tint": "#0054d7",
+                    "inverse-surface": "#2f3132",
+                    "on-error": "#ffffff",
+                    "background": "#f9f9fa",
+                    "secondary-container": "#e0dfe2",
+                    "tertiary": "#575c66",
+                    "secondary-fixed": "#e3e2e4",
+                    "on-surface-variant": "#424655",
+                    "on-tertiary-fixed-variant": "#424750",
+                    "surface": "#f9f9fa",
+                    "on-secondary-fixed": "#1b1c1e",
+                    "surface-container-highest": "#e2e2e3",
+                    "tertiary-fixed-dim": "#c2c6d2",
+                    "surface-muted": "#F2F4F7",
+                    "on-tertiary-fixed": "#171c24"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "space-md": "16px",
+                    "space-xl": "48px",
+                    "space-sm": "8px",
+                    "margin-desktop": "32px",
+                    "space-lg": "24px",
+                    "unit": "4px",
+                    "margin-mobile": "16px",
+                    "gutter": "16px",
+                    "space-xs": "4px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-xl": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-xl": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-md": ["18px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9f9fa; color: #1a1c1d; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+        .data-table-row:hover { background-color: #F2F4F7; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e3; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c3c6d7; }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- SIDE NAV BAR (Shared Component Anchor) -->
+<aside class="flex flex-col h-screen py-space-md w-60 h-full fixed left-0 top-0 bg-surface border-r border-border-subtle z-40">
+<div class="px-space-md mb-space-lg flex items-center gap-space-sm">
+<div class="w-8 h-8 bg-obsidian rounded flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dataset</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-obsidian">Workspace</h1>
+<p class="font-body-md text-[10px] uppercase tracking-wider text-secondary">Premium CRM</p>
+</div>
+</div>
+<div class="px-space-sm space-y-1 flex-grow">
+<nav>
+<!-- Active: Companies -->
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted group" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</a>
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted group" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span class="font-body-md text-body-md">Inbox</span>
+</a>
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-obsidian font-bold border-l-2 border-primary bg-surface-muted" href="#">
+<span class="material-symbols-outlined">corporate_fare</span>
+<span class="font-body-md text-body-md">Companies</span>
+</a>
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">People</span>
+</a>
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span class="font-body-md text-body-md">Deals</span>
+</a>
+</nav>
+<div class="pt-space-lg px-space-md">
+<button class="w-full py-2 px-3 bg-primary text-white rounded font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary-container transition-all">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Create Record
+                </button>
+</div>
+</div>
+<div class="px-space-sm border-t border-border-subtle pt-space-md">
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-space-md py-2 transition-colors duration-200 ease-in-out text-on-surface-variant hover:bg-surface-muted" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- MAIN CONTENT AREA -->
+<main class="ml-60 flex flex-col h-screen bg-background relative">
+<!-- TOP NAV BAR (Shared Component Anchor) -->
+<header class="flex justify-between items-center w-full px-margin-desktop h-14 bg-background sticky top-0 z-50 border-b border-border-subtle">
+<div class="flex items-center gap-space-lg">
+<span class="font-headline-md text-headline-md font-bold text-primary">Attio CRM</span>
+<div class="flex items-center gap-space-sm ml-space-lg">
+<a class="font-label-md text-label-md text-secondary hover:text-obsidian transition-all" href="#">List</a>
+<a class="font-label-md text-label-md text-secondary hover:text-obsidian transition-all" href="#">Board</a>
+<a class="font-label-md text-label-md text-primary border-b-2 border-primary pb-1" href="#">Table</a>
+</div>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="relative group">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</span>
+<input class="bg-surface-container-low border border-border-subtle rounded-lg py-1.5 pl-9 pr-4 text-body-md w-64 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all" placeholder="Search companies..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-secondary hover:text-obsidian transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-1.5 text-secondary hover:text-obsidian transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-border-subtle cursor-pointer ml-2">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a young male executive with a warm smile, wearing a modern gray suit against a clean, soft-focus office background. The lighting is bright and natural, reflecting a high-end corporate lifestyle with a crisp and premium minimalist aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB29w19da9mqVkfzz4e1OIHrwbUYFlovYrahIvW_jYcQaRrTblotUfJSB4NuPqNxuzF9kzrjOf8KruDa2_qPZimER8815A3CYtdS9-OJUjG3FW37QyPmvmlkKFl6hLFR-fr75_xuMNmYlQbJRJoV_meXe-FrB5657ZPGe-qWE_0RDhv-RbyU84YiwqyS757InxUq9N6v9cnlk6pRP7ZFDunzbZsDFkRASzTybkUsFgCLKhqy7pRPdRTNOx_3lUj8HH-NmYmhT9UekE"/>
+</div>
+<button class="bg-primary text-white px-3 py-1.5 rounded font-label-md text-label-md hover:bg-primary-container transition-all">
+                        Invite
+                    </button>
+</div>
+</div>
+</header>
+<!-- TABLE WORKSPACE -->
+<div class="flex-grow flex flex-col overflow-hidden px-margin-desktop py-space-md">
+<!-- Table Controls -->
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<h2 class="font-headline-md text-headline-md text-obsidian">Companies</h2>
+<span class="bg-surface-container-high px-2 py-0.5 rounded text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">1,248 total</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-white text-body-md text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                        Filter
+                    </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-white text-body-md text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+                        Sort
+                    </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-white text-body-md text-on-surface-variant hover:bg-surface-muted transition-colors">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- The Dense Data Table -->
+<div class="flex-grow bg-white border border-border-subtle rounded-xl overflow-hidden flex flex-col shadow-sm">
+<div class="overflow-x-auto custom-scrollbar flex-grow">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-bright border-b border-border-subtle sticky top-0 z-10">
+<th class="w-12 px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Company Name</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Domain</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Owner</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Last Activity</th>
+<th class="px-4 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">ARR</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle">
+<!-- Row 1 -->
+<tr class="data-table-row transition-colors cursor-pointer group">
+<td class="px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-obsidian flex items-center justify-center">
+<span class="text-white font-bold text-[10px]">A</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-obsidian">Acme Corp</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">acme.com</span>
+</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-primary font-label-sm text-[10px] border border-blue-100">
+                                        Active
+                                    </span>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full border border-border-subtle" data-alt="A clean, professional portrait of a business owner in a minimal studio setting. The lighting is flat and bright, using a cool monochromatic color scheme that emphasizes precision and clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm4-joSQeSbgmtOgsedeEZcbJn_1mSR6IEFYfOZsufz2PcJAY4QsfX-gkpN-kOMP34pZp_10l5_oOZrcXdqXjD542n7jMNpR00hlpIdmOFJyYHc871kTgY0yK5-Ui6gKnxw9shM00f9uHsfqi5JEER6TTAGaJKsJETQM0bKC6c6GoWWcC7aNNwUAsOl1Bylwmoe0ezveUIVoAI6mimzdLu0KhmzN4BbuftJ62Fi_EbWI7txrh9i8E3UhY88wmV81UBmYFMeDrfID0"/>
+<span class="font-body-md text-body-md text-on-surface">Alex Rivera</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">2 hours ago</span>
+</td>
+<td class="px-4 py-3 text-right">
+<span class="font-body-md text-body-md font-medium text-obsidian">$142,000</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="data-table-row transition-colors cursor-pointer">
+<td class="px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-indigo-600 flex items-center justify-center">
+<span class="text-white font-bold text-[10px]">S</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-obsidian">Stripe</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">stripe.com</span>
+</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-muted text-secondary font-label-sm text-[10px] border border-border-subtle">
+                                        Prospect
+                                    </span>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full border border-border-subtle" data-alt="Close up portrait of a young professional woman with a minimalist aesthetic, softly lit by window light. Her expression is focused and capable, fitting a high-performance CRM user profile in a sleek modern workspace." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_jLcJTlYfBfDGW3tHnu74OBE3VK6I94oHvifcWXsncD6ayLuHsMqBN2ALArcl9_taLhNJOJQJx59EvtMqqZK7etKbzuxKbYWDoqdMkBvw_W_aNgqHe5P84bK1Ag3ShX3zUs7pdExreFgD1fO-3nxyITk71ASmqjECXiN-erSI7DhuMscPLXPZG4aEDiDQMG5xqyJnbq3xa2-W0vT-ddsdffPptYgS8WnR_q9UcVu_Oqi1BscX_pbkY_u34prcpfE4oojrnY9eXqs"/>
+<span class="font-body-md text-body-md text-on-surface">Jordan Smith</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">Yesterday</span>
+</td>
+<td class="px-4 py-3 text-right">
+<span class="font-body-md text-body-md font-medium text-obsidian">$850,000</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="data-table-row transition-colors cursor-pointer">
+<td class="px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-emerald-500 flex items-center justify-center">
+<span class="text-white font-bold text-[10px]">F</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-obsidian">Figma</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">figma.com</span>
+</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-green-50 text-emerald-700 font-label-sm text-[10px] border border-green-100">
+                                        Enterprise
+                                    </span>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-dim flex items-center justify-center text-[10px] font-bold text-on-surface">DR</div>
+<span class="font-body-md text-body-md text-on-surface">David Ross</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">3 days ago</span>
+</td>
+<td class="px-4 py-3 text-right">
+<span class="font-body-md text-body-md font-medium text-obsidian">$2,100,000</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="data-table-row transition-colors cursor-pointer">
+<td class="px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-orange-400 flex items-center justify-center">
+<span class="text-white font-bold text-[10px]">Z</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-obsidian">Zapier</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">zapier.com</span>
+</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-error font-label-sm text-[10px] border border-red-100">
+                                        At Risk
+                                    </span>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full border border-border-subtle" data-alt="Professional studio headshot of a creative lead with a modern minimalist aesthetic. The lighting is soft and high-key, highlighting clean lines and a crisp white and gray color palette. Perfect for a premium CRM user interface context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqbodnDl1RmtEXfc6n8lRoagv9FUWUVXqRjbFsyQ8SlJml2NrYBOwvBfglXujSTjZLBSDwNm3zboCOl7sU0PJH69VQLPTMKxNjat0L-4RgZjpDUMTcYG8yoZYK1oJ43N3SpkT8bUG4DPaxoAyEatFhPNE2qjG8yBEB1wiV4EfWao4rvyXeg7jai4rKHQEDnyweuC1_g0aE8f_C2d--WlnJz1lFWXFIV16ik6E6qsdysbcz7bIE0bIcxjSvUZxrr3nPCjl5FFdlwiA"/>
+<span class="font-body-md text-body-md text-on-surface">Alex Rivera</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">5 mins ago</span>
+</td>
+<td class="px-4 py-3 text-right">
+<span class="font-body-md text-body-md font-medium text-obsidian">$48,500</span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="data-table-row transition-colors cursor-pointer">
+<td class="px-space-md py-3">
+<input class="rounded-sm border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-blue-400 flex items-center justify-center">
+<span class="text-white font-bold text-[10px]">L</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-obsidian">Linear</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">linear.app</span>
+</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-primary font-label-sm text-[10px] border border-blue-100">
+                                        Active
+                                    </span>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-obsidian flex items-center justify-center text-[10px] font-bold text-white">TM</div>
+<span class="font-body-md text-body-md text-on-surface">Tom Mason</span>
+</div>
+</td>
+<td class="px-4 py-3">
+<span class="font-body-md text-body-md text-secondary">1 week ago</span>
+</td>
+<td class="px-4 py-3 text-right">
+<span class="font-body-md text-body-md font-medium text-obsidian">$12,000</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Bottom Bar / Pagination -->
+<div class="p-space-sm bg-surface-bright border-t border-border-subtle flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button class="p-1 rounded hover:bg-surface-muted disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<span class="font-label-md text-label-md text-on-surface-variant">Page 1 of 42</span>
+<button class="p-1 rounded hover:bg-surface-muted">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-md text-label-md text-secondary">Rows per page: 25</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Showing 1-25 of 1,248</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FLOATING ACTION BUTTON (Suppressed as per rules on Details/Settings but active here as Dashboard) -->
+<button class="fixed bottom-space-lg right-space-lg w-12 h-12 bg-obsidian text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-50 group">
+<span class="material-symbols-outlined group-hover:rotate-90 transition-transform">add</span>
+<div class="absolute right-14 bg-obsidian text-white text-[11px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            New Company
+        </div>
+</button>
+<!-- Micro-interaction Script -->
+<script>
+        // Simple row selection effect
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const row = e.target.closest('tr');
+                if (row) {
+                    if (e.target.checked) {
+                        row.classList.add('bg-blue-50/50');
+                    } else {
+                        row.classList.remove('bg-blue-50/50');
+                    }
+                }
+            });
+        });
+
+        // Inline edit feel - simplified
+        const dataCells = document.querySelectorAll('.data-table-row td:not(:first-child)');
+        dataCells.forEach(cell => {
+            cell.addEventListener('dblclick', function() {
+                const currentText = this.innerText;
+                const input = document.createElement('input');
+                input.value = currentText;
+                input.className = "w-full bg-white border border-primary rounded px-1 outline-none font-body-md text-body-md";
+                this.dataset.oldValue = currentText;
+                this.innerHTML = '';
+                this.appendChild(input);
+                input.focus();
+
+                const finishEdit = () => {
+                    const newVal = input.value;
+                    this.innerHTML = newVal;
+                };
+
+                input.addEventListener('blur', finishEdit);
+                input.addEventListener('keydown', (e) => {
+                    if(e.key === 'Enter') finishEdit();
+                    if(e.key === 'Escape') this.innerHTML = this.dataset.oldValue;
+                });
+            });
+        });
+    </script>
+</body></html>

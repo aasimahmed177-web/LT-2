@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stripe | Attio CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9fa;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E4E7EC;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#70757f",
+                      "secondary-fixed-dim": "#c7c6c8",
+                      "on-background": "#1a1c1d",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c3c6d7",
+                      "surface-dim": "#d9dadb",
+                      "surface-variant": "#e2e2e3",
+                      "on-tertiary": "#ffffff",
+                      "outline": "#737686",
+                      "surface-container": "#eeeeef",
+                      "on-secondary-fixed-variant": "#464749",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#003fa5",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-primary-fixed": "#001849",
+                      "error-container": "#ffdad6",
+                      "on-primary": "#ffffff",
+                      "on-primary-container": "#fefcff",
+                      "surface-container-low": "#f3f3f4",
+                      "on-secondary-container": "#626265",
+                      "secondary": "#5e5e60",
+                      "surface-bright": "#f9f9fa",
+                      "inverse-primary": "#b3c5ff",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#1a1c1d",
+                      "obsidian": "#1C1D1F",
+                      "on-tertiary-container": "#fdfcff",
+                      "primary-container": "#2c6bf2",
+                      "tertiary-fixed": "#dee2ee",
+                      "surface-background": "#FFFFFF",
+                      "primary-fixed": "#dbe1ff",
+                      "error": "#ba1a1a",
+                      "surface-container-high": "#e8e8e9",
+                      "primary-fixed-dim": "#b3c5ff",
+                      "primary": "#0052d1",
+                      "border-subtle": "#E4E7EC",
+                      "surface-tint": "#0054d7",
+                      "inverse-surface": "#2f3132",
+                      "on-error": "#ffffff",
+                      "background": "#f9f9fa",
+                      "secondary-container": "#e0dfe2",
+                      "tertiary": "#575c66",
+                      "secondary-fixed": "#e3e2e4",
+                      "on-surface-variant": "#424655",
+                      "on-tertiary-fixed-variant": "#424750",
+                      "surface": "#f9f9fa",
+                      "on-secondary-fixed": "#1b1c1e",
+                      "surface-container-highest": "#e2e2e3",
+                      "tertiary-fixed-dim": "#c2c6d2",
+                      "surface-muted": "#F2F4F7",
+                      "on-tertiary-fixed": "#171c24"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "space-md": "16px",
+                      "space-xl": "48px",
+                      "space-sm": "8px",
+                      "margin-desktop": "32px",
+                      "space-lg": "24px",
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "gutter": "16px",
+                      "space-xs": "4px"
+              },
+              "fontFamily": {
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "headline-xl": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-xl": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "headline-md": ["18px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="flex bg-background text-on-surface">
+<!-- SideNavBar Integration -->
+<aside class="w-60 h-screen fixed left-0 top-0 border-r border-border-subtle bg-surface flex flex-col py-space-md z-40">
+<!-- Brand Header -->
+<div class="px-space-md mb-space-xl flex items-center gap-space-sm">
+<div class="w-8 h-8 bg-obsidian rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-surface-bright" data-weight="fill">corporate_fare</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-obsidian leading-none">Workspace</h1>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold mt-1">Premium CRM</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex-1 px-space-sm space-y-1">
+<!-- Active: Companies -->
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span class="font-body-md text-body-md">Inbox</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-obsidian font-bold border-l-2 border-primary bg-surface-muted" href="#">
+<span class="material-symbols-outlined">corporate_fare</span>
+<span class="font-body-md text-body-md">Companies</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">People</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span class="font-body-md text-body-md">Deals</span>
+</a>
+</nav>
+<!-- CTA & Footer -->
+<div class="px-space-md mt-auto">
+<button class="w-full py-2 bg-primary text-on-primary rounded text-label-md font-label-md hover:opacity-90 transition-opacity mb-space-lg">
+                Create Record
+            </button>
+<div class="space-y-1">
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-2 text-on-surface-variant hover:bg-surface-muted transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-60 flex-1 min-h-screen flex flex-col">
+<!-- Header: TopNavBar Style -->
+<header class="sticky top-0 z-30 h-16 bg-surface-background border-b border-border-subtle flex items-center justify-between px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg overflow-hidden border border-border-subtle bg-white p-1">
+<img alt="Stripe Logo" class="w-full h-full object-contain" data-alt="The iconic minimalist Stripe logo, a crisp white letter 'S' shaped by two clean diagonal slashes against a vibrant, saturated indigo background. The image is rendered with high-fidelity digital precision, capturing a premium, tech-forward aesthetic that fits a modern enterprise CRM interface. Soft studio lighting highlights the smooth matte texture of the logo mark." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB42hsSFIBl1NonHFzpfUsgT0av3IdMDvZdiaf65b0yetmo5BEssD8NNDThc52Pe_ubB7KPq2flhvQN7VemuZ4MtZuWjJXZrE54e-pV7wwJMbEl45VHI4oONo6dETpDEZGU6_r7JeXptUrs6Va_NJFdnejFLZTUNTrz8MfG8YsisDMmMnNifEAnlqpUC3pvi8YmSzI5ztLyt5wYxYTiwvV4CBa0z_jRSe934ixEioYUHajR6Wrg44L40ymiJUHgmbcJz_QMRKfmcOI"/>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-obsidian">Stripe</h2>
+<div class="flex items-center gap-2">
+<span class="px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-primary text-[10px] font-bold uppercase tracking-tight border border-blue-100">Customer</span>
+<span class="text-secondary font-label-md text-label-md">stripe.com</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-space-md py-2 border border-border-subtle rounded text-label-md font-label-md text-obsidian hover:bg-surface-muted transition-colors">Edit</button>
+<button class="px-space-md py-2 border border-border-subtle rounded text-label-md font-label-md text-obsidian hover:bg-surface-muted transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">share</span>
+                    Share
+                </button>
+<button class="w-9 h-9 flex items-center justify-center border border-border-subtle rounded hover:bg-surface-muted">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Two-Column Body -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Column: Attributes Panel -->
+<section class="w-[340px] border-r border-border-subtle bg-white overflow-y-auto custom-scrollbar">
+<div class="p-space-lg space-y-space-xl">
+<!-- Attributes List -->
+<div>
+<div class="flex items-center justify-between mb-space-md">
+<h3 class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant">About Stripe</h3>
+<button class="text-primary hover:underline text-[11px] font-semibold">Customize</button>
+</div>
+<div class="space-y-space-md">
+<!-- Industry -->
+<div class="group">
+<label class="block text-[11px] font-medium text-secondary mb-1">Industry</label>
+<div class="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded hover:bg-surface-muted cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-tertiary" data-weight="fill">payments</span>
+<span class="text-body-md font-body-md text-obsidian">Fintech &amp; Payments</span>
+</div>
+</div>
+<!-- Size -->
+<div class="group">
+<label class="block text-[11px] font-medium text-secondary mb-1">Size</label>
+<div class="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded hover:bg-surface-muted cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-tertiary">groups</span>
+<span class="text-body-md font-body-md text-obsidian">5,001 - 10,000 employees</span>
+</div>
+</div>
+<!-- ARR -->
+<div class="group">
+<label class="block text-[11px] font-medium text-secondary mb-1">Estimated ARR</label>
+<div class="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded hover:bg-surface-muted cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-tertiary">monetization_on</span>
+<span class="text-body-md font-body-md text-obsidian font-semibold">$14.3B (FY2023)</span>
+</div>
+</div>
+<!-- Location -->
+<div class="group">
+<label class="block text-[11px] font-medium text-secondary mb-1">Location</label>
+<div class="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded hover:bg-surface-muted cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-tertiary">location_on</span>
+<span class="text-body-md font-body-md text-obsidian">San Francisco, CA</span>
+</div>
+</div>
+<!-- Lead Status -->
+<div class="group">
+<label class="block text-[11px] font-medium text-secondary mb-1">Status</label>
+<div class="inline-flex items-center px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[11px] font-bold border border-green-100">
+                                    Active Customer
+                                </div>
+</div>
+</div>
+</div>
+<!-- Owners & Related -->
+<div>
+<h3 class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant mb-space-md">Account Team</h3>
+<div class="space-y-space-sm">
+<div class="flex items-center gap-3 p-2 -mx-2 hover:bg-surface-muted rounded cursor-pointer transition-colors">
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-[10px] font-bold text-on-primary-fixed">JD</div>
+<div>
+<p class="text-body-md font-body-md text-obsidian leading-tight">Jane Doe</p>
+<p class="text-[11px] text-secondary">Account Executive</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 -mx-2 hover:bg-surface-muted rounded cursor-pointer transition-colors">
+<div class="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-[10px] font-bold text-on-secondary-fixed">MS</div>
+<div>
+<p class="text-body-md font-body-md text-obsidian leading-tight">Marcus Smith</p>
+<p class="text-[11px] text-secondary">Success Manager</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Tags -->
+<div>
+<h3 class="text-label-sm font-label-sm uppercase tracking-widest text-on-surface-variant mb-space-md">Tags</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-0.5 bg-surface-muted text-on-surface-variant text-[11px] font-medium rounded-sm border border-border-subtle">High Priority</span>
+<span class="px-2 py-0.5 bg-surface-muted text-on-surface-variant text-[11px] font-medium rounded-sm border border-border-subtle">Tier 1</span>
+<span class="px-2 py-0.5 bg-surface-muted text-on-surface-variant text-[11px] font-medium rounded-sm border border-border-subtle">Decentralized</span>
+<button class="w-6 h-6 flex items-center justify-center border border-dashed border-border-subtle rounded-sm hover:border-primary hover:text-primary transition-all">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Activity Feed -->
+<section class="flex-1 bg-background overflow-y-auto custom-scrollbar relative">
+<!-- Feed Header/Filters -->
+<div class="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border-subtle flex items-center justify-between px-space-lg py-3">
+<div class="flex items-center gap-space-lg">
+<button class="text-label-md font-bold text-obsidian border-b-2 border-primary pb-3 -mb-[13px]">Activity</button>
+<button class="text-label-md font-label-md text-secondary hover:text-obsidian pb-3 -mb-[13px]">Notes</button>
+<button class="text-label-md font-label-md text-secondary hover:text-obsidian pb-3 -mb-[13px]">Emails</button>
+<button class="text-label-md font-label-md text-secondary hover:text-obsidian pb-3 -mb-[13px]">Files</button>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-[11px] text-secondary font-medium uppercase">Filter:</span>
+<button class="flex items-center gap-1 px-2 py-1 rounded bg-white border border-border-subtle text-label-md text-obsidian hover:bg-surface-muted">
+                            All events
+                            <span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Feed Content -->
+<div class="p-space-lg max-w-3xl mx-auto">
+<!-- Timeline Start -->
+<div class="relative space-y-space-xl before:content-[''] before:absolute before:left-[19px] before:top-2 before:bottom-0 before:w-[1px] before:bg-border-subtle">
+<!-- Activity Item: Note -->
+<div class="relative pl-14">
+<div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-white border border-border-subtle flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-amber-500" data-weight="fill">sticky_note_2</span>
+</div>
+<div class="bg-white border border-border-subtle rounded-xl p-space-md shadow-sm">
+<div class="flex justify-between items-start mb-space-sm">
+<div>
+<p class="text-body-md font-semibold text-obsidian">Note added by Marcus Smith</p>
+<p class="text-[11px] text-secondary">2 hours ago</p>
+</div>
+<button class="text-secondary hover:text-obsidian"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</div>
+<div class="text-body-md text-on-surface-variant leading-relaxed">
+                                    Just finished the Q3 sync. Stripe is looking to expand their API offerings in the APAC region. They mentioned they might need extra support for localized regulatory compliance.
+                                </div>
+<div class="mt-space-md pt-space-sm border-t border-border-subtle flex items-center gap-4">
+<button class="flex items-center gap-1.5 text-[11px] font-medium text-secondary hover:text-primary">
+<span class="material-symbols-outlined text-[16px]">add_reaction</span>
+                                        React
+                                    </button>
+<button class="flex items-center gap-1.5 text-[11px] font-medium text-secondary hover:text-primary">
+<span class="material-symbols-outlined text-[16px]">reply</span>
+                                        Reply
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Activity Item: Status Change -->
+<div class="relative pl-14">
+<div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-white border border-border-subtle flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-primary" data-weight="fill">refresh</span>
+</div>
+<div class="pt-2">
+<div class="flex items-center gap-2">
+<span class="text-body-md font-semibold text-obsidian">Workflow updated</span>
+<span class="text-secondary text-body-md">•</span>
+<span class="text-[11px] text-secondary">Yesterday at 4:15 PM</span>
+</div>
+<div class="mt-2 flex items-center gap-3">
+<div class="flex items-center gap-2 px-2 py-1 bg-surface-muted rounded border border-border-subtle text-[11px] text-secondary">
+                                        Prospect
+                                    </div>
+<span class="material-symbols-outlined text-secondary text-[14px]">arrow_forward</span>
+<div class="flex items-center gap-2 px-2 py-1 bg-green-50 rounded border border-green-100 text-[11px] text-green-700 font-bold">
+                                        Customer
+                                    </div>
+</div>
+</div>
+</div>
+<!-- Activity Item: Email -->
+<div class="relative pl-14">
+<div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-white border border-border-subtle flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-blue-500" data-weight="fill">mail</span>
+</div>
+<div class="bg-white border border-border-subtle rounded-xl p-space-md shadow-sm opacity-90">
+<div class="flex justify-between items-start mb-space-sm">
+<div>
+<p class="text-body-md font-semibold text-obsidian">Email from Patrick Collison</p>
+<p class="text-[11px] text-secondary">2 days ago • Re: Partnerships Q4</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">open_in_new</span>
+</div>
+<div class="text-body-md text-on-surface-variant line-clamp-2">
+                                    "Excited about the potential integration. Let's touch base with our engineering team next week to discuss the technical specifications..."
+                                </div>
+</div>
+</div>
+<!-- Activity Item: Call -->
+<div class="relative pl-14">
+<div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-white border border-border-subtle flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-indigo-500">call</span>
+</div>
+<div class="pt-2">
+<div class="flex items-center gap-2">
+<span class="text-body-md font-semibold text-obsidian">Outbound Call</span>
+<span class="text-secondary text-body-md">•</span>
+<span class="text-[11px] text-secondary">Sep 12, 11:30 AM</span>
+</div>
+<p class="text-body-md text-on-surface-variant mt-1">Spoke with the procurement lead. Contract is currently in legal review. Expecting signature by EOD Friday.</p>
+<div class="mt-2 flex items-center gap-2">
+<span class="px-1.5 py-0.5 rounded-[2px] bg-indigo-50 text-indigo-600 text-[9px] font-bold uppercase tracking-tight">Outcome: Interested</span>
+<span class="text-[11px] text-secondary">14m 22s</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Load More -->
+<div class="mt-space-xl flex justify-center">
+<button class="px-space-lg py-2 rounded-full border border-border-subtle bg-white text-label-md font-medium text-on-surface-variant hover:bg-surface-muted transition-all">
+                            View all history
+                        </button>
+</div>
+</div>
+<!-- Floating Quick Note -->
+<div class="absolute bottom-8 right-8 flex flex-col items-end gap-3 pointer-events-none">
+<div class="hidden pointer-events-auto w-80 bg-white border border-border-subtle rounded-xl shadow-2xl p-space-md" id="quick-note-popover">
+<h4 class="text-label-md font-bold text-obsidian mb-2">Quick Note</h4>
+<textarea class="w-full h-24 border border-border-subtle rounded-lg p-2 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none" placeholder="Write a note..."></textarea>
+<div class="flex justify-end gap-2 mt-2">
+<button class="px-3 py-1.5 text-label-md font-medium text-secondary" onclick="toggleNote()">Cancel</button>
+<button class="px-3 py-1.5 bg-primary text-on-primary rounded text-label-md font-medium">Save</button>
+</div>
+</div>
+<button class="pointer-events-auto w-12 h-12 rounded-full bg-obsidian text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform" onclick="toggleNote()">
+<span class="material-symbols-outlined" data-weight="fill">add</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+<script>
+        function toggleNote() {
+            const popover = document.getElementById('quick-note-popover');
+            popover.classList.toggle('hidden');
+        }
+
+        // Simulating some interactive hover states for data cells
+        document.querySelectorAll('.group').forEach(group => {
+            group.addEventListener('mouseenter', () => {
+                group.style.transform = 'translateX(2px)';
+                group.style.transition = 'transform 0.1s ease-out';
+            });
+            group.addEventListener('mouseleave', () => {
+                group.style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+</body></html>

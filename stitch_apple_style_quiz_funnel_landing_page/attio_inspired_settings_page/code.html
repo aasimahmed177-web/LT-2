@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Workspace Settings | Attio CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+        .small-caps {
+            font-variant: all-small-caps;
+            letter-spacing: 0.05em;
+        }
+        /* Custom scrollbar for minimalist look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E4E7EC; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#70757f",
+                      "secondary-fixed-dim": "#c7c6c8",
+                      "on-background": "#1a1c1d",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c3c6d7",
+                      "surface-dim": "#d9dadb",
+                      "surface-variant": "#e2e2e3",
+                      "on-tertiary": "#ffffff",
+                      "outline": "#737686",
+                      "surface-container": "#eeeeef",
+                      "on-secondary-fixed-variant": "#464749",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#003fa5",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-primary-fixed": "#001849",
+                      "error-container": "#ffdad6",
+                      "on-primary": "#ffffff",
+                      "on-primary-container": "#fefcff",
+                      "surface-container-low": "#f3f3f4",
+                      "on-secondary-container": "#626265",
+                      "secondary": "#5e5e60",
+                      "surface-bright": "#f9f9fa",
+                      "inverse-primary": "#b3c5ff",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#1a1c1d",
+                      "obsidian": "#1C1D1F",
+                      "on-tertiary-container": "#fdfcff",
+                      "primary-container": "#2c6bf2",
+                      "tertiary-fixed": "#dee2ee",
+                      "surface-background": "#FFFFFF",
+                      "primary-fixed": "#dbe1ff",
+                      "error": "#ba1a1a",
+                      "surface-container-high": "#e8e8e9",
+                      "primary-fixed-dim": "#b3c5ff",
+                      "primary": "#0052d1",
+                      "border-subtle": "#E4E7EC",
+                      "surface-tint": "#0054d7",
+                      "inverse-surface": "#2f3132",
+                      "on-error": "#ffffff",
+                      "background": "#f9f9fa",
+                      "secondary-container": "#e0dfe2",
+                      "tertiary": "#575c66",
+                      "secondary-fixed": "#e3e2e4",
+                      "on-surface-variant": "#424655",
+                      "on-tertiary-fixed-variant": "#424750",
+                      "surface": "#f9f9fa",
+                      "on-secondary-fixed": "#1b1c1e",
+                      "surface-container-highest": "#e2e2e3",
+                      "tertiary-fixed-dim": "#c2c6d2",
+                      "surface-muted": "#F2F4F7",
+                      "on-tertiary-fixed": "#171c24"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "space-md": "16px",
+                      "space-xl": "48px",
+                      "space-sm": "8px",
+                      "margin-desktop": "32px",
+                      "space-lg": "24px",
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "gutter": "16px",
+                      "space-xs": "4px"
+              },
+              "fontFamily": {
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "headline-xl": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-xl": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "headline-md": ["18px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar Integration -->
+<nav class="flex flex-col h-screen py-space-md w-60 fixed left-0 top-0 bg-surface dark:bg-obsidian border-r border-border-subtle dark:border-outline-variant z-50">
+<div class="px-space-md mb-space-xl">
+<div class="flex items-center gap-space-sm mb-unit">
+<div class="w-8 h-8 rounded bg-obsidian flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">corporate_fare</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold text-obsidian dark:text-surface-bright leading-tight">Workspace</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Premium CRM</span>
+</div>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="flex items-center gap-space-sm px-space-md py-2 transition-colors duration-200 ease-in-out hover:bg-surface-muted text-on-surface-variant dark:text-secondary-fixed-dim font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">home</span>
+<span>Home</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-2 transition-colors duration-200 ease-in-out hover:bg-surface-muted text-on-surface-variant dark:text-secondary-fixed-dim font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span>Inbox</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-2 transition-colors duration-200 ease-in-out hover:bg-surface-muted text-on-surface-variant dark:text-secondary-fixed-dim font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">corporate_fare</span>
+<span>Companies</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-2 transition-colors duration-200 ease-in-out hover:bg-surface-muted text-on-surface-variant dark:text-secondary-fixed-dim font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">group</span>
+<span>People</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-2 transition-colors duration-200 ease-in-out hover:bg-surface-muted text-on-surface-variant dark:text-secondary-fixed-dim font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span>Deals</span>
+</a>
+</div>
+<div class="px-space-md py-space-sm">
+<button class="w-full py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:opacity-90 transition-opacity">
+                Create Record
+            </button>
+</div>
+<div class="mt-auto border-t border-border-subtle pt-space-sm">
+<a class="flex items-center gap-space-sm px-space-md py-2 text-obsidian font-bold border-l-2 border-primary bg-surface-muted font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-2 text-on-surface-variant transition-colors hover:bg-surface-muted font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<main class="ml-60 min-h-screen flex flex-col">
+<!-- TopNavBar Integration (Customized for Settings Context) -->
+<header class="sticky top-0 z-40 h-14 bg-background border-b border-border-subtle flex items-center justify-between px-margin-desktop">
+<div class="flex items-center gap-space-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-obsidian">Settings</h1>
+<nav class="flex gap-space-md">
+<a class="font-label-md text-label-md text-secondary hover:text-obsidian transition-all" href="#">Workspace</a>
+<span class="text-outline-variant">/</span>
+<a class="font-label-md text-label-md text-primary border-b-2 border-primary pb-1" href="#">Data Management</a>
+</nav>
+</div>
+<div class="flex items-center gap-space-md">
+<button class="material-symbols-outlined text-secondary hover:text-obsidian transition-colors">notifications</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-border-subtle">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI3Eua0B15r_QBAYwKYa1yXW13N6_wK0zvvKIFAlDeqhnPd-aaHr2UeB8Ehh7CFGWuOjWruB4DWmLtksJhbah4Uj9YjpLwdda5CS95YcmGRxAW2HPPNcxLRATmavKE2m73GZN5xEtVIj2Sar3C47Bheh5BCMbL9gwR6CzKMtg-x3txhXVIY9cOo0rF3HsuJMQTK7kZYrXiJqJYMpEhaVj8tFmbG-exGeShgQFH0wj1DCa-nCaGGc5jEHZrudK1tgswpwZ1G7gj2QI"/>
+</div>
+</div>
+</header>
+<!-- Centered Layout for Settings -->
+<div class="flex-1 max-w-6xl w-full mx-auto px-margin-desktop py-space-xl flex gap-space-xl">
+<!-- Settings Local Sidebar -->
+<aside class="w-48 flex-shrink-0">
+<nav class="space-y-6">
+<div>
+<span class="font-label-sm text-label-sm text-secondary small-caps block mb-space-sm">Personal</span>
+<ul class="space-y-1">
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-secondary hover:bg-surface-muted" href="#">My Profile</a></li>
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-secondary hover:bg-surface-muted" href="#">Notifications</a></li>
+</ul>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary small-caps block mb-space-sm">Workspace</span>
+<ul class="space-y-1">
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-secondary hover:bg-surface-muted" href="#">General</a></li>
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-secondary hover:bg-surface-muted" href="#">Team Members</a></li>
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-obsidian font-bold bg-surface-muted" href="#">Objects &amp; Data</a></li>
+<li><a class="block py-1.5 px-2 rounded font-body-md text-body-md text-secondary hover:bg-surface-muted" href="#">API Keys</a></li>
+</ul>
+</div>
+</nav>
+</aside>
+<!-- Main Settings Canvas -->
+<section class="flex-1">
+<div class="mb-space-lg">
+<h2 class="font-headline-lg text-headline-lg text-obsidian mb-unit">Custom Objects</h2>
+<p class="font-body-md text-body-md text-secondary">Define and manage the data structures specific to your business workflow.</p>
+</div>
+<!-- Object Table Card -->
+<div class="bg-surface-background border border-border-subtle rounded shadow-sm overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-bright border-b border-border-subtle">
+<th class="px-space-md py-3 font-label-sm text-label-sm text-secondary small-caps">Object Name</th>
+<th class="px-space-md py-3 font-label-sm text-label-sm text-secondary small-caps">API Identifier</th>
+<th class="px-space-md py-3 font-label-sm text-label-sm text-secondary small-caps">Properties</th>
+<th class="px-space-md py-3 font-label-sm text-label-sm text-secondary small-caps">Status</th>
+<th class="px-space-md py-3"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-muted transition-colors group">
+<td class="px-space-md py-4">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-body-md text-body-md font-bold text-obsidian">Inventory Item</span>
+</div>
+</td>
+<td class="px-space-md py-4 font-body-md text-body-md text-on-surface-variant font-mono text-[13px]">inventory_item</td>
+<td class="px-space-md py-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-1.5 py-0.5 bg-secondary-container text-on-secondary-container rounded font-label-sm text-[10px] uppercase tracking-wider">12 Active</span>
+</div>
+</td>
+<td class="px-space-md py-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-label-md text-label-md text-on-surface">Live</span>
+</div>
+</td>
+<td class="px-space-md py-4 text-right">
+<button class="font-label-md text-label-md text-secondary border border-border-subtle px-3 py-1 rounded hover:bg-white hover:text-obsidian transition-all opacity-0 group-hover:opacity-100">Manage</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-muted transition-colors group">
+<td class="px-space-md py-4">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="font-body-md text-body-md font-bold text-obsidian">Subscription</span>
+</div>
+</td>
+<td class="px-space-md py-4 font-body-md text-body-md text-on-surface-variant font-mono text-[13px]">subscription_tier</td>
+<td class="px-space-md py-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-1.5 py-0.5 bg-secondary-container text-on-secondary-container rounded font-label-sm text-[10px] uppercase tracking-wider">8 Active</span>
+</div>
+</td>
+<td class="px-space-md py-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-label-md text-label-md text-on-surface">Live</span>
+</div>
+</td>
+<td class="px-space-md py-4 text-right">
+<button class="font-label-md text-label-md text-secondary border border-border-subtle px-3 py-1 rounded hover:bg-white hover:text-obsidian transition-all opacity-0 group-hover:opacity-100">Manage</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-muted transition-colors group">
+<td class="px-space-md py-4">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-outline" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+<span class="font-body-md text-body-md font-bold text-obsidian">Project Alpha</span>
+</div>
+</td>
+<td class="px-space-md py-4 font-body-md text-body-md text-on-surface-variant font-mono text-[13px]">alpha_internal</td>
+<td class="px-space-md py-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-1.5 py-0.5 bg-tertiary-container/10 text-tertiary-container rounded font-label-sm text-[10px] uppercase tracking-wider">Draft</span>
+</div>
+</td>
+<td class="px-space-md py-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<span class="font-label-md text-label-md text-secondary">Inactive</span>
+</div>
+</td>
+<td class="px-space-md py-4 text-right">
+<button class="font-label-md text-label-md text-secondary border border-border-subtle px-3 py-1 rounded hover:bg-white hover:text-obsidian transition-all opacity-0 group-hover:opacity-100">Manage</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Empty/New Row Action -->
+<div class="p-space-md bg-surface-bright/50 border-t border-border-subtle flex justify-center">
+<button class="flex items-center gap-2 text-primary font-label-md text-label-md hover:underline">
+<span class="material-symbols-outlined">add</span>
+                            Create New Object
+                        </button>
+</div>
+</div>
+<!-- Info Box -->
+<div class="mt-space-xl p-space-lg bg-surface-container-low border border-border-subtle rounded-xl flex gap-space-md">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<div>
+<h4 class="font-body-md text-body-md font-bold text-obsidian mb-1">Data Architecture Tip</h4>
+<p class="font-body-md text-body-md text-secondary leading-relaxed">
+                            Custom objects allow you to represent complex business entities like "Vehicles", "Shipments", or "Courses" that don't fit into the standard Contact/Company model. Map these relationships in the <a class="text-primary underline" href="#">Schema View</a> for deeper insights.
+                        </p>
+</div>
+</div>
+<!-- Detailed Properties Preview (Asymmetric Layout Example) -->
+<div class="mt-space-xl grid grid-cols-3 gap-space-lg">
+<div class="col-span-2">
+<h3 class="font-headline-md text-headline-md text-obsidian mb-space-md">Field Definitions</h3>
+<div class="space-y-unit">
+<div class="flex items-center justify-between p-space-sm hover:bg-surface-muted transition-all">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary">font_download</span>
+<span class="font-body-md text-body-md text-obsidian">SKU ID</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary small-caps">Text (Primary)</span>
+</div>
+<div class="flex items-center justify-between p-space-sm hover:bg-surface-muted transition-all">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary">numbers</span>
+<span class="font-body-md text-body-md text-obsidian">Current Stock</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary small-caps">Number</span>
+</div>
+<div class="flex items-center justify-between p-space-sm hover:bg-surface-muted transition-all">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary">calendar_today</span>
+<span class="font-body-md text-body-md text-obsidian">Last Restocked</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary small-caps">Date</span>
+</div>
+</div>
+</div>
+<div class="bg-obsidian rounded-xl p-space-md text-white flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-surface-dim uppercase tracking-widest block mb-space-sm">Usage</span>
+<div class="text-3xl font-bold mb-1">84%</div>
+<p class="text-xs text-surface-dim opacity-70">Custom object limit reached for your Current Plan.</p>
+</div>
+<button class="mt-space-lg w-full bg-white text-obsidian py-2 rounded font-label-md text-label-md hover:bg-surface-bright transition-colors">
+                            Upgrade Plan
+                        </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Micro-interaction script -->
+<script>
+        document.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                const btn = row.querySelector('button');
+                if(btn) btn.classList.remove('opacity-0');
+            });
+        });
+
+        // Simple tab switching logic for navigation
+        const navItems = document.querySelectorAll('aside nav ul li a');
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                navItems.forEach(i => {
+                    i.classList.remove('text-obsidian', 'font-bold', 'bg-surface-muted');
+                    i.classList.add('text-secondary');
+                });
+                item.classList.add('text-obsidian', 'font-bold', 'bg-surface-muted');
+                item.classList.remove('text-secondary');
+            });
+        });
+    </script>
+</body></html>
