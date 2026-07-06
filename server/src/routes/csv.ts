@@ -58,7 +58,8 @@ function parseCsvLine(line: string): string[] {
 }
 
 function normalizeMetaLeadId(raw: string): string {
-  return raw.trim().replace(/^[!'"\s]+/, "").trim();
+  // Strip CSV quoting artifacts and system prefixes (e.g., "l:" prefix from exported data)
+  return raw.trim().replace(/^[!'"\s]+/, "").replace(/^l:/i, "").trim();
 }
 
 function findColumn(headers: string[], ...patterns: string[]): string | null {
