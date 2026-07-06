@@ -75,7 +75,7 @@ export default function Dashboard() {
     setLoading(true)
     Promise.all([
       getStats(currentClientId),
-      getLeads(currentClientId),
+      getLeads(currentClientId, { limit: 1000 }),
       getSourceOfTruth(currentClientId),
     ])
       .then(([s, l, t]) => {

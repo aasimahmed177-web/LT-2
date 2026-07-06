@@ -102,7 +102,7 @@ export default function Telecalling() {
   useEffect(() => {
     setLoading(true)
     Promise.all([
-      getLeads(currentClientId),
+      getLeads(currentClientId, { limit: 1000 }),
       getCallActivities(),
     ])
       .then(([leadsData, activitiesData]) => {
