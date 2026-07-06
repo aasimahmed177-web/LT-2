@@ -144,7 +144,6 @@ export default function Leads() {
   const [stageFilter, setStageFilter] = useState('')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const [totalFiltered, setTotalFiltered] = useState(0)
   const PAGE_SIZE = 50
 
   // New filters
@@ -273,13 +272,14 @@ useEffect(() => {
     return { real, test }
   }, [allLeads, searchQuery, stageFilter, datePreset, dateRange, campaignFilter, formFilter, sourceFilter, showTestLeads])
 
+  const processedTotal = processed.real.length + (showTestLeads ? processed.test.length : 0)
+
   const paged = useMemo(() => {
     const all = [...processed.real, ...(showTestLeads ? processed.test : [])]
-    setTotalFiltered(all.length)
     return all.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   }, [processed, page, showTestLeads])
 
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(processedTotal / PAGE_SIZE))
 
   const handleExport = () => {
     const allFiltered = [...processed.real, ...(showTestLeads ? processed.test : [])]
@@ -317,15 +317,15 @@ useEffect(() => {
         <div>
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Leads</h1>
           <p className="text-sm text-muted mt-0.5">
-            {totalFiltered} lead{totalFiltered !== 1 ? 's' : ''}
+            {processedTotal} lead{processedTotal !== 1 ? 's' : ''}
             {hasFilters && ' (filtered)'}
-            {totalFiltered > PAGE_SIZE && <span className="text-muted/60 ml-1">· Page {page + 1} of {totalPages}</span>}
+            {processedTotal > PAGE_SIZE && <span className="text-muted/60 ml-1">· Page {page + 1} of {totalPages}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleExport}
-            disabled={totalFiltered === 0}
+            disabled={processedTotal === 0}
             className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
           >
             Export CSV
@@ -485,7 +485,7 @@ useEffect(() => {
       <div className="border border-card-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-10 text-center text-sm text-muted">Loading leads...</div>
-        ) : totalFiltered === 0 ? (
+        ) : processedTotal === 0 ? (
           <div className="p-10 text-center">
             <p className="text-sm text-muted">
               {hasFilters ? 'No leads match your filters' : 'No leads yet. Go to Settings and sync Meta leads.'}
@@ -558,7 +558,7 @@ useEffect(() => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-card-border bg-[#fafafa]">
               <span className="text-[11px] text-muted">
-                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalFiltered)} of {totalFiltered}
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, processedTotal)} of {processedTotal}
               </span>
               <div className="flex items-center gap-1">
                 <button
