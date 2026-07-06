@@ -651,6 +651,47 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: #666;
 }
 
+/* Sticky action bar gradient (CSV import) */
+html.dark .bg-gradient-to-t.from-white {
+  --tw-gradient-from: #121212;
+  --tw-gradient-to: transparent;
+}
+
+/* Success banner backgrounds */
+html.dark .bg-green-50 {
+  background: #0a2a1a;
+}
+html.dark .border-green-200 {
+  border-color: #1a4a2a;
+}
+html.dark .bg-green-100 {
+  background: #1a3a2a;
+}
+html.dark .text-green-600 {
+  color: #6fcf97;
+}
+html.dark .text-green-800 {
+  color: #6fcf97;
+}
+html.dark .text-green-700 {
+  color: #6fcf97;
+}
+html.dark .border-green-100 {
+  border-color: #1a4a2a;
+}
+html.dark .bg-amber-50 {
+  background: #2a2a0a;
+}
+html.dark .border-amber-200 {
+  border-color: #4a4a1a;
+}
+html.dark .text-amber-800 {
+  color: #ffb347;
+}
+html.dark .text-amber-900 {
+  color: #ffb347;
+}
+
 /* ─── Mobile Sidebar Overlay ──────────────────────────────────── */
 
 .sidebar-overlay {
