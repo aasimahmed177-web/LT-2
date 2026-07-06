@@ -33,6 +33,10 @@ export default function CsvImport() {
     e.target.value = ''
   }
 
+  const handleDropZoneClick = () => {
+    fileInputRef.current?.click()
+  }
+
   const handlePasteUpload = () => {
     if (!csvText.trim()) return
     handlePreview(csvText)
@@ -78,77 +82,94 @@ export default function CsvImport() {
   const summary = preview?.summary
   const previewRows = preview?.rows || []
   const needsApply = summary?.stageChanges > 0 || summary?.capiTriggering > 0
+  const hasResult = !!applyResult
 
-  const applyDisabled = !preview || preview.error || !needsApply || applying
+  const applyDisabled = !preview || preview.error || !needsApply || applying || hasResult
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div>
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Page header */}
+      <div className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">CSV Import</h1>
-        <p className="text-sm text-muted mt-0.5">Import Google Sheet exports to update CRM stages and store call activity data.</p>
+        <p className="text-sm text-muted mt-0.5">Import Google Sheet exports to update CRM stages, create CAPI events, and store call activity data.</p>
       </div>
 
-      {/* Upload Area */}
-      {!preview && !loading && (
-        <div className="border-2 border-dashed border-card-border rounded-xl p-8 space-y-5">
-          <div className="text-center">
-            <p className="text-sm font-medium text-[#0a0a0a]">Upload CSV file</p>
-            <p className="text-xs text-muted mt-1">or paste CSV text below</p>
-          </div>
+      {/* ── Upload Area ───────────────────────────────────────────── */}
+      {(() => {
+        // Show upload area if there's no preview and no result (or user reset)
+        if (preview || loading || hasResult) return null
 
-          <div className="flex justify-center">
+        return (
+          <div className="border-2 border-dashed border-card-border rounded-xl p-8 space-y-5">
+            <div className="text-center">
+              <p className="text-sm font-medium text-[#0a0a0a]">Upload CSV file</p>
+              <p className="text-xs text-muted mt-1">or paste CSV text below</p>
+            </div>
+
+            {/* Hidden file input + styled drop zone */}
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv"
               onChange={handleFileUpload}
-              className="block text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-card-border file:bg-white file:text-xs file:font-medium file:text-[#0a0a0a] hover:file:bg-[#f5f5f5] file:cursor-pointer"
+              className="hidden"
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-card-border" />
-            <span className="text-xs text-muted">or</span>
-            <div className="flex-1 h-px bg-card-border" />
-          </div>
-
-          <div className="space-y-2">
-            <textarea
-              value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
-              placeholder="Paste CSV text here..."
-              rows={6}
-              className="w-full text-xs border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:border-[#0a0a0a] transition-all-expo resize-none font-mono"
-            />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-center">
               <button
-                onClick={() => setCsvText('')}
-                className="px-4 py-2 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo"
-                disabled={!csvText.trim()}
+                onClick={handleDropZoneClick}
+                className="px-6 py-3 text-sm font-medium rounded-lg border-2 border-dashed border-card-border bg-[#fafafa] text-muted hover:text-[#0a0a0a] hover:border-[#0a0a0a] transition-all-expo"
               >
-                Clear
-              </button>
-              <button
-                onClick={handlePasteUpload}
-                className="px-4 py-2 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-all-expo"
-                disabled={!csvText.trim()}
-              >
-                Preview
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-2 -mt-0.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" />
+                </svg>
+                Choose CSV file
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Loading State */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-card-border" />
+              <span className="text-xs text-muted">or</span>
+              <div className="flex-1 h-px bg-card-border" />
+            </div>
+
+            <div className="space-y-2">
+              <textarea
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                placeholder="Paste CSV text here..."
+                rows={6}
+                className="w-full text-xs border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:border-[#0a0a0a] transition-all-expo resize-none font-mono"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setCsvText('')}
+                  className="px-4 py-2 text-xs font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo"
+                  disabled={!csvText.trim()}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handlePasteUpload}
+                  className="px-4 py-2 text-xs font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-50 transition-all-expo"
+                  disabled={!csvText.trim()}
+                >
+                  Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Loading State ─────────────────────────────────────────── */}
       {loading && (
         <div className="flex items-center justify-center py-16">
           <div className="text-muted text-sm">Analyzing CSV...</div>
         </div>
       )}
 
-      {/* Error State */}
-      {preview?.error && !loading && (
+      {/* ── Error State ──────────────────────────────────────────── */}
+      {preview?.error && !loading && !hasResult && (
         <div className="warning-banner border border-red-200 bg-red-50">
           <p className="text-sm font-medium text-red-700">Preview Error</p>
           <p className="text-xs text-red-600 mt-1">{preview.error}</p>
@@ -158,9 +179,9 @@ export default function CsvImport() {
         </div>
       )}
 
-      {/* Preview Section */}
-      {preview && !preview.error && !loading && (
-        <>
+      {/* ── Preview Section ──────────────────────────────────────── */}
+      {preview && !preview.error && !loading && !hasResult && (
+        <div className="space-y-6">
           {/* Summary Cards */}
           {summary && (
             <div className="grid grid-cols-4 gap-4">
@@ -299,80 +320,131 @@ export default function CsvImport() {
               </table>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+      {/* ── Sticky Action Bar ────────────────────────────────────── */}
+      {preview && !preview.error && !loading && !hasResult && (
+        <div className="sticky bottom-0 z-30 -mx-8 px-8 pb-6 pt-4 bg-gradient-to-t from-white via-white to-transparent">
+          <div className="flex items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg p-4">
             <button
               onClick={() => setShowConfirm(true)}
               disabled={applyDisabled}
-              className="px-5 py-2.5 text-sm font-medium rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo"
+              className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo"
             >
-              {applying ? 'Applying...' : `Apply updates (${summary?.stageChanges || 0} stages)`}
+              {applying ? 'Applying...' : `Apply updates — ${summary?.stageChanges || 0} stages`}
             </button>
             <button
               onClick={handleReset}
               disabled={applying}
-              className="px-5 py-2.5 text-sm font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo disabled:opacity-50"
+              className="px-4 py-2.5 text-sm font-medium rounded-lg border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo disabled:opacity-50"
             >
               Start over
             </button>
             {!needsApply && previewRows.length > 0 && (
-              <p className="text-xs text-muted italic">No stage changes detected — nothing to apply.</p>
+              <p className="text-xs text-muted italic ml-2">No stage changes detected — nothing to apply.</p>
             )}
-          </div>
-
-          {/* Apply Result */}
-          {applyResult && (
-            <div className={`border rounded-xl p-5 ${applyResult.error ? 'border-red-200 bg-red-50' : 'border-card-border bg-[#fafafa]'}`}>
-              {applyResult.error ? (
-                <>
-                  <p className="text-sm font-medium text-red-700">Apply Error</p>
-                  <p className="text-xs text-red-600 mt-1">{applyResult.error}</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-[#0a0a0a]">Import Complete</p>
-                  <div className="flex flex-wrap gap-4 mt-3">
-                    <div>
-                      <span className="text-[10px] text-muted uppercase tracking-wider">Updated</span>
-                      <p className="text-lg font-bold tabular-nums">{applyResult.summary?.updated || 0}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted uppercase tracking-wider">Notes Added</span>
-                      <p className="text-lg font-bold tabular-nums">{applyResult.summary?.notesAdded || 0}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted uppercase tracking-wider">Call Activities</span>
-                      <p className="text-lg font-bold tabular-nums">{applyResult.summary?.callActivitiesStored || 0}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted uppercase tracking-wider">CAPI Events Created</span>
-                      <p className="text-lg font-bold tabular-nums">{applyResult.summary?.capiEventsCreated || 0}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted uppercase tracking-wider">Errors</span>
-                      <p className={`text-lg font-bold tabular-nums ${applyResult.summary?.errors > 0 ? 'text-red-500' : ''}`}>{applyResult.summary?.errors || 0}</p>
-                    </div>
-                  </div>
-                  {applyResult.summary?.capiEventsCreated > 0 && (
-                    <div className="mt-3 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
-                      CAPI events are created in <strong>pending</strong> status and will not be sent automatically.{' '}
-                      <button
-                        onClick={() => navigate('/events')}
-                        className="underline font-medium hover:text-amber-900"
-                      >
-                        Review and send from the Events page
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+            <div className="flex-1 text-right text-xs text-muted">
+              {summary?.matched || 0} matched · {summary?.stageChanges || 0} changes · {summary?.capiTriggering || 0} CAPI
             </div>
-          )}
-        </>
+          </div>
+        </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* ── Apply Result ─────────────────────────────────────────── */}
+      {applyResult && (
+        <div className="space-y-6">
+          {applyResult.error ? (
+            <div className="border border-red-200 bg-red-50 rounded-xl p-6">
+              <p className="text-sm font-medium text-red-700">Apply Error</p>
+              <p className="text-xs text-red-600 mt-1">{applyResult.error}</p>
+              <button onClick={handleReset} className="mt-4 px-4 py-2 text-xs font-medium rounded-md bg-white border border-red-200 text-red-700 hover:bg-red-50 transition-all-expo">
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Success banner */}
+              <div className="border border-green-200 bg-green-50 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-green-800">Import Complete</p>
+                    <p className="text-xs text-green-600">Stage changes, notes, and CAPI events have been applied</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-5 gap-4">
+                  <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
+                    <span className="text-[10px] text-muted uppercase tracking-wider">Updated</span>
+                    <p className="text-2xl font-bold tabular-nums text-green-700">{applyResult.summary?.updated || 0}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
+                    <span className="text-[10px] text-muted uppercase tracking-wider">Notes Added</span>
+                    <p className="text-2xl font-bold tabular-nums">{applyResult.summary?.notesAdded || 0}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
+                    <span className="text-[10px] text-muted uppercase tracking-wider">Call Activities</span>
+                    <p className="text-2xl font-bold tabular-nums">{applyResult.summary?.callActivitiesStored || 0}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
+                    <span className="text-[10px] text-muted uppercase tracking-wider">CAPI Events</span>
+                    <p className="text-2xl font-bold tabular-nums">{applyResult.summary?.capiEventsCreated || 0}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
+                    <span className="text-[10px] text-muted uppercase tracking-wider">Errors</span>
+                    <p className={`text-2xl font-bold tabular-nums ${applyResult.summary?.errors > 0 ? 'text-red-500' : 'text-green-600'}`}>{applyResult.summary?.errors || 0}</p>
+                  </div>
+                </div>
+                {applyResult.summary?.capiEventsCreated > 0 && (
+                  <div className="mt-4 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
+                    CAPI events are created in <strong>pending</strong> status and will not be sent automatically.{' '}
+                    <button
+                      onClick={() => navigate('/events')}
+                      className="underline font-medium hover:text-amber-900"
+                    >
+                      Review and send from the Events page
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-5 py-2.5 text-sm font-medium rounded-lg bg-[#0a0a0a] text-white hover:opacity-90 transition-all-expo"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1.5 -mt-0.5">
+                    <rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" />
+                  </svg>
+                  View Dashboard
+                </button>
+                <button
+                  onClick={() => navigate('/leads')}
+                  className="px-5 py-2.5 text-sm font-medium rounded-lg border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1.5 -mt-0.5">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  View Leads
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-5 py-2.5 text-sm font-medium rounded-lg border border-card-border bg-white text-muted hover:text-[#0a0a0a] transition-all-expo"
+                >
+                  Import another file
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Confirmation Modal ───────────────────────────────────── */}
       {showConfirm && (
         <>
           <div className="fixed inset-0 bg-black/20 z-[60]" onClick={() => setShowConfirm(false)} />
