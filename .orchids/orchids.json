@@ -1,6 +1,7 @@
 {
   "startupCommands": [
-    "npm install; npm run dev -- --host 0.0.0.0 --port 5173"
+    "npm install; npm run dev -- --host 0.0.0.0 --port 5173",
+    "cd server && npm install; PORT=3002 npx tsx --env-file=../.env src/index.ts"
   ],
   "projectId": "d672be08-9858-4612-8bb0-f70b0c021ee9",
   "templateId": "any"
