@@ -360,65 +360,208 @@ button:active.stage-btn {
 
 /* ─── Dark Mode ────────────────────────────────────────────────── */
 
+html.dark, html.dark #root {
+  background: #121212;
+}
+
 html.dark body {
   color: #e5e5e5;
   background: #121212;
 }
 
-html.dark .drawer-panel {
+/* Sidebar */
+html.dark aside {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+}
+html.dark aside .text-muted {
+  color: #888;
+}
+html.dark aside .text-\[#0a0a0a\] {
+  color: #e5e5e5;
+}
+html.dark aside .bg-sidebar-hover {
+  background: #2a2a2a;
+}
+html.dark aside .border-sidebar-border {
+  border-color: #2a2a2a;
+}
+html.dark aside select {
+  background: #121212;
+  color: #e5e5e5;
+  border-color: #333;
+}
+html.dark aside .bg-\[#0a0a0a\] {
+  background: #333;
+}
+
+/* Main content area */
+html.dark main {
+  background: #121212;
+}
+html.dark main .bg-white {
   background: #1a1a1a;
 }
 
-html.dark .drawer-overlay {
-  background: rgba(0, 0, 0, 0.5);
-}
-
-html.dark .data-table th {
+/* All cards with border-card-border */
+html.dark [class*="border-card-border"] {
   background: #1a1a1a;
-}
-
-html.dark .data-table td {
   border-color: #2a2a2a;
 }
 
+/* Override for cards that also have bg-white or lighter bg */
+html.dark main .border-card-border {
+  background: #1a1a1a;
+}
+
+/* Buttons and interactive elements */
+html.dark .bg-\[#0a0a0a\].text-white:not(.filter-btn):not(.stage-pill):not(button):not(a) {
+  background: #333;
+}
+
+/* Stage pills in dark mode */
+html.dark .stage-pill {
+  background: #1a1a1a;
+  border-color: #333;
+  color: #aaa;
+}
+html.dark .stage-pill-active {
+  background: #333;
+  color: #e5e5e5;
+  border-color: #555;
+}
+
+/* Stage badges — dark mode */
+html.dark .stage-Lead {
+  background: #2a2a2a;
+  color: #aaa;
+  border-color: #333;
+}
+html.dark .stage-Contact {
+  background: #1a2e1a;
+  color: #6fcf97;
+  border-color: #2d4a2f;
+}
+html.dark .stage-Prospect {
+  background: #1a1a3e;
+  color: #7b9fff;
+  border-color: #2a2a5e;
+}
+html.dark .stage-ConversionLead {
+  background: #2a1a4e;
+  color: #b388ff;
+  border-color: #3a2a5e;
+}
+html.dark .stage-Purchase {
+  background: #0a2a1a;
+  color: #6fcf97;
+  border-color: #1a4a2a;
+}
+html.dark .stage-NotQualified {
+  background: #3e1a1a;
+  color: #ff7b7b;
+  border-color: #5e2a2a;
+}
+html.dark .stage-NoResponse {
+  background: #2a2a2a;
+  color: #aaa;
+  border-color: #333;
+}
+html.dark .stage-Invalid {
+  background: #3e1a1a;
+  color: #ff7b7b;
+  border-color: #5e2a2a;
+}
+html.dark .stage-Duplicate {
+  background: #3e2a1a;
+  color: #ffb347;
+  border-color: #5e3a2a;
+}
+
+/* Event status pills */
+html.dark .event-pill-sent {
+  background: #333;
+  color: #e5e5e5;
+}
+html.dark .event-pill-pending,
+html.dark .event-pill-skipped {
+  background: #2a2a2a;
+  color: #aaa;
+  border-color: #333;
+}
+html.dark .event-pill-failed {
+  background: #3e1a1a;
+  color: #ff7b7b;
+  border-color: #5e2a2a;
+}
+html.dark .event-pill-cancelled {
+  background: #2a2a2a;
+  color: #999;
+  border-color: #333;
+}
+html.dark .event-pill-suppressed {
+  background: #3e2a1a;
+  color: #ffb347;
+  border-color: #5e3a2a;
+}
+
+/* Drawer */
+html.dark .drawer-panel {
+  background: #1a1a1a;
+}
+html.dark .drawer-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* Data table */
+html.dark .data-table th {
+  background: #1a1a1a;
+}
+html.dark .data-table td {
+  border-color: #2a2a2a;
+}
 html.dark .data-table tbody tr:hover {
   background-color: #1a1a1a;
 }
-
 html.dark .table-sticky-header th {
   background: #1a1a1a;
 }
 
+/* Setting subsections */
 html.dark .setting-subsection {
   background: #1a1a1a;
   border-color: #2a2a2a;
 }
 
+/* Warning banner */
 html.dark .warning-banner {
   border-color: #333;
   background: #1a1a1a;
 }
 
+/* Chart tooltip */
 html.dark .chart-tooltip {
   background: #1a1a1a;
   border-color: #333;
 }
 
+/* Skeleton */
 html.dark .skeleton {
   background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
   background-size: 200px 100%;
 }
 
+/* Inputs, selects, textareas */
 html.dark input, html.dark select, html.dark textarea {
   background: #1a1a1a;
   color: #e5e5e5;
   border-color: #333;
 }
-
 html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
   border-color: #666;
 }
 
+/* KPI cards */
 html.dark .kpi-card {
   background: #1a1a1a;
 }
@@ -426,10 +569,12 @@ html.dark .kpi-card:hover {
   border-color: #444;
 }
 
+/* Section cards */
 html.dark .section-card {
   background: #1a1a1a;
 }
 
+/* Filter buttons */
 html.dark .filter-btn {
   background: #1a1a1a;
   border-color: #333;
@@ -439,7 +584,66 @@ html.dark .filter-btn:hover {
   color: #e5e5e5;
   border-color: #555;
 }
+html.dark .filter-btn-active {
+  background: #333;
+  color: #e5e5e5;
+  border-color: #555;
+}
 
+/* Section labels */
+html.dark .section-label {
+  color: #888;
+}
+
+/* KPI values */
+html.dark .kpi-value {
+  color: #e5e5e5;
+}
+
+/* Table headers */
+html.dark .table-header {
+  color: #888;
+}
+
+/* Mobile header */
+html.dark .md\:hidden {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+}
+
+/* Funnel bar background */
+html.dark .bg-\[\#f0f0f0\] {
+  background: #2a2a2a;
+}
+html.dark .bg-\[#fafafa\] {
+  background: #1a1a1a;
+}
+html.dark .border-\[\#f5f5f5\] {
+  border-color: #2a2a2a;
+}
+
+/* Recent leads table header bg */
+html.dark th.bg-\[#fafafa\] {
+  background: #1a1a1a;
+}
+
+/* Text color overrides for dark mode */
+html.dark .text-\[\#0a0a0a\] {
+  color: #e5e5e5;
+}
+html.dark .text-\[\#6b6b6b\] {
+  color: #aaa;
+}
+html.dark .text-muted {
+  color: #888;
+}
+
+/* Page header text */
+html.dark h1.text-\[\#0a0a0a\] {
+  color: #e5e5e5;
+}
+
+/* Scrollbar */
 html.dark ::-webkit-scrollbar-thumb {
   background: #444;
 }
