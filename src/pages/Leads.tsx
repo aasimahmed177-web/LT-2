@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { getLeads, getLeadsEnriched } from '../api'
 import { useClient } from '../ClientContext'
 import LeadDrawer from '../LeadDrawer'
+import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -142,6 +143,9 @@ export default function Leads() {
   const [searchQuery, setSearchQuery] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [totalFiltered, setTotalFiltered] = useState(0)
+  const PAGE_SIZE = 50
 
   // New filters
   const [datePreset, setDatePreset] = useState('all')
@@ -155,14 +159,11 @@ export default function Leads() {
   const [showMappingGuide, setShowMappingGuide] = useState(false)
   const [copiedMetaId, setCopiedMetaId] = useState<string | null>(null)
 
-  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
-  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
-  const stageClass = (s: string) => `stage-badge stage-${s}`
-
   const loadLeads = () => {
     setLoading(true)
     setError(null)
-    getLeads(currentClientId)
+    setPage(0)
+    getLeads(currentClientId, { limit: 200 })
       .then((data) => setAllLeads(data.leads || []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -206,6 +207,7 @@ useEffect(() => {
     setSourceFilter('')
     setShowTestLeads(false)
     setSearchQuery('')
+    setPage(0)
   }
 
   const processed = useMemo(() => {
@@ -271,6 +273,14 @@ useEffect(() => {
     return { real, test }
   }, [allLeads, searchQuery, stageFilter, datePreset, dateRange, campaignFilter, formFilter, sourceFilter, showTestLeads])
 
+  const paged = useMemo(() => {
+    const all = [...processed.real, ...(showTestLeads ? processed.test : [])]
+    setTotalFiltered(all.length)
+    return all.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  }, [processed, page, showTestLeads])
+
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+
   const handleExport = () => {
     const allFiltered = [...processed.real, ...(showTestLeads ? processed.test : [])]
     downloadCsv(allFiltered, `leads-export-${new Date().toISOString().substring(0, 10)}.csv`)
@@ -307,14 +317,15 @@ useEffect(() => {
         <div>
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Leads</h1>
           <p className="text-sm text-muted mt-0.5">
-            {processed.real.length + processed.test.length} lead{(processed.real.length + processed.test.length) !== 1 ? 's' : ''}
+            {totalFiltered} lead{totalFiltered !== 1 ? 's' : ''}
             {hasFilters && ' (filtered)'}
+            {totalFiltered > PAGE_SIZE && <span className="text-muted/60 ml-1">· Page {page + 1} of {totalPages}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleExport}
-            disabled={processed.real.length === 0 && processed.test.length === 0}
+            disabled={totalFiltered === 0}
             className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
           >
             Export CSV
@@ -474,13 +485,14 @@ useEffect(() => {
       <div className="border border-card-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-10 text-center text-sm text-muted">Loading leads...</div>
-        ) : processed.real.length === 0 && processed.test.length === 0 ? (
+        ) : totalFiltered === 0 ? (
           <div className="p-10 text-center">
             <p className="text-sm text-muted">
               {hasFilters ? 'No leads match your filters' : 'No leads yet. Go to Settings and sync Meta leads.'}
             </p>
           </div>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-card-border bg-[#fafafa] table-sticky-header">
@@ -493,13 +505,22 @@ useEffect(() => {
               </tr>
             </thead>
             <tbody>
-              {processed.real.map((lead: any) => (
+              {paged.map((lead: any) => {
+                const isTest = isTestLead(lead)
+                return (
                 <tr
                   key={lead._id}
                   onClick={() => setSelectedLeadId(lead._id)}
-                  className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer"
+                  className={`border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer ${isTest ? 'opacity-50' : ''}`}
                 >
-                  <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{lead.name || '—'}</td>
+                  <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">
+                    {isTest ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        {lead.name || '—'}
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted">Test</span>
+                      </span>
+                    ) : (lead.name || '—')}
+                  </td>
                   <td className="py-3 pr-4 text-muted text-xs font-mono">{lead.phone || '—'}</td>
                   <td className="py-3 pr-4 text-muted text-xs max-w-[160px] truncate">{lead.campaignName || '—'}</td>
                   <td className="py-3 pr-4">
@@ -529,52 +550,53 @@ useEffect(() => {
                     {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
                   </td>
                 </tr>
-              ))}
-
-              {/* Test leads separator */}
-              {processed.test.length > 0 && (
-                <>
-                  <tr className="border-b border-card-border bg-[#f5f5f5]">
-                    <td colSpan={6} className="px-4 py-2 text-[10px] text-muted font-medium uppercase tracking-wider">
-                      Meta Test Leads ({processed.test.length})
-                    </td>
-                  </tr>
-                  {processed.test.map((lead: any) => (
-                    <tr
-                      key={lead._id}
-                      onClick={() => setSelectedLeadId(lead._id)}
-                      className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer opacity-50"
-                    >
-                      <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">
-                        <span className="inline-flex items-center gap-1.5">
-                          {lead.name || '—'}
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-muted text-muted">Test</span>
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 text-muted text-xs font-mono">{lead.phone || '—'}</td>
-                      <td className="py-3 pr-4 text-muted text-xs max-w-[160px] truncate">{lead.campaignName || '—'}</td>
-                      <td className="py-3 pr-4">
-                        <span className={stageClass(lead.stage)}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${POSITIVE_STAGES.has(lead.stage) ? 'bg-white' : NEGATIVE_STAGES.has(lead.stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`} />
-                          {lead.stage}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        {lead.metaLeadId ? (
-                          <span className="font-mono text-[11px] text-muted truncate max-w-[110px] block" title={lead.metaLeadId}>
-                            {lead.metaLeadId.slice(0, 10)}…
-                          </span>
-                        ) : <span className="text-muted text-[11px]">—</span>}
-                      </td>
-                      <td className="py-3 pr-4 text-muted tabular-nums text-xs">
-                        {getMetaCreated(lead) ? new Date(getMetaCreated(lead)).toLocaleDateString() : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              )}
+              )})}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-card-border bg-[#fafafa]">
+              <span className="text-[11px] text-muted">
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalFiltered)} of {totalFiltered}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(Math.max(0, page - 1))}
+                  disabled={page === 0}
+                  className="h-7 px-2.5 text-[11px] font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  const start = Math.max(0, Math.min(page - 2, totalPages - 5))
+                  const p = start + i
+                  if (p >= totalPages) return null
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`h-7 w-7 text-[11px] font-medium rounded-md transition-all-expo ${
+                        p === page
+                          ? 'bg-[#0a0a0a] text-white'
+                          : 'border border-card-border bg-white text-muted hover:text-[#0a0a0a]'
+                      }`}
+                    >
+                      {p + 1}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="h-7 px-2.5 text-[11px] font-medium rounded-md border border-card-border bg-white text-muted hover:text-[#0a0a0a] disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useClient } from './ClientContext'
 
 const navItems = [
@@ -45,11 +46,41 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function Layout() {
   const { clients, currentClientId, setCurrentClientId, currentClient } = useClient()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [dark, setDark] = useState(() => {
+    const stored = localStorage.getItem('theme')
+    if (stored) return stored === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+    localStorage.setItem('theme', dark ? 'dark' : 'light')
+  }, [dark])
+
+  const closeSidebar = () => setSidebarOpen(false)
+
+  const hamburger = (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" x2="21" y1="6" y2="6" /><line x1="3" x2="21" y1="12" y2="12" /><line x1="3" x2="21" y1="18" y2="18" />
+    </svg>
+  )
+
+  const closeX = (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+    </svg>
+  )
 
   return (
     <div className="flex h-full">
+      {/* Sidebar overlay (mobile) */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={closeSidebar} />
+
       {/* Sidebar */}
-      <aside className="w-52 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
+      <aside className={`w-52 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 fixed md:relative z-40 h-full transition-transform-expo ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
         {/* Logo */}
         <div className="px-4 py-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
@@ -60,6 +91,9 @@ export default function Layout() {
               <span className="text-[13px] font-semibold text-[#0a0a0a] tracking-tight leading-none">LeadTrace</span>
               <span className="text-[9px] text-muted mt-0.5 tracking-wider uppercase">CRM</span>
             </div>
+            <button onClick={closeSidebar} className="md:hidden ml-auto text-muted hover:text-[#0a0a0a] transition-colors">
+              {closeX}
+            </button>
           </div>
         </div>
 
@@ -86,6 +120,7 @@ export default function Layout() {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={closeSidebar}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all-expo relative ${
                   isActive
@@ -100,20 +135,50 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* Status footer */}
+        {/* Status footer with dark mode toggle */}
         <div className="px-4 py-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <span className="relative flex w-2 h-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0a0a0a] opacity-20" />
-              <span className="relative inline-flex w-2 h-2 rounded-full bg-[#0a0a0a]" />
-            </span>
-            <span className="text-[10px] text-muted tracking-wide">Convex cloud</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex w-2 h-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0a0a0a] opacity-20" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-[#0a0a0a]" />
+              </span>
+              <span className="text-[10px] text-muted tracking-wide">Convex cloud</span>
+            </div>
+            <button
+              onClick={() => setDark(!dark)}
+              className="text-muted hover:text-[#0a0a0a] transition-colors p-1 rounded hover:bg-sidebar-hover"
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto bg-white">
+        {/* Mobile header with hamburger */}
+        <div className="md:hidden flex items-center gap-2 px-4 py-2.5 border-b border-card-border bg-white sticky top-0 z-10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-muted hover:text-[#0a0a0a] transition-colors"
+          >
+            {hamburger}
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#0a0a0a] flex items-center justify-center text-white text-[9px] font-bold">LT</div>
+            <span className="text-[12px] font-semibold text-[#0a0a0a]">LeadTrace</span>
+          </div>
+        </div>
         <Outlet />
       </main>
     </div>

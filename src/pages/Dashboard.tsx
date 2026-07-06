@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
 import { useClient } from '../ClientContext'
+import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -169,10 +170,6 @@ export default function Dashboard() {
     Lead: 'Lead', Contact: 'Contact', Prospect: 'Prospect',
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
-
-  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
-  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
-  const stageClass = (s: string) => `stage-badge stage-${s}`
 
   const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
 

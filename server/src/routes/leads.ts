@@ -5,13 +5,33 @@ import { triggerCapiAfterStageChange } from "../capi.js";
 
 const router = Router();
 
-// GET /api/leads
+// GET /api/leads?limit=50&offset=0&search=term
 router.get("/", async (req: Request, res: Response) => {
   try {
     const clientId = resolveClientId(req.query.clientId as string);
-    const leads = await getConvex().query("leads:list");
-    const enriched = (leads as any[]).map((l: any) => ({ ...l, clientId }));
-    res.json({ leads: enriched, clientId });
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const offset = parseInt(req.query.offset as string) || 0;
+    const search = (req.query.search as string || "").toLowerCase().trim();
+    const allLeads = await getConvex().query("leads:list") as any[];
+
+    let filtered = allLeads;
+    let total = filtered.length;
+
+    if (search) {
+      filtered = filtered.filter((l: any) =>
+        (l.name && l.name.toLowerCase().includes(search)) ||
+        (l.email && l.email.toLowerCase().includes(search)) ||
+        (l.phone && l.phone.toLowerCase().includes(search)) ||
+        (l.campaignName && l.campaignName.toLowerCase().includes(search)) ||
+        (l.metaLeadId && l.metaLeadId.toLowerCase().includes(search))
+      );
+      total = filtered.length;
+    }
+
+    const paged = filtered.slice(offset, offset + limit);
+    const enriched = paged.map((l: any) => ({ ...l, clientId }));
+
+    res.json({ leads: enriched, total, limit, offset, clientId });
   } catch (err: any) {
     console.error("Leads list error:", err.message);
     res.status(500).json({ error: "Failed to fetch leads", detail: err.message });

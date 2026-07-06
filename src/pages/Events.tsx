@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
+import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
 export default function Events() {
   const { currentClientId } = useClient()
@@ -62,15 +63,43 @@ export default function Events() {
     return <div className="flex items-center justify-center h-full"><div className="text-muted text-sm">Loading events...</div></div>
   }
 
-  const POSITIVE_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
-  const NEGATIVE_STAGES = new Set(['NotQualified', 'NoResponse', 'Invalid', 'Duplicate'])
-  const stageClass = (s: string) => `stage-badge stage-${s}`
+  const handleExport = () => {
+    const rows = events.map((ev: any) => [
+      ev.eventName || '',
+      ev.stage || '',
+      ev.status || '',
+      ev.leadName || '',
+      ev.createdAt || '',
+      ev.lastAttemptAt || '',
+      ev.error || '',
+    ])
+    const header = 'Event,Stage,Status,Lead Name,Created,Sent,Error'
+    const csv = header + '\n' + rows.map((r: string[]) =>
+      r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+    ).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `events-export-${new Date().toISOString().substring(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Event Log</h1>
-        <p className="text-sm text-muted mt-0.5">Conversion lead events</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Event Log</h1>
+          <p className="text-sm text-muted mt-0.5">Conversion lead events</p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={events.length === 0}
+          className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
+        >
+          Export CSV
+        </button>
       </div>
 
       {/* CAPI Warning Banners */}
