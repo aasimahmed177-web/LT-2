@@ -2,8 +2,6 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { previewCsv, applyCsv } from '../api'
 
-const CAPI_STAGES = new Set(['Contact', 'Prospect', 'ConversionLead', 'Purchase'])
-
 function stagePill(stage: string | null): { className: string; label: string } {
   if (!stage) return { className: 'stage-badge stage-Lead', label: '—' }
   return { className: `stage-badge stage-${stage}`, label: stage }
