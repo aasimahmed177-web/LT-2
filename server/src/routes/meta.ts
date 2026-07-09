@@ -552,4 +552,132 @@ router.post("/cancel-capi-event", async (_req: Request, res: Response) => {
   }
 });
 
+// POST /api/meta/resend-events — reset all sent events to pending and re-send them with improved payload
+router.post("/resend-events", async (_req: Request, res: Response) => {
+  try {
+    const pixelId = process.env.META_PIXEL_ID;
+    if (!pixelId || !META_ACCESS_TOKEN) {
+      res.status(400).json({ error: "CAPI not configured (pixel or token missing)" });
+      return;
+    }
+
+    // Get all events from Convex
+    let allEvents: any[];
+    try {
+      allEvents = await getConvex().query("crm:listEvents");
+    } catch {
+      res.status(500).json({ error: "Failed to query events from Convex" });
+      return;
+    }
+
+    // Filter for "sent" events
+    const sentEvents = allEvents.filter((e: any) => e.status === "sent");
+    if (sentEvents.length === 0) {
+      res.json({ success: true, message: "No sent events to resend", total: 0 });
+      return;
+    }
+
+    const results: { eventId: string; eventName: string; status: string; error?: string }[] = [];
+    let sent = 0;
+    let failed = 0;
+
+    for (const event of sentEvents) {
+      try {
+        // Get the lead for user_data hashing
+        const lead: any = await getConvex().query("leads:getById", { id: event.leadId });
+        if (!lead) {
+          results.push({ eventId: event._id, eventName: event.eventName, status: "failed", error: "Lead not found" });
+          failed++;
+          continue;
+        }
+
+        // Build user_data with hashed fields
+        const userData: Record<string, string> = {};
+        if (lead.email) userData.em = hashValue(lead.email);
+        if (lead.phone) userData.ph = hashPhone(lead.phone);
+        if (lead.name) {
+          const { first, last } = splitName(lead.name);
+          if (first) userData.fn = hashValue(first);
+          if (last) userData.ln = hashValue(last);
+        }
+        if (lead.metaLeadId) {
+          userData.external_id = hashValue(lead.metaLeadId);
+        } else if (lead._id) {
+          userData.external_id = hashValue(lead._id);
+        }
+
+        // Build custom_data with event_source
+        const customData: Record<string, any> = {
+          event_source: "crm",
+          crm_stage: event.stage,
+          source: "leadtrace_crm",
+        };
+        if (lead.metaLeadId) customData.meta_lead_id = lead.metaLeadId;
+        if (lead._id) customData.leadtrace_lead_id = lead._id;
+        if (lead.formName) customData.form_name = lead.formName;
+        if (lead.adName) customData.ad_name = lead.adName;
+
+        // Generate a unique event_id for resend to avoid Meta deduplication
+        const resendEventId = `${event.eventId || `${lead.metaLeadId}_${event.stage}`}_resend_${Date.now()}`;
+
+        // Build the CAPI payload with improved fields
+        const payload: any = {
+          data: [
+            {
+              event_name: event.eventName,
+              event_time: Math.floor(Date.now() / 1000),
+              event_id: resendEventId,
+              action_source: event.action_source || "system_generated",
+              lead_event_source: "LeadTrace CRM",
+              user_data: userData,
+              custom_data: customData,
+            },
+          ],
+        };
+
+        if (META_TEST_EVENT_CODE) {
+          payload.test_event_code = META_TEST_EVENT_CODE;
+        }
+
+        // Send to Meta Graph API
+        const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${META_ACCESS_TOKEN}`;
+        const fbRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const fbData: any = await fbRes.json();
+
+        if (fbRes.ok && fbData.events_received === 1) {
+          // Reset to pending then send via the normal flow too
+          await getConvex().mutation("crm:updateCapiEventStatus", {
+            eventId: event._id,
+            status: "sent",
+            response: `Resent: ${fbData.events_received} event(s) received`,
+            attempts: (event.attempts || 0) + 1,
+          });
+          results.push({ eventId: event._id, eventName: event.eventName, status: "sent" });
+          sent++;
+        } else {
+          const errMsg = fbData.error?.message || fbData.error?.error_user_msg || JSON.stringify(fbData);
+          results.push({ eventId: event._id, eventName: event.eventName, status: "failed", error: errMsg });
+          failed++;
+        }
+      } catch (err: any) {
+        results.push({ eventId: event._id, eventName: event.eventName, status: "error", error: err.message });
+        failed++;
+      }
+    }
+
+    res.json({
+      success: true,
+      summary: { total: sentEvents.length, sent, failed },
+      results,
+    });
+  } catch (err: any) {
+    console.error("Resend events error:", err.message);
+    res.status(500).json({ error: "Failed to resend events", detail: err.message });
+  }
+});
+
 export default router;
