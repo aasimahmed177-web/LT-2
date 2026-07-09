@@ -315,6 +315,7 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
 
     // Build custom_data — non-sensitive audit fields only
     const customData: Record<string, any> = {
+      event_source: "crm",          // Required by Meta for CRM event quality scoring
       crm_stage: event.stage,
       source: "leadtrace_crm",
     };
@@ -337,6 +338,7 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
           event_time: event.eventTime || Math.floor(Date.now() / 1000),
           event_id: event.eventId || `${event.metaLeadId}_${event.stage}_${Date.now()}`,
           action_source: event.action_source || "system_generated",
+          lead_event_source: "LeadTrace CRM",  // Identifies the CRM system to Meta
           user_data: userData,
           custom_data: customData,
         },
@@ -480,12 +482,17 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
       metaLeadId: lead.metaLeadId ? `${lead.metaLeadId.substring(0, 6)}...` : undefined,
       userData: userDataPreview,
       customData: {
+        event_source: "crm",
         crm_stage: lead.stage,
         source: "leadtrace_crm",
         meta_lead_id: lead.metaLeadId || undefined,
         leadtrace_lead_id: lead._id,
         form_name: lead.formName || undefined,
         ad_name: lead.adName || undefined,
+      },
+      eventData: {
+        action_source: "system_generated",
+        lead_event_source: "LeadTrace CRM",
       },
       fieldsPresent: Object.keys(userDataPreview),
       fieldsMissing: [
