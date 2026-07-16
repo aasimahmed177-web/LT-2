@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { getStats, getLeads, getSourceOfTruth } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
+import MarketingFunnel from '../components/MarketingFunnel'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -165,13 +166,10 @@ export default function Dashboard() {
     )
   }
 
-  const stageOrder = ['Lead', 'Contact', 'Prospect', 'ConversionLead', 'Purchase']
   const stageLabels: Record<string, string> = {
     Lead: 'Lead', Contact: 'Contact', Prospect: 'Prospect',
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
-
-  const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
 
   const activityEntries = Object.entries(filteredStats.activityByDate).sort()
   const maxActivity = Math.max(...activityEntries.map(([, c]) => c as number), 1)
@@ -509,48 +507,10 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Funnel + Stage Distribution */}
+      {/* Marketing Funnel + Stage Distribution */}
       <div className="grid grid-cols-2 gap-5">
-        {/* Pipeline Funnel */}
-        <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
-          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
-          <div className="space-y-4">
-            {stageOrder.map((stage, idx) => {
-              const entry = filteredStats.funnel.find((f: any) => f.stage === stage)
-              const count = entry?.count || 0
-              const pct = maxFunnel > 0 ? (count / maxFunnel) * 100 : 0
-              const prevCount = idx > 0
-                ? (filteredStats.funnel.find((f: any) => f.stage === stageOrder[idx - 1])?.count || 0)
-                : count
-              const conversion = idx > 0 && prevCount > 0 ? Math.round((count / prevCount) * 100) : null
-              return (
-                <div key={stage}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-                      <span className="text-xs font-medium text-[#6b6b6b]">{stageLabels[stage]}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums">{count}</span>
-                      {conversion !== null && (
-                        <span className="text-[10px] text-muted tabular-nums">({conversion}%)</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full funnel-bar-smooth"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: idx === stageOrder.length - 1 ? '#555555' : '#0a0a0a',
-                      }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        {/* Marketing Funnel */}
+        <MarketingFunnel leads={filteredLeads} />
 
         {/* Stage Distribution */}
         <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
