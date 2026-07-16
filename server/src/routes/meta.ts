@@ -299,7 +299,7 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     if (!lead) return { success: false, error: "Lead not found" };
 
     // Build user_data with hashed fields
-    const userData: Record<string, string> = {};
+    const userData: Record<string, any> = {};
     if (lead.email) userData.em = hashValue(lead.email);
     if (lead.phone) userData.ph = hashPhone(lead.phone);
     if (lead.name) {
@@ -309,13 +309,17 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     }
     if (lead.metaLeadId) {
       userData.external_id = hashValue(lead.metaLeadId);
+      // lead_id is the raw Facebook lead ID (unhashed integer) for better matching
+      userData.lead_id = parseInt(lead.metaLeadId, 10) || lead.metaLeadId;
     } else if (lead._id) {
       userData.external_id = hashValue(lead._id);
     }
 
     // Build custom_data — non-sensitive audit fields only
+    // lead_event_source goes inside custom_data per Meta's CAPI spec for Qualified Leads
     const customData: Record<string, any> = {
       event_source: "crm",          // Required by Meta for CRM event quality scoring
+      lead_event_source: "LeadTrace CRM",  // Identifies the CRM system to Meta
       crm_stage: event.stage,
       source: "leadtrace_crm",
     };
@@ -330,6 +334,17 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
       else if (nameLower.includes("suganya")) customData.caller = "Suganya";
     }
 
+    // Build original_event_data from the lead's Meta creation time (for attribution)
+    const originalEventData: Record<string, any> = {};
+    let originalEventTime: number | undefined;
+    if (lead.fullResponse?.created_time) {
+      originalEventTime = Math.floor(new Date(lead.fullResponse.created_time).getTime() / 1000);
+    }
+    if (originalEventTime) {
+      originalEventData.event_name = event.eventName;
+      originalEventData.event_time = originalEventTime;
+    }
+
     // Build the CAPI payload
     const payload: any = {
       data: [
@@ -338,12 +353,16 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
           event_time: event.eventTime || Math.floor(Date.now() / 1000),
           event_id: event.eventId || `${event.metaLeadId}_${event.stage}_${Date.now()}`,
           action_source: event.action_source || "system_generated",
-          lead_event_source: "LeadTrace CRM",  // Identifies the CRM system to Meta
           user_data: userData,
           custom_data: customData,
         },
       ],
     };
+
+    // Add original_event_data for Qualified Leads events (required by Meta for proper attribution)
+    if (Object.keys(originalEventData).length > 0) {
+      payload.data[0].original_event_data = originalEventData;
+    }
 
     // Add test_event_code if configured
     if (META_TEST_EVENT_CODE) {
@@ -469,9 +488,17 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
     if (lead.metaLeadId) {
       const hash = hashValue(lead.metaLeadId);
       userDataPreview.external_id = hash.substring(0, 6) + "...";
+      // lead_id is the raw Facebook lead ID (unhashed integer)
+      userDataPreview.lead_id = lead.metaLeadId.substring(0, 6) + "...";
     } else if (lead._id) {
       const hash = hashValue(lead._id);
       userDataPreview.external_id = hash.substring(0, 6) + "...";
+    }
+
+    // Build original_event_data preview from lead's Meta creation time
+    let originalEventTime: number | undefined;
+    if (lead.fullResponse?.created_time) {
+      originalEventTime = Math.floor(new Date(lead.fullResponse.created_time).getTime() / 1000);
     }
 
     res.json({
@@ -483,6 +510,7 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
       userData: userDataPreview,
       customData: {
         event_source: "crm",
+        lead_event_source: "LeadTrace CRM",
         crm_stage: lead.stage,
         source: "leadtrace_crm",
         meta_lead_id: lead.metaLeadId || undefined,
@@ -492,8 +520,11 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
       },
       eventData: {
         action_source: "system_generated",
-        lead_event_source: "LeadTrace CRM",
       },
+      originalEventData: originalEventTime ? {
+        event_name: "Lead",
+        event_time: originalEventTime,
+      } : undefined,
       fieldsPresent: Object.keys(userDataPreview),
       fieldsMissing: [
         ...(!lead.email ? ["em (email not available)"] : []),
@@ -592,7 +623,7 @@ router.post("/resend-events", async (_req: Request, res: Response) => {
         }
 
         // Build user_data with hashed fields
-        const userData: Record<string, string> = {};
+        const userData: Record<string, any> = {};
         if (lead.email) userData.em = hashValue(lead.email);
         if (lead.phone) userData.ph = hashPhone(lead.phone);
         if (lead.name) {
@@ -602,13 +633,16 @@ router.post("/resend-events", async (_req: Request, res: Response) => {
         }
         if (lead.metaLeadId) {
           userData.external_id = hashValue(lead.metaLeadId);
+          // lead_id is the raw Facebook lead ID (unhashed integer) for better matching
+          userData.lead_id = parseInt(lead.metaLeadId, 10) || lead.metaLeadId;
         } else if (lead._id) {
           userData.external_id = hashValue(lead._id);
         }
 
-        // Build custom_data with event_source
+        // Build custom_data with lead_event_source inside custom_data per Meta spec
         const customData: Record<string, any> = {
           event_source: "crm",
+          lead_event_source: "LeadTrace CRM",
           crm_stage: event.stage,
           source: "leadtrace_crm",
         };
@@ -616,6 +650,17 @@ router.post("/resend-events", async (_req: Request, res: Response) => {
         if (lead._id) customData.leadtrace_lead_id = lead._id;
         if (lead.formName) customData.form_name = lead.formName;
         if (lead.adName) customData.ad_name = lead.adName;
+
+        // Build original_event_data from the lead's Meta creation time
+        const originalEventData: Record<string, any> = {};
+        let originalEventTime: number | undefined;
+        if (lead.fullResponse?.created_time) {
+          originalEventTime = Math.floor(new Date(lead.fullResponse.created_time).getTime() / 1000);
+        }
+        if (originalEventTime) {
+          originalEventData.event_name = event.eventName;
+          originalEventData.event_time = originalEventTime;
+        }
 
         // Generate a unique event_id for resend to avoid Meta deduplication
         const resendEventId = `${event.eventId || `${lead.metaLeadId}_${event.stage}`}_resend_${Date.now()}`;
@@ -628,12 +673,16 @@ router.post("/resend-events", async (_req: Request, res: Response) => {
               event_time: Math.floor(Date.now() / 1000),
               event_id: resendEventId,
               action_source: event.action_source || "system_generated",
-              lead_event_source: "LeadTrace CRM",
               user_data: userData,
               custom_data: customData,
             },
           ],
         };
+
+        // Add original_event_data for Qualified Leads events (required by Meta for proper attribution)
+        if (Object.keys(originalEventData).length > 0) {
+          payload.data[0].original_event_data = originalEventData;
+        }
 
         if (META_TEST_EVENT_CODE) {
           payload.test_event_code = META_TEST_EVENT_CODE;
