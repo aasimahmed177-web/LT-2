@@ -3,19 +3,9 @@ import { mutation, query } from "./_generated/server";
 
 // ─── Stage Management ───────────────────────────────────────────────
 
-// Stage hierarchy for final-stage-only suppression.
-// Higher number = higher priority. Purchase > ConversionLead > Prospect > Contact > Lead.
-export const STAGE_HIERARCHY: Record<string, number> = {
-  Lead: 0,
-  Contact: 1,
-  Prospect: 2,
-  ConversionLead: 3,
-  Purchase: 4,
-};
-
-// CAPI send mode: "final_stage_only" suppresses lower-stage events when a higher-stage one exists.
-// Set to "all" to disable suppression and send every positive stage change.
-const CAPI_SEND_MODE = "final_stage_only";
+// CAPI send mode: "all" sends every positive stage change as a CAPI event.
+// "final_stage_only" would suppress lower-stage events when a higher-stage one exists.
+const CAPI_SEND_MODE = "all";
 
 // Maps CRM stages to CAPI event names.
 // Stages not in this map (Lead, NotQualified, etc.) do not generate CAPI events.
@@ -31,18 +21,6 @@ const CRM_EVENT_MAP: Record<string, string> = {
   ConversionLead: "conversion_lead",
   Purchase: "purchase",
 };
-
-// Helper: highest stage score among active events (sent/pending) for a list of events
-function getHighestStageScore(events: any[]): number {
-  let highest = -1;
-  for (const e of events) {
-    if (e.status === "sent" || e.status === "pending") {
-      const score = STAGE_HIERARCHY[e.stage] ?? -1;
-      if (score > highest) highest = score;
-    }
-  }
-  return highest;
-}
 
 export const updateStage = mutation({
   args: {
@@ -72,57 +50,46 @@ export const updateStage = mutation({
       reason: reason || undefined,
     });
 
-    // Create CAPI event for positive stage changes
-    const capiEventName = CAPI_STAGE_EVENT_MAP[stage];
-    if (capiEventName) {
-      const eventTime = Math.floor(Date.now() / 1000);
-      const eventId = `${lead.metaLeadId}_${stage}_${eventTime}`;
-      const newStageScore = STAGE_HIERARCHY[stage] ?? -1;
+    // Create CAPI events for all stages in the funnel
+    // This ensures every stage gets its own event, even if intermediate stages were skipped
+    const eventTime = Math.floor(Date.now() / 1000);
 
-      // Check existing events for this lead
-      const existingEvents = await ctx.db
-        .query("conversionLeadEvents")
-        .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
-        .collect();
+    // Stage order for backfilling intermediate stages
+    const STAGE_ORDER = ["Lead", "Contact", "Prospect", "ConversionLead", "Purchase"];
+    const fromIdx = STAGE_ORDER.indexOf(fromStage);
+    const toIdx = STAGE_ORDER.indexOf(stage);
 
-      if (CAPI_SEND_MODE === "final_stage_only") {
-        const highestStageScore = getHighestStageScore(existingEvents);
-
-        // If a higher-stage event already exists (sent or pending), suppress this one
-        if (highestStageScore > newStageScore) {
-          await ctx.db.insert("conversionLeadEvents", {
-            leadId,
-            metaLeadId: lead.metaLeadId,
-            eventName: capiEventName,
-            stage,
-            status: "suppressed",
-            createdAt: now,
-            attempts: 0,
-            clientId: clientId || undefined,
-            eventId,
-            action_source: "system_generated",
-            eventTime,
-          });
-          return { success: true, capiEventCreated: true, suppressed: true, reason: `Higher-stage event already exists` };
-        }
-
-        // Suppress any lower-stage pending events (this new stage supersedes them)
-        for (const existing of existingEvents) {
-          const existingScore = STAGE_HIERARCHY[existing.stage] ?? -1;
-          if (existing.status === "pending" && existingScore < newStageScore) {
-            await ctx.db.patch(existing._id, {
-              status: "suppressed",
-              updatedAt: now,
-            });
-          }
-        }
+    // Determine which stages need events: from the next stage after fromStage up to the target stage
+    const stagesToFire: string[] = [];
+    const startIdx = Math.max(0, fromIdx + 1);
+    for (let i = startIdx; i <= toIdx; i++) {
+      const s = STAGE_ORDER[i];
+      if (CAPI_STAGE_EVENT_MAP[s]) {
+        stagesToFire.push(s);
       }
+    }
+
+    // Check existing events to avoid duplicates
+    const existingEvents = await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
+      .collect();
+
+    for (const stageToFire of stagesToFire) {
+      const capiEventName = CAPI_STAGE_EVENT_MAP[stageToFire];
+      const eventId = `${lead.metaLeadId}_${stageToFire}_${eventTime}`;
+
+      // Skip if this stage already has a sent/pending event
+      const alreadyExists = existingEvents.some(
+        (e) => e.stage === stageToFire && (e.status === "sent" || e.status === "pending")
+      );
+      if (alreadyExists) continue;
 
       await ctx.db.insert("conversionLeadEvents", {
         leadId,
         metaLeadId: lead.metaLeadId,
         eventName: capiEventName,
-        stage,
+        stage: stageToFire,
         status: "pending",
         createdAt: now,
         attempts: 0,

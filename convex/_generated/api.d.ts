@@ -11,8 +11,12 @@
 import type * as callActivities from "../callActivities.js";
 import type * as clients from "../clients.js";
 import type * as crm from "../crm.js";
+import type * as events from "../events.js";
 import type * as importResults from "../importResults.js";
 import type * as leads from "../leads.js";
+import type * as notes from "../notes.js";
+import type * as stages from "../stages.js";
+import type * as tasks from "../tasks.js";
 
 import type {
   ApiFromModules,
@@ -24,8 +28,12 @@ declare const fullApi: ApiFromModules<{
   callActivities: typeof callActivities;
   clients: typeof clients;
   crm: typeof crm;
+  events: typeof events;
   importResults: typeof importResults;
   leads: typeof leads;
+  notes: typeof notes;
+  stages: typeof stages;
+  tasks: typeof tasks;
 }>;
 
 /**

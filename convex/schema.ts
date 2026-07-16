@@ -56,18 +56,32 @@ export default defineSchema({
     adSetName: v.optional(v.string()),
     campaignId: v.optional(v.string()),
     campaignName: v.optional(v.string()),
-    platform: v.string(),
-    fieldData: v.any(),
-    fullResponse: v.any(),
+    platform: v.optional(v.string()),
+    fieldData: v.optional(v.any()),
+    fullResponse: v.optional(v.any()),
     pageId: v.optional(v.string()),
-    ingestedAt: v.string(),
-    stage: v.string(),
+    ingestedAt: v.optional(v.string()),
+    stage: v.optional(v.string()),
     stageChangedAt: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     formName: v.optional(v.string()),
     formId: v.optional(v.string()),
+    // Legacy fields from old demo data
+    adsetName: v.optional(v.string()),
+    answers: v.optional(v.any()),
+    createdAt: v.optional(v.number()),
+    currentStage: v.optional(v.string()),
+    fullName: v.optional(v.string()),
+    lastEventSent: v.optional(v.string()),
+    lastEventSentAt: v.optional(v.number()),
+    leadStatus: v.optional(v.string()),
+    phoneNumber: v.optional(v.string()),
+    rawPayload: v.optional(v.any()),
+    syncStatus: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
+    workspaceId: v.optional(v.string()),
   })
     .index("by_metaLeadId", ["metaLeadId"])
     .index("by_stage", ["stage"])
@@ -75,12 +89,15 @@ export default defineSchema({
 
   leadStageHistory: defineTable({
     leadId: v.id("leads"),
-    metaLeadId: v.string(),
+    metaLeadId: v.optional(v.string()),
     fromStage: v.string(),
     toStage: v.string(),
-    changedAt: v.string(),
+    changedAt: v.optional(v.union(v.string(), v.number())),
     changedBy: v.optional(v.string()),
     reason: v.optional(v.string()),
+    // Legacy field from old events.ts
+    createdAt: v.optional(v.number()),
+    workspaceId: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
     .index("by_metaLeadId", ["metaLeadId"]),
@@ -91,8 +108,8 @@ export default defineSchema({
     eventName: v.string(),
     stage: v.string(),
     status: v.string(),
-    createdAt: v.string(),
-    attempts: v.number(),
+    createdAt: v.union(v.string(), v.number()),
+    attempts: v.optional(v.number()),
     error: v.optional(v.string()),
     clientId: v.optional(v.string()),
     eventId: v.optional(v.string()),
@@ -100,7 +117,11 @@ export default defineSchema({
     response: v.optional(v.string()),
     action_source: v.optional(v.string()),
     eventTime: v.optional(v.number()),
-    updatedAt: v.optional(v.string()),
+    updatedAt: v.optional(v.union(v.string(), v.number())),
+    // Legacy fields from old events.ts (may be present in existing documents)
+    attemptCount: v.optional(v.number()),
+    idempotencyKey: v.optional(v.string()),
+    workspaceId: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
     .index("by_status", ["status"])
@@ -109,8 +130,10 @@ export default defineSchema({
   notes: defineTable({
     leadId: v.id("leads"),
     content: v.string(),
-    createdAt: v.string(),
-    updatedAt: v.optional(v.string()),
+    createdAt: v.union(v.string(), v.number()),
+    updatedAt: v.optional(v.union(v.string(), v.number())),
+    // Legacy field
+    workspaceId: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"]),
 
@@ -118,16 +141,22 @@ export default defineSchema({
     leadId: v.id("leads"),
     content: v.string(),
     done: v.boolean(),
-    createdAt: v.string(),
-    updatedAt: v.optional(v.string()),
+    createdAt: v.union(v.string(), v.number()),
+    updatedAt: v.optional(v.union(v.string(), v.number())),
     dueDate: v.optional(v.string()),
+    // Legacy fields
+    workspaceId: v.optional(v.string()),
+    title: v.optional(v.string()),
+    status: v.optional(v.string()),
+    dueAt: v.optional(v.number()),
+    assignedTo: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"]),
 
   importResults: defineTable({
     clientId: v.optional(v.id("clients")),
     data: v.any(),
-    createdAt: v.string(),
+    createdAt: v.union(v.string(), v.number()),
   }),
 
   callActivities: defineTable({
@@ -141,7 +170,7 @@ export default defineSchema({
     caller: v.optional(v.string()),
     adName: v.optional(v.string()),
     lastCallDate: v.optional(v.string()),
-    importedAt: v.string(),
+    importedAt: v.optional(v.union(v.string(), v.number())),
     importBatchId: v.optional(v.string()),
   })
     .index("by_metaLeadId", ["metaLeadId"])
