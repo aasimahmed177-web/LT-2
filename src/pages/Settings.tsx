@@ -387,6 +387,19 @@ export default function Settings() {
               <ConfigRow label="CAPI Mode" ok={!capiStatus.dryRun} warning={capiStatus.dryRun ? 'Dry-run' : undefined} />
               <ConfigRow label="Test Event Code" ok={capiStatus.testEventCodeConfigured} />
             </div>
+            {clientConfig?.config?.pixelId && (
+              <a
+                href={`https://business.facebook.com/events_manager2/list/pixel/${clientConfig.config.pixelId}/overview`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-[#0a0a0a] transition-all-expo underline"
+              >
+                Open in Meta Events Manager
+              </a>
+            )}
+            <p className="text-[10px] text-muted mt-1.5">
+              Event Match Quality and dedup diagnostics only exist there — we can't replicate them from our own API access.
+            </p>
             {capiStatus.dryRun && (
               <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
                 <p className="text-xs font-medium text-amber-800">CAPI is in dry-run mode</p>
