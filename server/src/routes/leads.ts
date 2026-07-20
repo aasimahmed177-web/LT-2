@@ -110,6 +110,61 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/leads/bulk-stage — change stage on many leads at once.
+// (Registered before "/:id/stage" so "bulk-stage" isn't captured as an :id.)
+router.post("/bulk-stage", async (req: Request, res: Response) => {
+  try {
+    const { leadIds, stage, reason } = req.body as { leadIds?: string[]; stage?: string; reason?: string };
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      res.status(400).json({ error: "leadIds (non-empty array) is required" });
+      return;
+    }
+    if (!stage) {
+      res.status(400).json({ error: "stage is required" });
+      return;
+    }
+
+    const clientId = resolveClientId(req.query.clientId as string);
+    let updated = 0;
+    let unchanged = 0;
+    let failed = 0;
+    const results: { leadId: string; ok: boolean; error?: string }[] = [];
+
+    for (const leadId of leadIds) {
+      try {
+        const lead = await getConvex().query("leads:getById", { id: leadId });
+        if (!lead) {
+          failed++;
+          results.push({ leadId, ok: false, error: "Lead not found" });
+          continue;
+        }
+        const result = await getConvex().mutation("crm:updateStage", {
+          leadId: leadId as any,
+          stage,
+          reason: reason || "Bulk stage change",
+          clientId,
+        });
+        if (result?.unchanged) unchanged++;
+        else updated++;
+
+        // Fire-and-forget CAPI send (non-blocking)
+        triggerCapiAfterStageChange(lead.metaLeadId || leadId, leadId).catch((e) => {
+          console.error("[CAPI] Bulk background send error:", e.message);
+        });
+        results.push({ leadId, ok: true });
+      } catch (err: any) {
+        failed++;
+        results.push({ leadId, ok: false, error: err.message });
+      }
+    }
+
+    res.json({ success: true, stage, updated, unchanged, failed, results });
+  } catch (err: any) {
+    console.error("Bulk stage change error:", err.message);
+    res.status(500).json({ error: "Failed to bulk update stage", detail: err.message });
+  }
+});
+
 // PUT /api/leads/:id/stage
 router.put("/:id/stage", async (req: Request, res: Response) => {
   try {

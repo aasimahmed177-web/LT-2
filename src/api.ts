@@ -61,6 +61,17 @@ export function updateLeadStage(id: string, stage: string, reason?: string) {
   })
 }
 
+export function bulkUpdateLeadStage(leadIds: string[], stage: string, clientId?: string, reason?: string) {
+  return json<{ success: boolean; updated: number; unchanged: number; failed: number }>(
+    withClient(`${API_BASE}/leads/bulk-stage`, clientId),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadIds, stage, reason }),
+    }
+  )
+}
+
 export function getLeadHistory(id: string) {
   return json<any>(`${API_BASE}/leads/${id}/history`)
 }

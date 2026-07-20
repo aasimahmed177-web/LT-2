@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getLeads, getLeadsEnriched } from '../api'
+import { getLeads, getLeadsEnriched, bulkUpdateLeadStage } from '../api'
 import { useClient } from '../ClientContext'
 import LeadDrawer from '../LeadDrawer'
-import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
+import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass, STAGES } from '../constants'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -158,6 +158,12 @@ export default function Leads() {
   const [showMappingGuide, setShowMappingGuide] = useState(false)
   const [copiedMetaId, setCopiedMetaId] = useState<string | null>(null)
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkStage, setBulkStage] = useState('')
+  const [bulkApplying, setBulkApplying] = useState(false)
+  const [bulkResult, setBulkResult] = useState<string | null>(null)
+
   const loadLeads = () => {
     setLoading(true)
     setError(null)
@@ -296,6 +302,52 @@ useEffect(() => {
       console.error('Reconciliation export error:', e)
     } finally {
       setExportingRecon(false)
+    }
+  }
+
+  // Bulk selection helpers — operate on the currently visible (paged) rows.
+  const pagedIds = useMemo(() => paged.map((l: any) => l._id), [paged])
+  const allPageSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.has(id))
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (allPageSelected) {
+        pagedIds.forEach((id) => next.delete(id))
+      } else {
+        pagedIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => {
+    setSelectedIds(new Set())
+    setBulkStage('')
+    setBulkResult(null)
+  }
+
+  const handleBulkApply = async () => {
+    if (!bulkStage || selectedIds.size === 0) return
+    setBulkApplying(true)
+    setBulkResult(null)
+    try {
+      const res = await bulkUpdateLeadStage(Array.from(selectedIds), bulkStage, currentClientId)
+      setBulkResult(`${res.updated} updated${res.unchanged ? `, ${res.unchanged} unchanged` : ''}${res.failed ? `, ${res.failed} failed` : ''}`)
+      clearSelection()
+      loadLeads()
+    } catch (e: any) {
+      setBulkResult(`Error: ${e.message}`)
+    } finally {
+      setBulkApplying(false)
     }
   }
 
@@ -496,7 +548,16 @@ useEffect(() => {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-card-border bg-[#fafafa] table-sticky-header">
-                <th className="px-4 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Name</th>
+                <th className="px-4 py-2.5 w-10 sticky top-0 z-2 bg-[#fafafa]">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleSelectAll}
+                    className="w-3.5 h-3.5 rounded border-card-border accent-[#0a0a0a] align-middle cursor-pointer"
+                    title="Select all on this page"
+                  />
+                </th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Name</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Phone</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Campaign</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Stage</th>
@@ -511,9 +572,17 @@ useEffect(() => {
                 <tr
                   key={lead._id}
                   onClick={() => setSelectedLeadId(lead._id)}
-                  className={`border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer ${isTest ? 'opacity-50' : ''}`}
+                  className={`border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo cursor-pointer ${isTest ? 'opacity-50' : ''} ${selectedIds.has(lead._id) ? 'bg-[#f5f8ff]' : ''}`}
                 >
-                  <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(lead._id)}
+                      onChange={() => toggleSelect(lead._id)}
+                      className="w-3.5 h-3.5 rounded border-card-border accent-[#0a0a0a] align-middle cursor-pointer"
+                    />
+                  </td>
+                  <td className="py-3 pr-4 font-medium text-[#0a0a0a] text-sm">
                     {isTest ? (
                       <span className="inline-flex items-center gap-1.5">
                         {lead.name || '—'}
@@ -599,6 +668,41 @@ useEffect(() => {
           </>
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[min(680px,calc(100vw-3rem))]">
+          <div className="flex items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg px-4 py-3">
+            <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums whitespace-nowrap">
+              {selectedIds.size} selected
+            </span>
+            <div className="h-4 w-px bg-card-border" />
+            <span className="text-[11px] text-muted whitespace-nowrap">Set stage to</span>
+            <select
+              value={bulkStage}
+              onChange={(e) => setBulkStage(e.target.value)}
+              className="h-8 px-2.5 text-xs border border-card-border rounded-md bg-white text-[#0a0a0a] focus:outline-none focus:border-[#0a0a0a] transition-all-expo"
+            >
+              <option value="">Choose stage…</option>
+              {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <button
+              onClick={handleBulkApply}
+              disabled={!bulkStage || bulkApplying}
+              className="h-8 px-4 text-xs font-semibold rounded-md bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo whitespace-nowrap"
+            >
+              {bulkApplying ? 'Applying…' : 'Apply'}
+            </button>
+            {bulkResult && <span className="text-[11px] text-muted whitespace-nowrap">{bulkResult}</span>}
+            <button
+              onClick={clearSelection}
+              className="ml-auto text-[11px] text-muted hover:text-[#0a0a0a] transition-all-expo underline whitespace-nowrap"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lead Drawer */}
       <LeadDrawer

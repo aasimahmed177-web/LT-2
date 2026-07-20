@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './Layout'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
+import Pipeline from './pages/Pipeline'
 import Events from './pages/Events'
 import Telecalling from './pages/Telecalling'
 import Settings from './pages/Settings'
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/leads" element={<Leads />} />
+            <Route path="/pipeline" element={<Pipeline />} />
             <Route path="/events" element={<Events />} />
             <Route path="/telecalling" element={<Telecalling />} />
             <Route path="/csv-import" element={<CsvImport />} />
