@@ -445,6 +445,12 @@ export async function sendCapiEvent(
       if (nameLower.includes("aparna")) customData.caller = "Aparna";
       else if (nameLower.includes("suganya")) customData.caller = "Suganya";
     }
+    // value/currency give Meta a revenue/ROAS signal — only meaningful on the
+    // Purchase event, and only when we actually have a (best-effort) estimate.
+    if (event.stage === "Purchase" && typeof lead.dealValueEstimate === "number") {
+      customData.value = lead.dealValueEstimate;
+      customData.currency = lead.dealValueCurrency || "INR";
+    }
 
     // Build the CAPI payload
     const payload: any = {
@@ -673,6 +679,9 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
         leadtrace_lead_id: lead._id,
         form_name: lead.formName || undefined,
         ad_name: lead.adName || undefined,
+        ...(lead.stage === "Purchase" && typeof lead.dealValueEstimate === "number"
+          ? { value: lead.dealValueEstimate, currency: lead.dealValueCurrency || "INR" }
+          : {}),
       },
       fieldsPresent: Object.keys(userDataPreview),
       fieldsMissing: [

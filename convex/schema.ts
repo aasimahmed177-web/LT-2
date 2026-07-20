@@ -68,6 +68,11 @@ export default defineSchema({
     phone: v.optional(v.string()),
     formName: v.optional(v.string()),
     formId: v.optional(v.string()),
+    // Best-effort estimated deal value, parsed from a budget-range form field
+    // or CSV column — used to send value/currency on the Purchase CAPI event
+    // so Meta has a revenue/ROAS signal. Not a real closed-deal amount.
+    dealValueEstimate: v.optional(v.number()),
+    dealValueCurrency: v.optional(v.string()),
   })
     .index("by_metaLeadId", ["metaLeadId"])
     .index("by_stage", ["stage"])

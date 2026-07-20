@@ -1,6 +1,33 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+// Parses Indian real-estate budget-range strings (crore/lakh notation) into an
+// estimated INR value — e.g. "under_₹3cr_" -> 2.25cr, "₹3cr–₹5cr_" -> 4cr
+// (midpoint). Best-effort only, used for CAPI Purchase value/currency, not
+// billing or any financial calculation.
+function parseBudgetRangeToINR(raw: string): number | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase().replace(/_/g, " ");
+  const tokenRegex = /(\d+(?:\.\d+)?)\s*(cr|crore|l|lakh|lac)\b/g;
+  const toINR = (num: number, unit: string) => (unit.startsWith("cr") ? num * 1e7 : num * 1e5);
+  const matches = [...normalized.matchAll(tokenRegex)];
+  if (matches.length === 0) return undefined;
+  const values = matches.map((m) => toINR(parseFloat(m[1]), m[2]));
+  if (values.length === 1) {
+    if (/\bunder\b|\bbelow\b/.test(normalized)) return values[0] * 0.75;
+    if (/\+|\babove\b|\bover\b/.test(normalized)) return values[0] * 1.25;
+    return values[0];
+  }
+  return (Math.min(...values) + Math.max(...values)) / 2;
+}
+
+function extractBudgetFieldValue(fieldData: { name: string; values: string[] }[]): string | undefined {
+  for (const field of fieldData || []) {
+    if ((field.name || "").toLowerCase().includes("budget")) return field.values?.[0];
+  }
+  return undefined;
+}
+
 export const list = query({
   handler: async (ctx) => {
     return await ctx.db.query("leads").order("desc").collect();
@@ -92,9 +119,12 @@ export const upsertMetaLead = mutation({
       .withIndex("by_metaLeadId", (q) => q.eq("metaLeadId", args.metaLeadId))
       .first();
 
+    const budgetRaw = extractBudgetFieldValue(args.fieldData);
+    const dealValueEstimate = budgetRaw ? parseBudgetRangeToINR(budgetRaw) : undefined;
+
     if (existing) {
       // Only update Meta-owned/source fields. Never overwrite CRM-owned fields.
-      await ctx.db.patch(existing._id, {
+      const patch: any = {
         adId: args.adId,
         adName: args.adName,
         adSetId: args.adSetId,
@@ -111,11 +141,19 @@ export const upsertMetaLead = mutation({
         formName: args.formName,
         formId: args.formId,
         clientId: args.clientId || (existing as any).clientId,
-      });
+      };
+      // Only set if we found a value this time — never wipe an existing
+      // estimate (e.g. one set by a CSV import) just because a re-sync
+      // didn't happen to include the budget field this round.
+      if (dealValueEstimate !== undefined) {
+        patch.dealValueEstimate = dealValueEstimate;
+        patch.dealValueCurrency = "INR";
+      }
+      await ctx.db.patch(existing._id, patch);
       return { action: "updated", id: existing._id };
     }
 
-    const id = await ctx.db.insert("leads", {
+    const insertDoc: any = {
       clientId: args.clientId,
       metaLeadId: args.metaLeadId,
       adId: args.adId,
@@ -135,7 +173,12 @@ export const upsertMetaLead = mutation({
       phone: args.phone,
       formName: args.formName,
       formId: args.formId,
-    });
+    };
+    if (dealValueEstimate !== undefined) {
+      insertDoc.dealValueEstimate = dealValueEstimate;
+      insertDoc.dealValueCurrency = "INR";
+    }
+    const id = await ctx.db.insert("leads", insertDoc);
 
     // Per Meta's Conversion Leads CRM integration docs, the raw/initial lead
     // stage should be reported too, not just later funnel stages — mirrors the
@@ -159,6 +202,21 @@ export const upsertMetaLead = mutation({
     });
 
     return { action: "inserted", id };
+  },
+});
+
+// Sets a lead's estimated deal value (e.g. parsed from a CSV budget column).
+export const setDealValue = mutation({
+  args: {
+    leadId: v.id("leads"),
+    dealValueEstimate: v.number(),
+    dealValueCurrency: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.leadId, {
+      dealValueEstimate: args.dealValueEstimate,
+      dealValueCurrency: args.dealValueCurrency,
+    });
   },
 });
 

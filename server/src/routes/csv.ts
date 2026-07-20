@@ -62,6 +62,26 @@ function normalizeMetaLeadId(raw: string): string {
   return raw.trim().replace(/^[!'"\s]+/, "").replace(/^l:/i, "").trim();
 }
 
+// Parses Indian real-estate budget-range strings (crore/lakh notation) into an
+// estimated INR value — mirrors convex/leads.ts's parser (duplicated since
+// this runs in a separate deployable unit with no shared module boundary).
+// Best-effort only, used for CAPI Purchase value/currency, not billing.
+function parseBudgetRangeToINR(raw: string): number | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase().replace(/_/g, " ");
+  const tokenRegex = /(\d+(?:\.\d+)?)\s*(cr|crore|l|lakh|lac)\b/g;
+  const toINR = (num: number, unit: string) => (unit.startsWith("cr") ? num * 1e7 : num * 1e5);
+  const matches = [...normalized.matchAll(tokenRegex)];
+  if (matches.length === 0) return undefined;
+  const values = matches.map((m) => toINR(parseFloat(m[1]), m[2]));
+  if (values.length === 1) {
+    if (/\bunder\b|\bbelow\b/.test(normalized)) return values[0] * 0.75;
+    if (/\+|\babove\b|\bover\b/.test(normalized)) return values[0] * 1.25;
+    return values[0];
+  }
+  return (Math.min(...values) + Math.max(...values)) / 2;
+}
+
 function findColumn(headers: string[], ...patterns: string[]): string | null {
   const lower = headers.map((h) => h.toLowerCase().trim());
   for (const p of patterns) {
@@ -108,6 +128,7 @@ router.post("/preview", async (req: Request, res: Response) => {
     const callerCol = findColumn(headers, "caller", "Caller");
     const adNameCol = findColumn(headers, "ad_name", "adname", "ad name", "Ad Name");
     const lastCallDateCol = findColumn(headers, "Last Call Date", "last_call_date", "last call date", "lastCallDate");
+    const budgetCol = findColumn(headers, "budget", "budget_range", "what_budget_range_are_you_considering?");
 
     // Fetch all leads for matching
     const convex = getConvex();
@@ -160,6 +181,8 @@ router.post("/preview", async (req: Request, res: Response) => {
       const caller = callerCol ? (rawRow[callerCol] || "").trim() : deriveCaller(adNameCol ? (rawRow[adNameCol] || "").trim() : "");
       const adName = adNameCol ? (rawRow[adNameCol] || "").trim() : "";
       const lastCallDate = lastCallDateCol ? (rawRow[lastCallDateCol] || "").trim() : "";
+      const budgetRaw = budgetCol ? (rawRow[budgetCol] || "").trim() : "";
+      const dealValueEstimate = budgetRaw ? parseBudgetRangeToINR(budgetRaw) : undefined;
 
       rows.push({
         csvRow: rows.length + 1,
@@ -171,6 +194,7 @@ router.post("/preview", async (req: Request, res: Response) => {
         capiTriggered: !!isCapiTriggering,
         unmatched: !lead,
         callComment: comments,
+        dealValueEstimate,
         stageValid,
         validationError: newStage && !stageValid ? `Invalid stage: "${newStage}"` : null,
         // Telecalling field preview
@@ -194,7 +218,7 @@ router.post("/preview", async (req: Request, res: Response) => {
       invalidStages: invalidStageCount,
     };
 
-    res.json({ rows, summary, detectedColumns: { metaLeadCol, stageCol, commentsCol, callPickedCol, interestedCol, meetingCol, purchaseCol, callerCol, adNameCol, lastCallDateCol } });
+    res.json({ rows, summary, detectedColumns: { metaLeadCol, stageCol, commentsCol, callPickedCol, interestedCol, meetingCol, purchaseCol, callerCol, adNameCol, lastCallDateCol, budgetCol } });
   } catch (err: any) {
     console.error("CSV preview error:", err.message);
     res.status(500).json({ error: "Failed to preview CSV", detail: err.message });
@@ -251,6 +275,17 @@ router.post("/apply", async (req: Request, res: Response) => {
 
         const leadId = lead._id;
         const stageChanged = row.newStage && row.newStage !== lead.stage;
+
+        // 0. Store the estimated deal value BEFORE any stage change/CAPI send
+        // below, so a Purchase event triggered by this same row already has
+        // it available (sendCapiEvent reads the lead fresh at send time).
+        if (typeof row.dealValueEstimate === "number" && !Number.isNaN(row.dealValueEstimate)) {
+          await convex.mutation("leads:setDealValue", {
+            leadId,
+            dealValueEstimate: row.dealValueEstimate,
+            dealValueCurrency: "INR",
+          });
+        }
 
         // 1. Update stage if changed (reuses existing CAPI logic with suppression)
         if (stageChanged) {
