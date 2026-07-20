@@ -290,13 +290,15 @@ export const updateCapiEventStatus = mutation({
     error: v.optional(v.string()),
     response: v.optional(v.string()),
     attempts: v.optional(v.number()),
+    payloadSent: v.optional(v.string()),
   },
-  handler: async (ctx, { eventId, status, error, response, attempts }) => {
+  handler: async (ctx, { eventId, status, error, response, attempts, payloadSent }) => {
     const now = new Date().toISOString();
     const patch: any = { status, lastAttemptAt: now, updatedAt: now };
     if (error !== undefined) patch.error = error;
     if (response !== undefined) patch.response = response;
     if (attempts !== undefined) patch.attempts = attempts;
+    if (payloadSent !== undefined) patch.payloadSent = payloadSent;
     await ctx.db.patch(eventId, patch);
   },
 });

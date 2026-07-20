@@ -101,6 +101,11 @@ export default defineSchema({
     action_source: v.optional(v.string()),
     eventTime: v.optional(v.number()),
     updatedAt: v.optional(v.string()),
+    // The exact JSON payload sent (or that would be sent, in dry-run) to
+    // Meta's Graph API /events endpoint for this event — kept for audit and
+    // self-serve debugging, since otherwise the only trace of it is a
+    // console.log line inside a serverless function's transient logs.
+    payloadSent: v.optional(v.string()),
   })
     .index("by_leadId", ["leadId"])
     .index("by_status", ["status"])

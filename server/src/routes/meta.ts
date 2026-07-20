@@ -382,7 +382,9 @@ function serializeCapiPayload(payload: any, rawLeadId?: string): string {
   return rawLeadId ? json.replace(`"${LEAD_ID_PLACEHOLDER}"`, rawLeadId) : json;
 }
 
-export async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean; response?: string; error?: string }> {
+export async function sendCapiEvent(
+  convexEventId: string
+): Promise<{ success: boolean; response?: string; error?: string; payload?: string }> {
   const pixelId = process.env.META_PIXEL_ID;
   if (!pixelId) {
     return { success: false, error: "META_PIXEL_ID is not configured" };
@@ -468,7 +470,7 @@ export async function sendCapiEvent(convexEventId: string): Promise<{ success: b
     // Dry-run check
     if (META_CAPI_DRY_RUN) {
       console.log(`[CAPI DRY-RUN] Would send event:`, body);
-      return { success: true, response: "Dry-run mode: event recorded but not sent" };
+      return { success: true, response: "Dry-run mode: event recorded but not sent", payload: body };
     }
 
     // Send to Meta Graph API
@@ -481,10 +483,10 @@ export async function sendCapiEvent(convexEventId: string): Promise<{ success: b
     const fbData: any = await fbRes.json();
 
     if (fbRes.ok && fbData.events_received === 1) {
-      return { success: true, response: `Meta accepted: ${fbData.events_received} event(s) received` };
+      return { success: true, response: `Meta accepted: ${fbData.events_received} event(s) received`, payload: body };
     } else {
       const errMsg = fbData.error?.message || fbData.error?.error_user_msg || JSON.stringify(fbData);
-      return { success: false, error: errMsg, response: JSON.stringify(fbData).substring(0, 500) };
+      return { success: false, error: errMsg, response: JSON.stringify(fbData).substring(0, 500), payload: body };
     }
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -529,6 +531,7 @@ export async function sendAndRecordCapiEvent(
       status,
       response: result.response,
       attempts: currentAttempts + 1,
+      payloadSent: result.payload,
     });
     return { success: true, status, response: result.response };
   } else {
@@ -538,6 +541,7 @@ export async function sendAndRecordCapiEvent(
       error: result.error,
       response: result.response,
       attempts: currentAttempts + 1,
+      payloadSent: result.payload,
     });
     return { success: false, status: "failed", error: result.error };
   }

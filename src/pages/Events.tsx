@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
@@ -13,6 +13,7 @@ export default function Events() {
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [capiStatus, setCapiStatus] = useState<any>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -172,12 +173,14 @@ export default function Events() {
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Lead Name</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Created</th>
                 <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Sent</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Payload</th>
                 <th className="py-2.5 pr-4 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Action</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((ev: any) => (
-                <tr key={ev._id} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
+                <Fragment key={ev._id}>
+                <tr className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
                   <td className="px-4 py-3 pr-4 font-medium text-[#0a0a0a] text-sm">{ev.eventName}</td>
                   <td className="py-3 pr-4">
                     <span className={stageClass(ev.stage)}>
@@ -196,6 +199,18 @@ export default function Events() {
                   </td>
                   <td className="py-3 pr-4 text-muted tabular-nums text-xs">
                     {ev.lastAttemptAt ? new Date(ev.lastAttemptAt).toLocaleString() : '—'}
+                  </td>
+                  <td className="py-3 pr-4">
+                    {ev.payloadSent ? (
+                      <button
+                        onClick={() => setExpandedId(expandedId === ev._id ? null : ev._id)}
+                        className="text-xs font-medium text-muted hover:text-[#0a0a0a] transition-all-expo"
+                      >
+                        {expandedId === ev._id ? 'Hide' : 'View'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
                   </td>
                   <td className="py-3 pr-4">
                     {ev.status === 'pending' ? (
@@ -241,6 +256,25 @@ export default function Events() {
                     {cancelError && <span className="text-xs text-red-500 ml-2">{cancelError}</span>}
                   </td>
                 </tr>
+                {expandedId === ev._id && ev.payloadSent && (
+                  <tr className="border-b border-[#f5f5f5] bg-[#fafafa]">
+                    <td colSpan={8} className="px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-wider font-medium text-muted mb-1.5">
+                        Payload sent to Meta
+                      </p>
+                      <pre className="text-[11px] leading-relaxed text-[#0a0a0a] whitespace-pre-wrap break-all bg-white border border-card-border rounded-md p-3 max-h-80 overflow-auto">
+                        {(() => {
+                          try {
+                            return JSON.stringify(JSON.parse(ev.payloadSent), null, 2)
+                          } catch {
+                            return ev.payloadSent
+                          }
+                        })()}
+                      </pre>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

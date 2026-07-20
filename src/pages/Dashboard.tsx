@@ -144,6 +144,20 @@ export default function Dashboard() {
     return { total, byStage, funnel, activityByDate: byDate }
   }, [filteredLeads])
 
+  // Ad-level breakdown: which ads actually produce ConversionLeads/Purchases,
+  // not just raw lead volume.
+  const byAdStats = useMemo(() => {
+    const map = new Map<string, { adName: string; total: number; byStage: Record<string, number> }>()
+    for (const l of filteredLeads) {
+      const adName = l.adName || 'Unknown / Organic'
+      if (!map.has(adName)) map.set(adName, { adName, total: 0, byStage: {} })
+      const entry = map.get(adName)!
+      entry.total++
+      entry.byStage[l.stage] = (entry.byStage[l.stage] || 0) + 1
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total)
+  }, [filteredLeads])
+
   const hasFilters = datePreset !== 'all' || stageFilter || campaignFilter || formFilter || sourceFilter || showTestLeads
 
   const clearFilters = () => {
@@ -578,6 +592,49 @@ export default function Dashboard() {
               <p className="text-xs text-muted py-8 text-center">No data in this range</p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Ad Performance */}
+      <div className="border border-card-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Ad Performance</h2>
+          <span className="text-[10px] text-muted tabular-nums">{byAdStats.length} ads</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-card-border bg-[#fafafa]">
+                <th className="px-6 py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa]">Ad Name</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Total</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Contact</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Prospect</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Conv. Lead</th>
+                <th className="py-2.5 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Purchase</th>
+                <th className="py-2.5 pr-6 text-[11px] uppercase tracking-wider font-medium text-muted sticky top-0 z-2 bg-[#fafafa] text-right">Conv. Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byAdStats.map((ad) => {
+                const converted = (ad.byStage.ConversionLead || 0) + (ad.byStage.Purchase || 0)
+                const rate = ad.total > 0 ? Math.round((converted / ad.total) * 100) : 0
+                return (
+                  <tr key={ad.adName} className="border-b border-[#f5f5f5] hover:bg-[#fafafa] transition-all-expo">
+                    <td className="px-6 py-3 pr-4 font-medium text-[#0a0a0a] text-xs max-w-[260px] truncate" title={ad.adName}>{ad.adName}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums text-xs">{ad.total}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums text-xs text-muted">{ad.byStage.Contact || 0}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums text-xs text-muted">{ad.byStage.Prospect || 0}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums text-xs font-semibold text-[#0a0a0a]">{ad.byStage.ConversionLead || 0}</td>
+                    <td className="py-3 pr-4 text-right tabular-nums text-xs font-semibold text-[#0a0a0a]">{ad.byStage.Purchase || 0}</td>
+                    <td className="py-3 pr-6 text-right tabular-nums text-xs font-semibold">{rate}%</td>
+                  </tr>
+                )
+              })}
+              {byAdStats.length === 0 && (
+                <tr><td colSpan={7} className="text-xs text-muted py-8 text-center">No data in this range</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
