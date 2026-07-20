@@ -1,5 +1,9 @@
 [build]
-  command = "npm run build"
+  # Deploys the Convex schema/functions (using CONVEX_DEPLOY_KEY) before
+  # building the frontend, so production Convex never drifts from this repo's
+  # convex/ code. This value takes priority over any Build command set in the
+  # Netlify UI — edit it here, not in the dashboard.
+  command = "npx convex deploy --cmd 'npm run build'"
   publish = "dist"
   functions = "netlify/functions"
 
