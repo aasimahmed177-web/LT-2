@@ -186,10 +186,17 @@ router.put("/:id/stage", async (req: Request, res: Response) => {
       clientId,
     });
 
-    // Fire-and-forget CAPI send (non-blocking, stage change always succeeds)
-    triggerCapiAfterStageChange(lead.metaLeadId || convexLeadId, convexLeadId).catch((e) => {
-      console.error("[CAPI] Background send error:", e.message);
-    });
+    // Send the CAPI event(s) BEFORE responding. This must be awaited, not
+    // fire-and-forget: on serverless (Netlify/Lambda) the function is frozen
+    // the moment the response is sent, so any un-awaited background work never
+    // finishes and events would be stuck "pending" forever. A CAPI failure is
+    // caught here so it never fails the stage change itself — the event stays
+    // pending/failed and the scheduled capi-flush function will retry it.
+    try {
+      await triggerCapiAfterStageChange(lead.metaLeadId || convexLeadId, convexLeadId);
+    } catch (e: any) {
+      console.error("[CAPI] Stage-change send error:", e.message);
+    }
 
     res.json({ success: true, stage });
   } catch (err: any) {
