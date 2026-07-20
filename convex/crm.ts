@@ -18,18 +18,18 @@ export const STAGE_HIERARCHY: Record<string, number> = {
 // Set to "all" to disable suppression and send every positive stage change.
 const CAPI_SEND_MODE = "final_stage_only";
 
-// Maps CRM stages to CAPI event names.
-// Stages not in this map (Lead, NotQualified, etc.) do not generate CAPI events.
+// Maps CRM stages to CAPI event names, in ascending funnel order.
+// Stages not in this map (NotQualified, NoResponse, etc.) never generate CAPI events.
 //
-// The initial "Lead" stage intentionally has no entry here: Meta already records
-// a native Lead conversion the moment someone submits an on-Facebook Instant Form,
-// so sending another CAPI "Lead" event for that same moment would double-count it.
-// For the same reason, "ConversionLead" must NOT map to Meta's reserved "Lead"
-// standard event name either — it fires much later (when the CRM marks the lead
-// as a qualified conversion), so reusing "Lead" here previously created a second,
-// undeduplicated Lead conversion in Ads Manager for every lead that reached this
-// stage. It's mapped to a distinct custom event name instead.
+// Per Meta's Conversion Leads CRM integration docs, the "raw lead" stage should
+// be sent too ("send all stages as they are updated, including the raw lead"),
+// so "Lead" has its own entry here (created at ingestion time in
+// leads:upsertMetaLead, not here in updateStage). "ConversionLead" is mapped to
+// a distinct custom event name rather than reusing "Lead" again, since it fires
+// much later in the funnel and Meta's own examples use "Lead" specifically for
+// the initial stage.
 const CAPI_STAGE_EVENT_MAP: Record<string, string> = {
+  Lead: "Lead",
   Contact: "Contact",
   Prospect: "QualifiedLead",
   ConversionLead: "ConversionLead",
@@ -82,11 +82,10 @@ export const updateStage = mutation({
       reason: reason || undefined,
     });
 
-    // Create CAPI event for positive stage changes
+    // Create CAPI event(s) for positive stage changes
     const capiEventName = CAPI_STAGE_EVENT_MAP[stage];
+    let capiEventsCreated = 0;
     if (capiEventName) {
-      const eventTime = Math.floor(Date.now() / 1000);
-      const eventId = `${lead.metaLeadId}_${stage}_${eventTime}`;
       const newStageScore = STAGE_HIERARCHY[stage] ?? -1;
 
       // Check existing events for this lead
@@ -95,52 +94,60 @@ export const updateStage = mutation({
         .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
         .collect();
 
-      if (CAPI_SEND_MODE === "final_stage_only") {
-        const highestStageScore = getHighestStageScore(existingEvents);
+      const highestStageScore = getHighestStageScore(existingEvents);
 
-        // If a higher-stage event already exists (sent or pending), suppress this one
-        if (highestStageScore > newStageScore) {
-          await ctx.db.insert("conversionLeadEvents", {
-            leadId,
-            metaLeadId: lead.metaLeadId,
-            eventName: capiEventName,
-            stage,
-            status: "suppressed",
-            createdAt: now,
-            attempts: 0,
-            clientId: clientId || undefined,
-            eventId,
-            action_source: "system_generated",
-            eventTime,
-          });
-          return { success: true, capiEventCreated: true, suppressed: true, reason: `Higher-stage event already exists` };
-        }
-
-        // Suppress any lower-stage pending events (this new stage supersedes them)
-        for (const existing of existingEvents) {
-          const existingScore = STAGE_HIERARCHY[existing.stage] ?? -1;
-          if (existing.status === "pending" && existingScore < newStageScore) {
-            await ctx.db.patch(existing._id, {
-              status: "suppressed",
-              updatedAt: now,
-            });
-          }
-        }
+      if (CAPI_SEND_MODE === "final_stage_only" && highestStageScore > newStageScore) {
+        // Backward move (e.g. correcting a mistaken stage) — a higher-stage
+        // event already exists, so just record this one as suppressed rather
+        // than backfilling a ladder that would contradict what was already sent.
+        const eventTime = Math.floor(Date.now() / 1000);
+        await ctx.db.insert("conversionLeadEvents", {
+          leadId,
+          metaLeadId: lead.metaLeadId,
+          eventName: capiEventName,
+          stage,
+          status: "suppressed",
+          createdAt: now,
+          attempts: 0,
+          clientId: clientId || undefined,
+          eventId: `${lead.metaLeadId}_${stage}_${eventTime}`,
+          action_source: "system_generated",
+          eventTime,
+        });
+        return { success: true, capiEventCreated: true, suppressed: true, reason: `Higher-stage event already exists` };
       }
 
-      await ctx.db.insert("conversionLeadEvents", {
-        leadId,
-        metaLeadId: lead.metaLeadId,
-        eventName: capiEventName,
-        stage,
-        status: "pending",
-        createdAt: now,
-        attempts: 0,
-        clientId: clientId || undefined,
-        eventId,
-        action_source: "system_generated",
-        eventTime,
-      });
+      // Forward move: per Meta's Conversion Leads guidance, every funnel rung
+      // should be reported — if the CRM jumps straight from Lead to
+      // ConversionLead (skipping Contact/Prospect), backfill CAPI events for
+      // every unfilled rung up to and including the new stage, not just the
+      // new stage alone. Rungs that already have an event (any status) are
+      // never recreated.
+      const stagesWithEvent = new Set(existingEvents.map((e: any) => e.stage));
+      const rungs = Object.keys(CAPI_STAGE_EVENT_MAP)
+        .filter((s) => {
+          const score = STAGE_HIERARCHY[s] ?? -1;
+          return score >= 0 && score <= newStageScore && !stagesWithEvent.has(s);
+        })
+        .sort((a, b) => (STAGE_HIERARCHY[a] ?? -1) - (STAGE_HIERARCHY[b] ?? -1));
+
+      for (const rung of rungs) {
+        const rungEventTime = Math.floor(Date.now() / 1000);
+        await ctx.db.insert("conversionLeadEvents", {
+          leadId,
+          metaLeadId: lead.metaLeadId,
+          eventName: CAPI_STAGE_EVENT_MAP[rung],
+          stage: rung,
+          status: "pending",
+          createdAt: now,
+          attempts: 0,
+          clientId: clientId || undefined,
+          eventId: `${lead.metaLeadId}_${rung}_${rungEventTime}`,
+          action_source: "system_generated",
+          eventTime: rungEventTime,
+        });
+        capiEventsCreated++;
+      }
     }
 
     // Also create legacy CRM event for ConversionLead and Purchase
@@ -157,7 +164,7 @@ export const updateStage = mutation({
       });
     }
 
-    return { success: true, capiEventCreated: !!capiEventName };
+    return { success: true, capiEventCreated: capiEventsCreated > 0, capiEventsCreated };
   },
 });
 

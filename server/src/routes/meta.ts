@@ -7,6 +7,16 @@ import { getClients, resolveClientId, resolveConvexClientId, checkDeployStatus }
 // from transient/API failures (e.g. to return a 400 instead of a 500 over HTTP).
 export class MetaConfigError extends Error {}
 
+// Must match convex/crm.ts's STAGE_HIERARCHY — used to order/compare pending
+// CAPI events when sending the "ladder" of funnel stages for a lead.
+const STAGE_HIERARCHY: Record<string, number> = {
+  Lead: 0,
+  Contact: 1,
+  Prospect: 2,
+  ConversionLead: 3,
+  Purchase: 4,
+};
+
 const router = Router();
 
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
@@ -191,8 +201,16 @@ export async function importLeadsForClient(rawClientId?: string) {
 formId,
           });
 
-          if (result.action === "inserted") totalImported++;
-          else totalUpdated++;
+          if (result.action === "inserted") {
+            totalImported++;
+            // Send the "Lead" CAPI event created by leads:upsertMetaLead for
+            // this brand-new lead (fire-and-forget — never block the import).
+            sendPendingCapiEventsForLead(metaLeadId, result.id).catch((e: any) => {
+              console.error("[CAPI] Background send error (new lead):", e.message);
+            });
+          } else {
+            totalUpdated++;
+          }
         }
       } catch (err: any) {
         formEntry.error = err.message;
@@ -364,7 +382,7 @@ function serializeCapiPayload(payload: any, rawLeadId?: string): string {
   return rawLeadId ? json.replace(`"${LEAD_ID_PLACEHOLDER}"`, rawLeadId) : json;
 }
 
-async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean; response?: string; error?: string }> {
+export async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean; response?: string; error?: string }> {
   const pixelId = process.env.META_PIXEL_ID;
   if (!pixelId) {
     return { success: false, error: "META_PIXEL_ID is not configured" };
@@ -489,6 +507,90 @@ router.get("/capi-status", (_req: Request, res: Response) => {
   });
 });
 
+// Sends a pending CAPI event and records the resulting status on it. Shared
+// by the HTTP route below and sendPendingCapiEventsForLead() (called directly,
+// in-process, from stage-change/ingestion handlers — not over HTTP, since
+// there's no localhost server to call inside a Netlify Function).
+export async function sendAndRecordCapiEvent(
+  eventId: string
+): Promise<{ success: boolean; status: string; response?: string; error?: string }> {
+  const result = await sendCapiEvent(eventId);
+
+  let currentAttempts = 0;
+  try {
+    const event: any = await getConvex().query("crm:getCapiEventById", { id: eventId });
+    currentAttempts = event?.attempts || 0;
+  } catch { /* ignore */ }
+
+  if (result.success) {
+    const status = META_CAPI_DRY_RUN ? "skipped" : "sent";
+    await getConvex().mutation("crm:updateCapiEventStatus", {
+      eventId: eventId as any,
+      status,
+      response: result.response,
+      attempts: currentAttempts + 1,
+    });
+    return { success: true, status, response: result.response };
+  } else {
+    await getConvex().mutation("crm:updateCapiEventStatus", {
+      eventId: eventId as any,
+      status: "failed",
+      error: result.error,
+      response: result.response,
+      attempts: currentAttempts + 1,
+    });
+    return { success: false, status: "failed", error: result.error };
+  }
+}
+
+// Sends every pending CAPI event for a lead, in ascending funnel order (Lead,
+// Contact, QualifiedLead, ...) — a single stage jump can produce several
+// pending "ladder" events at once (see crm:updateStage), and Meta should
+// receive them in funnel order rather than arbitrarily/in parallel.
+export async function sendPendingCapiEventsForLead(leadId: string, convexLeadId: string): Promise<void> {
+  try {
+    const events: any[] = await getConvex().query("crm:listEventsByLead", { leadId: convexLeadId as any });
+    const pendingEvents = events
+      .filter((e: any) => e.status === "pending" && e.eventId)
+      .sort((a: any, b: any) => (STAGE_HIERARCHY[a.stage] ?? -1) - (STAGE_HIERARCHY[b.stage] ?? -1));
+    if (pendingEvents.length === 0) return;
+
+    if (!process.env.META_PIXEL_ID || !META_ACCESS_TOKEN) {
+      console.log(`[CAPI] Skipping ${pendingEvents.length} pending event(s) for lead ${leadId}: CAPI not configured`);
+      return;
+    }
+
+    for (const pendingEvent of pendingEvents) {
+      const pendingScore = STAGE_HIERARCHY[pendingEvent.stage] ?? -1;
+      const hasHigherSent = events.some(
+        (e: any) => e.status === "sent" && (STAGE_HIERARCHY[e.stage] ?? -1) > pendingScore
+      );
+      if (hasHigherSent) {
+        console.log(`[CAPI] Suppressing ${pendingEvent.eventName} (${pendingEvent.stage}) for lead ${leadId}: higher-stage event already sent`);
+        await getConvex().mutation("crm:updateCapiEventStatus", {
+          eventId: pendingEvent._id as any,
+          status: "suppressed",
+          response: "Superseded by higher-stage event",
+        });
+        continue;
+      }
+
+      try {
+        const result = await sendAndRecordCapiEvent(pendingEvent._id);
+        if (result.success) {
+          console.log(`[CAPI] Event ${pendingEvent.eventName} (${pendingEvent.stage}) sent for lead ${leadId}: ${result.status}`);
+        } else {
+          console.log(`[CAPI] Event ${pendingEvent.eventName} (${pendingEvent.stage}) failed for lead ${leadId}: ${result.error}`);
+        }
+      } catch (sendErr: any) {
+        console.error(`[CAPI] Send error for ${pendingEvent.eventName} (${pendingEvent.stage}), lead ${leadId}:`, sendErr.message);
+      }
+    }
+  } catch (err: any) {
+    console.error("[CAPI] sendPendingCapiEventsForLead error:", err.message);
+  }
+}
+
 // POST /api/meta/send-capi-event - send a pending CAPI event by its Convex event ID
 router.post("/send-capi-event", async (_req: Request, res: Response) => {
   try {
@@ -498,34 +600,8 @@ router.post("/send-capi-event", async (_req: Request, res: Response) => {
       return;
     }
 
-    const result = await sendCapiEvent(eventId);
-
-    // Get current event to read attempts
-    let currentAttempts = 0;
-    try {
-      const event: any = await getConvex().query("crm:getCapiEventById", { id: eventId });
-      currentAttempts = event?.attempts || 0;
-    } catch { /* ignore */ }
-
-    if (result.success) {
-      const status = META_CAPI_DRY_RUN ? "skipped" : "sent";
-      await getConvex().mutation("crm:updateCapiEventStatus", {
-        eventId: eventId as any,
-        status,
-        response: result.response,
-        attempts: currentAttempts + 1,
-      });
-      res.json({ success: true, status, response: result.response });
-    } else {
-      await getConvex().mutation("crm:updateCapiEventStatus", {
-        eventId: eventId as any,
-        status: "failed",
-        error: result.error,
-        response: result.response,
-        attempts: currentAttempts + 1,
-      });
-      res.json({ success: false, status: "failed", error: result.error });
-    }
+    const result = await sendAndRecordCapiEvent(eventId);
+    res.json(result);
   } catch (err: any) {
     console.error("CAPI send error:", err.message);
     res.status(500).json({ error: "Failed to send CAPI event", detail: err.message });

@@ -136,6 +136,28 @@ export const upsertMetaLead = mutation({
       formName: args.formName,
       formId: args.formId,
     });
+
+    // Per Meta's Conversion Leads CRM integration docs, the raw/initial lead
+    // stage should be reported too, not just later funnel stages — mirrors the
+    // "Lead" entry in crm.ts's CAPI_STAGE_EVENT_MAP. Created here (at ingestion)
+    // rather than in crm:updateStage, since there's no explicit stage-change
+    // call for a lead's very first stage.
+    const now = new Date().toISOString();
+    const eventTime = Math.floor(Date.now() / 1000);
+    await ctx.db.insert("conversionLeadEvents", {
+      leadId: id,
+      metaLeadId: args.metaLeadId,
+      eventName: "Lead",
+      stage: "Lead",
+      status: "pending",
+      createdAt: now,
+      attempts: 0,
+      clientId: args.clientId ? String(args.clientId) : undefined,
+      eventId: `${args.metaLeadId}_Lead_${eventTime}`,
+      action_source: "system_generated",
+      eventTime,
+    });
+
     return { action: "inserted", id };
   },
 });
