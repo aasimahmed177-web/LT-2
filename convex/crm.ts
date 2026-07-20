@@ -272,6 +272,18 @@ export const listEvents = query({
   },
 });
 
+// Used by the failed-event retry scheduled function — indexed lookup rather
+// than filtering listEvents() client-side.
+export const listEventsByStatus = query({
+  args: { status: v.string() },
+  handler: async (ctx, { status }) => {
+    return await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_status", (q) => q.eq("status", status))
+      .collect();
+  },
+});
+
 export const getCapiEventByEventId = query({
   args: { eventId: v.string() },
   handler: async (ctx, { eventId }) => {
