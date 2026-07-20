@@ -70,13 +70,20 @@ initDefaultClient()
 export async function checkDeployStatus(): Promise<{ available: boolean; reason?: string }> {
   try {
     const convex = getConvex()
-    await convex.query("clients:list")
+    const existingClients: any[] = await convex.query("clients:list")
     useConvexBackend = true
     // In a serverless deployment there's no persistent startup hook (unlike the
     // standalone server's autoBackfillMetaConfig()), so the logical->Convex ID
     // mapping must be (re)built within this same invocation rather than relying
-    // on some earlier warm-container request having already done it.
-    await syncFromConvex()
+    // on some earlier warm-container request having already done it. And on a
+    // freshly-provisioned Convex deployment there may be zero client records at
+    // all — nothing else auto-creates the first one, so self-heal here rather
+    // than depending on someone manually hitting POST /api/clients/backfill.
+    if (existingClients.length === 0) {
+      await backfillDefaultClient()
+    } else {
+      await syncFromConvex()
+    }
     return { available: true }
   } catch (err: any) {
     useConvexBackend = false
