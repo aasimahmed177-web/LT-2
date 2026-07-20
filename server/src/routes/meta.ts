@@ -346,6 +346,24 @@ function splitName(fullName: string): { first: string; last: string } {
   return { first, last };
 }
 
+// Meta's Conversion Leads CRM integration docs mark user_data.lead_id (the raw,
+// UNHASHED leadgen_id from the Lead Ads webhook) as the highest-priority match
+// key — "if sending lead_id, please use a valid lead_id or else the system
+// will reject the event." Facebook lead IDs can be 15-17 digits, which exceeds
+// Number.MAX_SAFE_INTEGER, so we never pass it through a JS Number (that can
+// silently round it) — instead we splice the raw digit string into the
+// serialized JSON as a literal, matching the bare-integer format Meta expects.
+const LEAD_ID_PLACEHOLDER = "__LEAD_ID_PLACEHOLDER__";
+
+function leadIdDigits(metaLeadId?: string): string | undefined {
+  return metaLeadId && /^\d+$/.test(metaLeadId) ? metaLeadId : undefined;
+}
+
+function serializeCapiPayload(payload: any, rawLeadId?: string): string {
+  const json = JSON.stringify(payload);
+  return rawLeadId ? json.replace(`"${LEAD_ID_PLACEHOLDER}"`, rawLeadId) : json;
+}
+
 async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean; response?: string; error?: string }> {
   const pixelId = process.env.META_PIXEL_ID;
   if (!pixelId) {
@@ -382,9 +400,18 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     } else if (lead._id) {
       userData.external_id = hashValue(lead._id);
     }
+    const rawLeadId = leadIdDigits(lead.metaLeadId);
+    if (rawLeadId) {
+      // Placeholder only — the real digits get spliced in at serialization time.
+      (userData as any).lead_id = LEAD_ID_PLACEHOLDER;
+    }
 
-    // Build custom_data — non-sensitive audit fields only
+    // Build custom_data. lead_event_source + event_source are REQUIRED by
+    // Meta for the event to register as a Conversion Leads event at all —
+    // without them, Meta silently treats it as a generic CAPI event instead.
     const customData: Record<string, any> = {
+      lead_event_source: "LeadTrace CRM",
+      event_source: "crm",
       crm_stage: event.stage,
       source: "leadtrace_crm",
     };
@@ -418,9 +445,11 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
       payload.test_event_code = META_TEST_EVENT_CODE;
     }
 
+    const body = serializeCapiPayload(payload, rawLeadId);
+
     // Dry-run check
     if (META_CAPI_DRY_RUN) {
-      console.log(`[CAPI DRY-RUN] Would send event:`, JSON.stringify(payload, null, 2));
+      console.log(`[CAPI DRY-RUN] Would send event:`, body);
       return { success: true, response: "Dry-run mode: event recorded but not sent" };
     }
 
@@ -429,7 +458,7 @@ async function sendCapiEvent(convexEventId: string): Promise<{ success: boolean;
     const fbRes = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body,
     });
     const fbData: any = await fbRes.json();
 
@@ -541,6 +570,12 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
       const hash = hashValue(lead._id);
       userDataPreview.external_id = hash.substring(0, 6) + "...";
     }
+    // lead_id is sent raw/unhashed (not sensitive PII — it's just Meta's own
+    // lead identifier), so show it in full rather than redacted.
+    const rawLeadId = leadIdDigits(lead.metaLeadId);
+    if (rawLeadId) {
+      userDataPreview.lead_id = rawLeadId;
+    }
 
     res.json({
       leadId: lead._id,
@@ -550,6 +585,8 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
       metaLeadId: lead.metaLeadId ? `${lead.metaLeadId.substring(0, 6)}...` : undefined,
       userData: userDataPreview,
       customData: {
+        lead_event_source: "LeadTrace CRM",
+        event_source: "crm",
         crm_stage: lead.stage,
         source: "leadtrace_crm",
         meta_lead_id: lead.metaLeadId || undefined,
@@ -562,6 +599,7 @@ router.get("/preview-payload/:leadId", async (req: Request, res: Response) => {
         ...(!lead.email ? ["em (email not available)"] : []),
         ...(!lead.phone ? ["ph (phone not available)"] : []),
         ...(!lead.name ? ["fn, ln (name not available)"] : []),
+        ...(!rawLeadId ? ["lead_id (metaLeadId missing or non-numeric)"] : []),
         ...(!lead.metaLeadId && !lead._id ? ["external_id (no ID available)"] : []),
       ],
       warning: "REDACTED PREVIEW — No event was sent to Meta. Hash prefixes shown (first 6 chars).",
