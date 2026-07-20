@@ -72,6 +72,11 @@ export async function checkDeployStatus(): Promise<{ available: boolean; reason?
     const convex = getConvex()
     await convex.query("clients:list")
     useConvexBackend = true
+    // In a serverless deployment there's no persistent startup hook (unlike the
+    // standalone server's autoBackfillMetaConfig()), so the logical->Convex ID
+    // mapping must be (re)built within this same invocation rather than relying
+    // on some earlier warm-container request having already done it.
+    await syncFromConvex()
     return { available: true }
   } catch (err: any) {
     useConvexBackend = false

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { getConvex } from "../convexClient.js";
-import { getClients, resolveClientId, resolveConvexClientId } from "../clients.js";
+import { getClients, resolveClientId, resolveConvexClientId, checkDeployStatus } from "../clients.js";
 
 // Thrown when required Meta env config is missing — callers can distinguish this
 // from transient/API failures (e.g. to return a 400 instead of a 500 over HTTP).
@@ -97,6 +97,13 @@ export async function importLeadsForClient(rawClientId?: string) {
   if (!META_ACCESS_TOKEN || !META_PAGE_ID) {
     throw new MetaConfigError("META_ACCESS_TOKEN and META_PAGE_ID must be configured");
   }
+
+  // Ensure the logical->Convex client ID mapping is populated within THIS
+  // invocation before resolving IDs — in a serverless deployment there's no
+  // guarantee an earlier request already warmed this container's in-memory
+  // state, and passing an unresolved logical ID (e.g. "default") into a
+  // Convex mutation expecting v.id("clients") fails validation for every lead.
+  await checkDeployStatus();
 
   const clientId = resolveClientId(rawClientId);
   const convexClientId = resolveConvexClientId(clientId);
