@@ -31,7 +31,7 @@ app.listen(PORT, () => {
   // Auto-sync Meta leads on an interval (standalone-server only; the Netlify
   // deployment uses a Scheduled Function instead, since setInterval doesn't
   // survive across serverless invocations).
-  const AUTO_SYNC_INTERVAL = parseInt(process.env.AUTO_SYNC_INTERVAL || "600000", 10);
+  const AUTO_SYNC_INTERVAL = parseInt(process.env.AUTO_SYNC_INTERVAL || "86400000", 10); // default: once daily
   if (AUTO_SYNC_INTERVAL > 0) {
     console.log(`[Auto-sync] Scheduling Meta lead import every ${AUTO_SYNC_INTERVAL / 60000} minutes`);
     setInterval(async () => {
