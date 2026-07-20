@@ -1,7 +1,11 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { getConvex } from "../convexClient.js";
-import { resolveClientId, resolveConvexClientId } from "../clients.js";
+import { getClients, resolveClientId, resolveConvexClientId } from "../clients.js";
+
+// Thrown when required Meta env config is missing — callers can distinguish this
+// from transient/API failures (e.g. to return a 400 instead of a 500 over HTTP).
+export class MetaConfigError extends Error {}
 
 const router = Router();
 
@@ -86,16 +90,15 @@ async function paginatedFetch(
   return { allData, pagesFetched: pageCount };
 }
 
-// POST /api/meta/import-leads
-router.post("/import-leads", async (_req: Request, res: Response) => {
+// Core lead-import logic, independent of Express req/res so it can be called
+// directly from a scheduled/cron job (Netlify Scheduled Function) as well as
+// the HTTP route below.
+export async function importLeadsForClient(rawClientId?: string) {
   if (!META_ACCESS_TOKEN || !META_PAGE_ID) {
-    res.status(400).json({
-      error: "META_ACCESS_TOKEN and META_PAGE_ID must be configured",
-    });
-    return;
+    throw new MetaConfigError("META_ACCESS_TOKEN and META_PAGE_ID must be configured");
   }
 
-  const clientId = resolveClientId(_req.query.clientId as string);
+  const clientId = resolveClientId(rawClientId);
   const convexClientId = resolveConvexClientId(clientId);
   let syncRunId: string | null = null;
 
@@ -228,13 +231,44 @@ clientId,
         console.error("Failed to complete sync run:", err.message);
       }
     }
-    res.json(result);
+    return result;
   } catch (err: any) {
     // Fail sync run if one was created
     if (syncRunId) {
       try {
         await getConvex().mutation("clients:failSyncRun", { syncRunId, error: err.message });
       } catch { /* ignore */ }
+    }
+    throw err;
+  }
+}
+
+// Runs importLeadsForClient() for every known client — used by the Netlify
+// scheduled function (and the standalone dev server's setInterval loop) in
+// place of the old self-HTTP-call pattern, which only works when there's a
+// persistent localhost server to call.
+export async function runImportForAllClients() {
+  const results: { clientId: string; clientName: string; result?: any; error?: string }[] = [];
+  for (const client of getClients()) {
+    try {
+      const result = await importLeadsForClient(client.id);
+      results.push({ clientId: client.id, clientName: client.name, result });
+    } catch (err: any) {
+      results.push({ clientId: client.id, clientName: client.name, error: err.message });
+    }
+  }
+  return results;
+}
+
+// POST /api/meta/import-leads
+router.post("/import-leads", async (req: Request, res: Response) => {
+  try {
+    const result = await importLeadsForClient(req.query.clientId as string);
+    res.json(result);
+  } catch (err: any) {
+    if (err instanceof MetaConfigError) {
+      res.status(400).json({ error: err.message });
+      return;
     }
     console.error("Import error:", err);
     res.status(500).json({ error: "Import failed", detail: err.message });
@@ -258,15 +292,44 @@ function hashValue(val: string): string {
   return crypto.createHash("sha256").update(val.toLowerCase().trim()).digest("hex");
 }
 
-function hashPhone(phone: string): string {
-  // Strip all non-digit characters
-  let cleaned = phone.replace(/[^\d]/g, "");
-  // Indian normalization: if 10-digit number, prepend 91
-  if (cleaned.length === 10) {
-    cleaned = "91" + cleaned;
+// Meta requires `ph` to be hashed only after normalizing to digits-only E.164
+// (country code + subscriber number, no `+`, no leading zeros, no symbols).
+// This is a heuristic, not a full phone-number library: it handles explicit
+// "+"/"00" international prefixes and a single national trunk "0", and only
+// falls back to DEFAULT_PHONE_COUNTRY_CODE for bare national-length numbers.
+// For fully robust multi-country parsing, swap this for libphonenumber-js.
+function normalizePhoneDigits(phone: string): string {
+  const defaultCountryCode = (process.env.DEFAULT_PHONE_COUNTRY_CODE || "91").replace(/\D/g, "");
+
+  const hadPlus = phone.trim().startsWith("+");
+  let cleaned = phone.replace(/\D/g, "");
+
+  if (hadPlus) {
+    // Already has an explicit country code — trust it as-is.
+    return cleaned;
   }
+
+  // "00" international dialing prefix is equivalent to "+"
+  if (cleaned.startsWith("00")) {
+    return cleaned.slice(2);
+  }
+
+  // Single national trunk prefix (e.g. "0" + 10-digit local number)
+  if (cleaned.length === 11 && cleaned.startsWith("0")) {
+    cleaned = cleaned.slice(1);
+  }
+
+  // Bare national number (no country code) — apply the configured default.
+  if (cleaned.length === 10) {
+    cleaned = defaultCountryCode + cleaned;
+  }
+
+  return cleaned;
+}
+
+function hashPhone(phone: string): string {
   // SHA256 hash the normalized phone (Meta requires hashed ph)
-  return crypto.createHash("sha256").update(cleaned).digest("hex");
+  return crypto.createHash("sha256").update(normalizePhoneDigits(phone)).digest("hex");
 }
 
 function splitName(fullName: string): { first: string; last: string } {

@@ -20,10 +20,19 @@ const CAPI_SEND_MODE = "final_stage_only";
 
 // Maps CRM stages to CAPI event names.
 // Stages not in this map (Lead, NotQualified, etc.) do not generate CAPI events.
+//
+// The initial "Lead" stage intentionally has no entry here: Meta already records
+// a native Lead conversion the moment someone submits an on-Facebook Instant Form,
+// so sending another CAPI "Lead" event for that same moment would double-count it.
+// For the same reason, "ConversionLead" must NOT map to Meta's reserved "Lead"
+// standard event name either — it fires much later (when the CRM marks the lead
+// as a qualified conversion), so reusing "Lead" here previously created a second,
+// undeduplicated Lead conversion in Ads Manager for every lead that reached this
+// stage. It's mapped to a distinct custom event name instead.
 const CAPI_STAGE_EVENT_MAP: Record<string, string> = {
   Contact: "Contact",
   Prospect: "QualifiedLead",
-  ConversionLead: "Lead",
+  ConversionLead: "ConversionLead",
   Purchase: "Purchase",
 };
 

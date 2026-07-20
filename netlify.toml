@@ -1,0 +1,21 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# API requests go to the Express app running as a Netlify Function.
+# (Function handlers read the original request path from the Lambda event,
+# not the redirect destination, so the "/api/*" prefix is preserved.)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# SPA fallback — everything else is client-side routed.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
