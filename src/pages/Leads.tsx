@@ -363,9 +363,9 @@ useEffect(() => {
   )
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-5">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Leads</h1>
           <p className="text-sm text-muted mt-0.5">
@@ -374,7 +374,7 @@ useEffect(() => {
             {processedTotal > PAGE_SIZE && <span className="text-muted/60 ml-1">· Page {page + 1} of {totalPages}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleExport}
             disabled={processedTotal === 0}
@@ -545,6 +545,7 @@ useEffect(() => {
           </div>
         ) : (
           <>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-card-border bg-[#fafafa] table-sticky-header">
@@ -622,10 +623,11 @@ useEffect(() => {
               )})}
             </tbody>
           </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-card-border bg-[#fafafa]">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-card-border bg-[#fafafa]">
               <span className="text-[11px] text-muted">
                 Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, processedTotal)} of {processedTotal}
               </span>
@@ -672,7 +674,7 @@ useEffect(() => {
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[min(680px,calc(100vw-3rem))]">
-          <div className="flex items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg px-4 py-3">
             <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums whitespace-nowrap">
               {selectedIds.size} selected
             </span>

@@ -121,20 +121,20 @@ export default function Settings() {
   }
 
   const ConfigRow = ({ label, ok, detail, warning }: { label: string; ok: boolean; detail?: string; warning?: string }) => (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-500' : warning ? 'bg-amber-400' : 'bg-red-400'}`} />
+    <div className="flex items-center gap-3 py-1.5 flex-wrap">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${ok ? 'bg-emerald-500' : warning ? 'bg-amber-400' : 'bg-red-400'}`} />
       <span className="text-sm text-[#0a0a0a]">{label}</span>
       <span className={`text-xs font-medium ${ok ? 'text-emerald-600' : warning ? 'text-amber-600' : 'text-red-500'}`}>
         {ok ? 'Configured' : warning || 'Not configured'}
       </span>
-      {detail && <span className="text-xs text-muted ml-1 font-mono">{detail}</span>}
+      {detail && <span className="text-xs text-muted ml-1 font-mono break-all">{detail}</span>}
     </div>
   )
 
   const displayResult = result || lastResult
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -175,7 +175,7 @@ export default function Settings() {
             {/* Environment Status */}
             <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Environment</p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Convex URL" ok={systemHealth.convex?.configured} />
                 <ConfigRow label="Meta Page ID" ok={systemHealth.meta?.pageIdConfigured} detail={systemHealth.meta?.pageId} />
                 <ConfigRow label="Meta Pixel / Dataset ID" ok={systemHealth.meta?.pixelIdConfigured} detail={systemHealth.meta?.pixelId} />
@@ -187,7 +187,7 @@ export default function Settings() {
             {/* CAPI Mode */}
             <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">CAPI Mode</p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Dry-run mode" ok={systemHealth.capi?.dryRun} warning={!systemHealth.capi?.dryRun ? 'OFF' : undefined} />
                 <ConfigRow label="Live sending" ok={systemHealth.capi?.liveSendingEnabled} warning={!systemHealth.capi?.liveSendingEnabled ? 'Disabled' : undefined} />
               </div>
@@ -196,7 +196,7 @@ export default function Settings() {
             {/* Client */}
             <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Client</p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                 <ConfigRow label="Client name" ok={!!systemHealth.client?.name} detail={systemHealth.client?.name || ''} />
                 <ConfigRow label="Total real leads" ok={systemHealth.leads?.totalReal > 0} detail={String(systemHealth.leads?.totalReal || 0)} />
               </div>
@@ -206,7 +206,7 @@ export default function Settings() {
             {systemHealth.events && (
               <div className="pt-2 border-t border-card-border/50">
                 <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Event counts</p>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: 'Sent', value: systemHealth.events.sent, color: 'text-emerald-600' },
                     { label: 'Pending', value: systemHealth.events.pending, color: 'text-gray-500' },
@@ -227,7 +227,7 @@ export default function Settings() {
             )}
 
             {/* Last event timestamps */}
-            <div className="pt-2 border-t border-card-border/50 grid grid-cols-2 gap-4">
+            <div className="pt-2 border-t border-card-border/50 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-0.5">Last sent event</p>
                 {systemHealth.lastSentEvent ? (
@@ -444,7 +444,7 @@ export default function Settings() {
           </div>
           <div className="pt-2 mt-2 border-t border-card-border/50">
             <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-2">Event counts</p>
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
                 { label: 'Pending', value: eventCounts?.pending || 0, color: 'text-gray-500' },
                 { label: 'Sent', value: eventCounts?.sent || 0, color: 'text-emerald-600' },
@@ -632,7 +632,7 @@ export default function Settings() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { label: 'Forms Scanned', value: displayResult.formsScanned },
                 { label: 'Leads Created', value: displayResult.created },

@@ -115,7 +115,7 @@ export default function CsvImport() {
   const applyDisabled = !preview || preview.error || !needsApply || applying || hasResult
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">CSV Import</h1>
@@ -212,7 +212,7 @@ export default function CsvImport() {
         <div className="space-y-6">
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="kpi-card">
                 <p className="text-[10px] text-muted font-medium uppercase tracking-wider">Total Rows</p>
                 <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums leading-none">{summary.total}</p>
@@ -353,8 +353,8 @@ export default function CsvImport() {
 
       {/* ── Sticky Action Bar ────────────────────────────────────── */}
       {preview && !preview.error && !loading && !hasResult && (
-        <div className="sticky bottom-0 z-30 -mx-8 px-8 pb-6 pt-4 bg-gradient-to-t from-white via-white to-transparent">
-          <div className="flex items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg p-4">
+        <div className="sticky bottom-0 z-30 -mx-4 px-4 sm:-mx-8 sm:px-8 pb-6 pt-4 bg-gradient-to-t from-white via-white to-transparent">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-card-border bg-white shadow-lg p-4">
             <button
               onClick={() => setShowConfirm(true)}
               disabled={applyDisabled}
@@ -376,7 +376,7 @@ export default function CsvImport() {
             {!needsApply && previewRows.length > 0 && (
               <p className="text-xs text-muted italic ml-2">No stage changes detected — nothing to apply.</p>
             )}
-            <div className="flex-1 text-right text-xs text-muted">
+            <div className="flex-1 min-w-full sm:min-w-0 text-left sm:text-right text-xs text-muted">
               {summary?.matched || 0} matched · {summary?.stageChanges || 0} changes · {summary?.capiTriggering || 0} CAPI
             </div>
           </div>
@@ -409,7 +409,7 @@ export default function CsvImport() {
                     <p className="text-xs text-green-600">Stage changes, notes, and CAPI events have been applied</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                   <div className="bg-white rounded-lg p-3 border border-green-100 text-center">
                     <span className="text-[10px] text-muted uppercase tracking-wider">Updated</span>
                     <p className="text-2xl font-bold tabular-nums text-green-700">{applyResult.summary?.updated || 0}</p>
@@ -445,7 +445,7 @@ export default function CsvImport() {
               </div>
 
               {/* Navigation buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => navigate('/dashboard')}
                   className="px-5 py-2.5 text-sm font-medium rounded-lg bg-[#0a0a0a] text-white hover:opacity-90 transition-all-expo"

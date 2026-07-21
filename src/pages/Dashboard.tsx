@@ -302,9 +302,9 @@ export default function Dashboard() {
     : ''
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted mt-0.5">
@@ -400,7 +400,7 @@ export default function Dashboard() {
       </div>
 
       {/* Hero Section: Total Pipeline + Activity Chart */}
-      <div className="grid grid-cols-[1fr_2fr] gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-5">
         {/* Pipeline stat card */}
         <div className="border border-card-border rounded-xl p-6 flex flex-col justify-between transition-all-expo hover:border-[#d4d4d4]">
           <div>
@@ -574,7 +574,7 @@ export default function Dashboard() {
           Total Pipeline card above; repeating them here was pure duplication.
           Each card's stage-color dot matches its badge everywhere else in the
           app (Recent Leads below, Pipeline board, the funnel and outcome bar). */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { label: 'Contact', stage: 'Contact', value: filteredStats.byStage?.Contact || 0 },
           { label: 'Prospects', stage: 'Prospect', value: filteredStats.byStage?.Prospect || 0 },
@@ -594,7 +594,7 @@ export default function Dashboard() {
 
       {/* Lead Journey Funnel (cumulative) */}
       <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
-        <div className="flex items-baseline justify-between mb-1">
+        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 mb-1">
           <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Lead Journey</h2>
           <span className="text-[10px] text-[#5f5f5f]">Cumulative — each step counts every lead that reached at least that far</span>
         </div>
@@ -625,17 +625,17 @@ export default function Dashboard() {
             return Math.max(p / 2, c > 0 ? 1.2 : 0.35)
           }
           return (
-            <div className="flex items-stretch" style={{ height: H }}>
+            <div className="flex items-stretch overflow-x-auto" style={{ height: H }}>
               {/* Left gutter: what the step is */}
-              <div className="w-[170px] shrink-0">
+              <div className="w-[100px] sm:w-[170px] shrink-0">
                 {steps.map((s, i) => {
                   const prev = i > 0 ? steps[i - 1].count : s.count
                   const stepConv = i > 0 && prev > 0 ? Math.round((s.count / prev) * 100) : null
                   return (
                     <div key={s.key} className="flex flex-col justify-center" style={{ height: BAND }}>
-                      <span className="text-[13px] font-semibold text-[#0a0a0a] leading-tight">{s.label}</span>
+                      <span className="text-[12px] sm:text-[13px] font-semibold text-[#0a0a0a] leading-tight">{s.label}</span>
                       {stepConv !== null && (
-                        <span className="text-[10px] text-[#5f5f5f] tabular-nums leading-tight">{stepConv}% of previous</span>
+                        <span className="text-[10px] text-[#5f5f5f] tabular-nums leading-tight">{stepConv}% of prev.</span>
                       )}
                     </div>
                   )
@@ -643,7 +643,7 @@ export default function Dashboard() {
               </div>
 
               {/* The funnel itself — width of each band is that step's share of all leads */}
-              <div className="flex-1 min-w-0 px-3">
+              <div className="flex-1 min-w-[60px] px-3">
                 <svg
                   viewBox={`0 0 100 ${H}`}
                   preserveAspectRatio="none"
@@ -668,18 +668,18 @@ export default function Dashboard() {
               </div>
 
               {/* Right gutter: how many, and who was lost getting here */}
-              <div className="w-[230px] shrink-0">
+              <div className="w-[110px] sm:w-[230px] shrink-0">
                 {steps.map((s) => {
                   const pctOfTotal = journey.total > 0 ? (s.count / journey.total) * 100 : 0
                   return (
-                    <div key={s.key} className="flex items-center justify-end gap-2" style={{ height: BAND }}>
+                    <div key={s.key} className="flex items-center justify-end gap-1.5 sm:gap-2" style={{ height: BAND }}>
                       {s.lost > 0 && (
-                        <span className="text-[10px] text-red-600 tabular-nums text-right leading-tight">
+                        <span className="hidden sm:inline text-[10px] text-red-600 tabular-nums text-right leading-tight">
                           −{s.lost} {s.lostLabel}
                         </span>
                       )}
-                      <span className="text-[17px] font-bold text-[#0a0a0a] tabular-nums">{s.count}</span>
-                      <span className="text-[10px] text-[#5f5f5f] tabular-nums w-8 text-right">
+                      <span className="text-[15px] sm:text-[17px] font-bold text-[#0a0a0a] tabular-nums">{s.count}</span>
+                      <span className="text-[10px] text-[#5f5f5f] tabular-nums w-7 sm:w-8 text-right">
                         {pctOfTotal.toFixed(0)}%
                       </span>
                     </div>
@@ -714,7 +714,7 @@ export default function Dashboard() {
           const sum = segments.reduce((n, s) => n + s.value, 0) || 1
           return (
             <div className="mt-6 pt-5 border-t border-card-border">
-              <div className="flex items-baseline justify-between mb-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 mb-2.5">
                 <p className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Where every lead stands</p>
                 <span className="text-[10px] text-[#5f5f5f]">{journey.snapStillInPlay} of {journey.total} still in play</span>
               </div>
@@ -747,7 +747,7 @@ export default function Dashboard() {
       {/* Stage Distribution — snapshot of where leads sit right now */}
       <div className="grid grid-cols-1 gap-5">
         <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
-          <div className="flex items-baseline justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 mb-5">
             <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Current Stage Distribution</h2>
             <span className="text-[10px] text-muted">Snapshot — where each lead sits right now (not cumulative)</span>
           </div>
@@ -862,7 +862,7 @@ export default function Dashboard() {
 
       {/* Data Source Footer */}
       <div className="border border-card-border rounded-xl p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-wider font-medium text-muted mb-1">Data Source</p>
             <p className="text-xs text-[#6b6b6b]">

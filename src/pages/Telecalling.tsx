@@ -265,7 +265,7 @@ export default function Telecalling() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Telecalling Funnel</h1>
         <p className="text-sm text-muted mt-0.5">
@@ -300,7 +300,7 @@ export default function Telecalling() {
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Funnel</h2>
         </div>
         <div className="p-5">
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-1">
             {[
               { label: "Total", value: metrics.total, color: "bg-[#0a0a0a]" },
               { label: "Attempted", value: metrics.attempted, color: "bg-[#2a2a2a]" },
@@ -311,10 +311,10 @@ export default function Telecalling() {
             ].map((s) => {
               const pctVal = metrics.total ? s.value / metrics.total : 0
               return (
-                <div key={s.label} className="flex-1 flex flex-col items-center gap-1.5">
+                <div key={s.label} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
                   <div className="w-full mx-1 rounded-lg overflow-hidden" style={{ height: `${Math.max(pctVal * 120, 8)}px`, backgroundColor: s.color, opacity: pctVal > 0 ? 1 : 0.15 }} />
-                  <span className="text-lg font-bold tabular-nums">{s.value}</span>
-                  <span className="text-[10px] text-muted uppercase tracking-wider">{s.label}</span>
+                  <span className="text-base sm:text-lg font-bold tabular-nums">{s.value}</span>
+                  <span className="w-full text-center text-[8px] sm:text-[10px] text-muted uppercase tracking-tight sm:tracking-wider leading-tight break-words">{s.label}</span>
                 </div>
               )
             })}
@@ -324,6 +324,7 @@ export default function Telecalling() {
 
       {/* Funnel Table */}
       <div className="border border-card-border rounded-xl overflow-hidden transition-all-expo hover:border-[#d4d4d4]">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
@@ -351,10 +352,11 @@ export default function Telecalling() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { label: "Total Leads", value: metrics.total },
           { label: "Not Attempted", value: metrics.notAttempted },
@@ -382,6 +384,7 @@ export default function Telecalling() {
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Caller Breakdown</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
@@ -420,6 +423,7 @@ export default function Telecalling() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Ad Breakdown */}
@@ -427,6 +431,7 @@ export default function Telecalling() {
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Ad Breakdown</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
@@ -459,6 +464,7 @@ export default function Telecalling() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Reason Buckets */}
@@ -466,6 +472,7 @@ export default function Telecalling() {
         <div className="px-5 py-3 border-b border-card-border bg-[#fafafa]">
           <h2 className="text-[11px] uppercase tracking-wider font-medium text-muted">Reason Buckets (from Call Comments)</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-card-border bg-[#fafafa]">
@@ -488,6 +495,7 @@ export default function Telecalling() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
