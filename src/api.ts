@@ -166,6 +166,17 @@ export function cancelCapiEvent(eventId: string) {
   })
 }
 
+export function backfillLeadEvents(limit?: number) {
+  return json<{ success: boolean; created: number; alreadyCovered: number; totalLeads: number }>(
+    `${API_BASE}/meta/backfill-lead-events`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limit }),
+    }
+  )
+}
+
 export function requeueSkippedEvents(limit?: number) {
   return json<{ success: boolean; requeued: number; remaining: number; dryRun: boolean }>(
     `${API_BASE}/meta/requeue-skipped`,

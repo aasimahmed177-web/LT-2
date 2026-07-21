@@ -85,14 +85,41 @@ export const updateStage = mutation({
     // Create CAPI event(s) for positive stage changes
     const capiEventName = CAPI_STAGE_EVENT_MAP[stage];
     let capiEventsCreated = 0;
+
+    const existingEvents = await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
+      .collect();
+
+    // Always guarantee the initial "Lead" event, whatever the destination
+    // stage. Meta computes "lead coverage" (the share of lead-ad leads that
+    // received a matching CRM event, which must clear 60% for conversion-lead
+    // optimisation) and its own guidance is "make sure that you at least send
+    // the initial lead event". Negative outcomes — NoResponse, NotQualified,
+    // Invalid, Duplicate — aren't in CAPI_STAGE_EVENT_MAP, so a lead that went
+    // straight from Lead to one of them previously produced no event at all
+    // and counted against coverage.
+    if (!existingEvents.some((e: any) => e.stage === "Lead")) {
+      const leadEventTime = Math.floor(Date.now() / 1000);
+      await ctx.db.insert("conversionLeadEvents", {
+        leadId,
+        metaLeadId: lead.metaLeadId,
+        eventName: "Lead",
+        stage: "Lead",
+        status: "pending",
+        createdAt: now,
+        attempts: 0,
+        clientId: clientId || undefined,
+        eventId: `${lead.metaLeadId}_Lead_${leadEventTime}`,
+        action_source: "system_generated",
+        eventTime: leadEventTime,
+      });
+      existingEvents.push({ stage: "Lead", status: "pending" } as any);
+      capiEventsCreated++;
+    }
+
     if (capiEventName) {
       const newStageScore = STAGE_HIERARCHY[stage] ?? -1;
-
-      // Check existing events for this lead
-      const existingEvents = await ctx.db
-        .query("conversionLeadEvents")
-        .withIndex("by_leadId", (q) => q.eq("leadId", leadId))
-        .collect();
 
       const highestStageScore = getHighestStageScore(existingEvents);
 
@@ -289,6 +316,53 @@ export const listEventsByStatus = query({
       .query("conversionLeadEvents")
       .withIndex("by_status", (q) => q.eq("status", status))
       .collect();
+  },
+});
+
+// One-off repair for leads that never got an initial "Lead" event: those
+// imported before the event-on-ingestion behaviour existed, and those whose
+// only stage change was to a negative outcome (which produced no event at all
+// before). Meta's lead coverage counts a lead as uncovered until it receives a
+// matching CRM event, so these silently drag coverage below the 60% threshold
+// that conversion-lead optimisation requires. Idempotent: a lead that already
+// has a Lead-stage event is skipped, so this is safe to run repeatedly.
+export const backfillInitialLeadEvents = mutation({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
+    const leads = await ctx.db.query("leads").collect();
+    const now = new Date().toISOString();
+    let created = 0;
+    let alreadyCovered = 0;
+    const cap = limit ?? 200;
+
+    for (const lead of leads) {
+      if (created >= cap) break;
+      const events = await ctx.db
+        .query("conversionLeadEvents")
+        .withIndex("by_leadId", (q) => q.eq("leadId", lead._id))
+        .collect();
+      if (events.some((e) => e.stage === "Lead")) {
+        alreadyCovered++;
+        continue;
+      }
+      const eventTime = Math.floor(Date.now() / 1000);
+      await ctx.db.insert("conversionLeadEvents", {
+        leadId: lead._id,
+        metaLeadId: lead.metaLeadId,
+        eventName: "Lead",
+        stage: "Lead",
+        status: "pending",
+        createdAt: now,
+        attempts: 0,
+        clientId: lead.clientId ? String(lead.clientId) : undefined,
+        eventId: `${lead.metaLeadId}_Lead_${eventTime}`,
+        action_source: "system_generated",
+        eventTime,
+      });
+      created++;
+    }
+
+    return { created, alreadyCovered, totalLeads: leads.length };
   },
 });
 

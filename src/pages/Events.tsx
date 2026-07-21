@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
-import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent, requeueSkippedEvents } from '../api'
+import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent, requeueSkippedEvents, backfillLeadEvents } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
@@ -16,6 +16,26 @@ export default function Events() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [requeuing, setRequeuing] = useState(false)
   const [requeueMsg, setRequeueMsg] = useState<string | null>(null)
+  const [backfilling, setBackfilling] = useState(false)
+
+  const handleBackfillLeadEvents = async () => {
+    if (!window.confirm('Create the initial "Lead" event for every lead that never got one? Meta needs an event per lead for its lead-coverage metric (must be 60%+ for conversion-lead optimisation). Safe to run more than once.')) return
+    setBackfilling(true)
+    setRequeueMsg(null)
+    try {
+      const res = await backfillLeadEvents()
+      setRequeueMsg(
+        res.created > 0
+          ? `${res.created} initial Lead event(s) queued (${res.alreadyCovered} of ${res.totalLeads} leads were already covered). They will send on the next flush.`
+          : `All ${res.totalLeads} leads already have an initial Lead event.`
+      )
+      await load()
+    } catch (err: any) {
+      setRequeueMsg(`Error: ${err.message}`)
+    } finally {
+      setBackfilling(false)
+    }
+  }
 
   const handleRequeueSkipped = async () => {
     if (!window.confirm('Move all dry-run "skipped" events back to pending so they get sent? Only do this once live sending is enabled (META_CAPI_DRY_RUN=false), otherwise they will just be skipped again.')) return
@@ -116,6 +136,14 @@ export default function Events() {
           <p className="text-sm text-muted mt-0.5">Conversion lead events</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleBackfillLeadEvents}
+            disabled={backfilling}
+            title="Meta requires an event per lead for lead coverage; this fills in any missing initial Lead events"
+            className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
+          >
+            {backfilling ? 'Backfilling…' : 'Backfill Lead events'}
+          </button>
           {(counts?.skipped || 0) > 0 && (
             <button
               onClick={handleRequeueSkipped}

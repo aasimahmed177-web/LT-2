@@ -424,10 +424,12 @@ export async function sendCapiEvent(
     const lead: any = await getConvex().query("leads:getById", { id: event.leadId });
     if (!lead) return { success: false, error: "Lead not found" };
 
-    // Build user_data with hashed fields
-    const userData: Record<string, string> = {};
-    if (lead.email) userData.em = hashValue(lead.email);
-    if (lead.phone) userData.ph = hashPhone(lead.phone);
+    // Build user_data with hashed fields. Meta's documented Conversion Leads
+    // payload passes the multi-value contact parameters (em, ph) as arrays;
+    // send them that way rather than as bare strings to match the spec exactly.
+    const userData: Record<string, any> = {};
+    if (lead.email) userData.em = [hashValue(lead.email)];
+    if (lead.phone) userData.ph = [hashPhone(lead.phone)];
     if (lead.name) {
       const { first, last } = splitName(lead.name);
       if (first) userData.fn = hashValue(first);
@@ -618,6 +620,21 @@ export async function sendPendingCapiEventsForLead(leadId: string, convexLeadId:
     console.error("[CAPI] sendPendingCapiEventsForLead error:", err.message);
   }
 }
+
+// POST /api/meta/backfill-lead-events — create the missing initial "Lead"
+// event for any lead that never got one, to lift Meta's lead-coverage metric.
+router.post("/backfill-lead-events", async (req: Request, res: Response) => {
+  try {
+    const { limit } = req.body || {};
+    const result = await getConvex().mutation("crm:backfillInitialLeadEvents", {
+      limit: typeof limit === "number" ? limit : undefined,
+    });
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error("Backfill lead events error:", err.message);
+    res.status(500).json({ error: "Failed to backfill lead events", detail: err.message });
+  }
+});
 
 // POST /api/meta/requeue-skipped — move dry-run "skipped" events back to
 // "pending" so they get sent once live sending is enabled.
