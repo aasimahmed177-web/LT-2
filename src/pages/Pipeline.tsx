@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { getLeads, updateLeadStage } from '../api'
 import { useClient } from '../ClientContext'
 import LeadDrawer from '../LeadDrawer'
-import { STAGES } from '../constants'
+import { STAGES, STAGE_COLOR_VAR } from '../constants'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -10,20 +10,6 @@ function getMetaCreated(lead: any): string {
 
 function isTestLead(lead: any): boolean {
   return !!lead?.name?.includes('test lead: dummy data')
-}
-
-// Per-stage accent color for the kanban column headers. Funnel stages warm to
-// "converted" green; disqualified stages are muted grey/red.
-const STAGE_ACCENT: Record<string, string> = {
-  Lead: '#94a3b8',
-  Contact: '#60a5fa',
-  Prospect: '#818cf8',
-  ConversionLead: '#a78bfa',
-  Purchase: '#34d399',
-  NotQualified: '#f87171',
-  NoResponse: '#cbd5e1',
-  Duplicate: '#fbbf24',
-  Invalid: '#9ca3af',
 }
 
 export default function Pipeline() {
@@ -141,7 +127,7 @@ export default function Pipeline() {
           <div className="flex gap-3 min-w-max">
             {STAGES.map((s) => {
               const cards = byStage[s.key] || []
-              const accent = STAGE_ACCENT[s.key] || '#94a3b8'
+              const accent = STAGE_COLOR_VAR[s.key] || 'var(--stage-lead)'
               const isDropTarget = dragOverStage === s.key
               return (
                 <div

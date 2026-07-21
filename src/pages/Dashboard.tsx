@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { getStats, getLeads, getSourceOfTruth, getCallActivities } from '../api'
 import { useClient } from '../ClientContext'
-import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
+import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass, STAGE_COLOR_VAR } from '../constants'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -458,19 +458,19 @@ export default function Dashboard() {
                     key={pct}
                     x1={0} y1={chartH - padBottom - (chartH - padTop - padBottom) * pct}
                     x2={chartW} y2={chartH - padBottom - (chartH - padTop - padBottom) * pct}
-                    stroke="#f0f0f0" strokeWidth={1}
+                    stroke="var(--chart-grid)" strokeWidth={1}
                   />
                 ))}
 
                 {/* Gradient fill for area */}
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0a0a0a" stopOpacity="0.08" />
-                    <stop offset="100%" stopColor="#0a0a0a" stopOpacity="0.01" />
+                    <stop offset="0%" stopColor="var(--chart-ink)" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="var(--chart-ink)" stopOpacity="0.01" />
                   </linearGradient>
                   <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#0a0a0a" />
-                    <stop offset="100%" stopColor="#555555" />
+                    <stop offset="0%" stopColor="var(--chart-ink)" />
+                    <stop offset="100%" stopColor="var(--chart-muted)" />
                   </linearGradient>
                 </defs>
 
@@ -504,7 +504,7 @@ export default function Dashboard() {
                         width={barWidth}
                         height={h}
                         rx={2}
-                        fill={isToday ? '#555555' : '#0a0a0a'}
+                        fill={isToday ? 'var(--chart-muted)' : 'var(--chart-ink)'}
                         opacity={isHovered ? 1 : (isToday ? 0.9 : 0.7)}
                         className="transition-all-expo"
                         style={{ cursor: 'pointer' }}
@@ -514,7 +514,7 @@ export default function Dashboard() {
                         x={x + barWidth / 2}
                         y={chartH - padBottom - h - 5}
                         textAnchor="middle"
-                        fill={isHovered ? '#0a0a0a' : '#a0a0a0'}
+                        fill={isHovered ? 'var(--chart-ink)' : 'var(--chart-label)'}
                         fontSize={isHovered ? 10 : 9}
                         fontWeight={isHovered ? '600' : '400'}
                         className="transition-all-expo"
@@ -527,7 +527,7 @@ export default function Dashboard() {
                           cx={x + barWidth / 2}
                           cy={chartH - padBottom - h}
                           r={3}
-                          fill="#0a0a0a"
+                          fill="var(--chart-ink)"
                         />
                       )}
                     </g>
@@ -545,7 +545,7 @@ export default function Dashboard() {
                       x={x}
                       y={chartH - 3}
                       textAnchor="middle"
-                      fill={isToday ? '#0a0a0a' : '#b0b0b0'}
+                      fill={isToday ? 'var(--chart-ink)' : 'var(--chart-day-label)'}
                       fontSize={8}
                       fontWeight={isToday ? '600' : '400'}
                     >
@@ -563,27 +563,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Cards Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Stage Breakdown — Total/New Today/Pending Events already live in the
+          Total Pipeline card above; repeating them here was pure duplication.
+          Each card's stage-color dot matches its badge everywhere else in the
+          app (Recent Leads below, Pipeline board, the funnel and outcome bar). */}
+      <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Total Leads', value: filteredStats.total, secondary: stats?.last24h !== undefined ? `${stats.last24h} in 24h` : null },
-          { label: 'New Today', value: stats?.newToday || 0, secondary: null },
-          { label: 'Contact', value: filteredStats.byStage?.Contact || 0, secondary: null },
-          { label: 'Prospects', value: filteredStats.byStage?.Prospect || 0, secondary: null },
-          { label: 'Conv. Leads', value: filteredStats.byStage?.ConversionLead || 0, secondary: null },
-          { label: 'Purchases', value: filteredStats.byStage?.Purchase || 0, secondary: null },
-          { label: 'Pending Events', value: stats?.pendingCrmEvents || 0, secondary: null },
-          { label: 'Not Qualified', value: filteredStats.byStage?.NotQualified || 0, secondary: null },
+          { label: 'Contact', stage: 'Contact', value: filteredStats.byStage?.Contact || 0 },
+          { label: 'Prospects', stage: 'Prospect', value: filteredStats.byStage?.Prospect || 0 },
+          { label: 'Conv. Leads', stage: 'ConversionLead', value: filteredStats.byStage?.ConversionLead || 0 },
+          { label: 'Purchases', stage: 'Purchase', value: filteredStats.byStage?.Purchase || 0 },
+          { label: 'Not Qualified', stage: 'NotQualified', value: filteredStats.byStage?.NotQualified || 0 },
         ].map((card) => (
-          <div
-            key={card.label}
-            className="kpi-card"
-          >
-            <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
+          <div key={card.label} className="kpi-card">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STAGE_COLOR_VAR[card.stage] }} />
+              <p className="text-[10px] text-muted font-medium uppercase tracking-wider">{card.label}</p>
+            </div>
             <p className="text-[26px] font-bold text-[#0a0a0a] mt-1.5 tabular-nums tracking-tight leading-none">{card.value}</p>
-            {card.secondary && (
-              <p className="text-[10px] text-muted mt-2">{card.secondary}</p>
-            )}
           </div>
         ))}
       </div>
@@ -605,7 +602,17 @@ export default function Dashboard() {
           const GAP = 3
           const steps = journey.steps
           const H = steps.length * BAND
-          const colors = ['#cbd5e1', '#94a3b8', '#60a5fa', '#818cf8', '#a78bfa', '#34d399']
+          // Same stage-color tokens as everywhere else (Recent Leads badges,
+          // Pipeline board, the KPI dots above): Leads received/Attempted are
+          // still pre-contact so both read as "Lead".
+          const colors = [
+            STAGE_COLOR_VAR.Lead,
+            STAGE_COLOR_VAR.Lead,
+            STAGE_COLOR_VAR.Contact,
+            STAGE_COLOR_VAR.Prospect,
+            STAGE_COLOR_VAR.ConversionLead,
+            STAGE_COLOR_VAR.Purchase,
+          ]
           const half = (c: number) => {
             const p = journey.total > 0 ? (c / journey.total) * 100 : 0
             return Math.max(p / 2, c > 0 ? 1.2 : 0.35)
@@ -679,13 +686,18 @@ export default function Dashboard() {
         {/* Where every lead currently stands — one bar, sums to the full set,
             so "still in play" is visible against everything already lost. */}
         {(() => {
+          // Same stage-color tokens as the rest of the page. NotQualified and
+          // Invalid intentionally share a color here too — that's not a bug,
+          // it's the same equivalence the .stage-NotQualified/.stage-Invalid
+          // badges already encode everywhere else; the count labels below the
+          // bar are what disambiguate them, not the color.
           const segments = [
-            { label: 'Still in play', value: journey.interested, color: '#34d399' },
-            { label: 'Stalled at contact', value: journey.stalledAtContact, color: '#fbbf24' },
-            { label: 'Not qualified', value: journey.notQualified, color: '#fb923c' },
-            { label: 'No response', value: journey.noResponse, color: '#f87171' },
-            { label: 'Invalid / duplicate', value: journey.invalidNumber, color: '#e11d48' },
-            { label: 'Never called', value: journey.neverCalled, color: '#cbd5e1' },
+            { label: 'Still in play', value: journey.interested, color: STAGE_COLOR_VAR.Prospect },
+            { label: 'Stalled at contact', value: journey.stalledAtContact, color: STAGE_COLOR_VAR.Contact },
+            { label: 'Not qualified', value: journey.notQualified, color: STAGE_COLOR_VAR.NotQualified },
+            { label: 'No response', value: journey.noResponse, color: STAGE_COLOR_VAR.NoResponse },
+            { label: 'Invalid / duplicate', value: journey.invalidNumber, color: STAGE_COLOR_VAR.Invalid },
+            { label: 'Never called', value: journey.neverCalled, color: STAGE_COLOR_VAR.Lead },
           ].filter((s) => s.value > 0)
           const sum = segments.reduce((n, s) => n + s.value, 0) || 1
           return (
@@ -735,8 +747,8 @@ export default function Dashboard() {
                   <span className="text-xs font-medium text-[#6b6b6b] w-20">{stageLabels[stage] || stage}</span>
                   <div className="flex-1 h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${NEGATIVE_STAGES.has(stage) ? 'bg-[#d4d4d4]' : 'bg-[#0a0a0a]'}`}
-                      style={{ width: `${pct}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: STAGE_COLOR_VAR[stage] || 'var(--stage-lead)' }}
                     />
                   </div>
                   <div className="flex items-center gap-2 min-w-[60px] justify-end">

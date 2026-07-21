@@ -10,20 +10,52 @@
   --color-card: #ffffff;
   --color-card-border: #ebebeb;
   --color-muted: #8b8b8b;
-  /* Stage dot colors */
-  --color-stage-lead: #0a0a0a;
-  --color-stage-contacted: #0a0a0a;
-  --color-stage-prospect: #0a0a0a;
-  --color-stage-conversionLead: #0a0a0a;
-  --color-stage-purchase: #0a0a0a;
-  --color-stage-notqualified: #a0a0a0;
-  --color-stage-noresponse: #a0a0a0;
-  --color-stage-duplicate: #a0a0a0;
-  --color-stage-invalid: #a0a0a0;
 
   /* Subtle transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Per-stage accent colors — the single source of truth for "what color means
+   this stage" everywhere it's used as a raw color (funnel bands, Pipeline
+   board columns, dashboard KPI dots), not just inside a .stage-badge pill.
+   Values match the .stage-* badge colors below exactly, and re-theme with
+   them in dark mode, so a stage means the same color everywhere in the app. */
+:root {
+  /* Lead Activity chart — previously hardcoded #0a0a0a/#f0f0f0 throughout,
+     which is invisible (near-black bars on a near-black card) in dark mode. */
+  --chart-ink: #0a0a0a;
+  --chart-muted: #555555;
+  --chart-grid: #f0f0f0;
+  --chart-label: #a0a0a0;
+  --chart-day-label: #b0b0b0;
+
+  --stage-lead: #5b6b7c;
+  --stage-contact: #2d6a4f;
+  --stage-prospect: #1a56db;
+  --stage-conversionlead: #7c3aed;
+  --stage-purchase: #065f46;
+  --stage-notqualified: #991b1b;
+  --stage-noresponse: #8b8b8b;
+  --stage-invalid: #991b1b;
+  --stage-duplicate: #92400e;
+}
+html.dark {
+  --chart-ink: #e5e5e5;
+  --chart-muted: #8a8a8a;
+  --chart-grid: #2a2a2a;
+  --chart-label: #8a8a8a;
+  --chart-day-label: #777777;
+
+  --stage-lead: #aaaaaa;
+  --stage-contact: #6fcf97;
+  --stage-prospect: #7b9fff;
+  --stage-conversionlead: #b388ff;
+  --stage-purchase: #6fcf97;
+  --stage-notqualified: #ff7b7b;
+  --stage-noresponse: #aaaaaa;
+  --stage-invalid: #ff7b7b;
+  --stage-duplicate: #ffb347;
 }
 
 html, body, #root {
