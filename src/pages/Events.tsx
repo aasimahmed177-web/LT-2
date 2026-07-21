@@ -19,15 +19,15 @@ export default function Events() {
   const [backfilling, setBackfilling] = useState(false)
 
   const handleBackfillLeadEvents = async () => {
-    if (!window.confirm('Create the initial "Lead" event for every lead that never got one? Meta needs an event per lead for its lead-coverage metric (must be 60%+ for conversion-lead optimisation). Safe to run more than once.')) return
+    if (!window.confirm('Backfill any missing CAPI ladder events (Lead, Contact, QualifiedLead, ConversionLead) for leads whose current stage implies an event that was never sent to Meta? Safe to run more than once.')) return
     setBackfilling(true)
     setRequeueMsg(null)
     try {
       const res = await backfillLeadEvents()
       setRequeueMsg(
-        res.created > 0
-          ? `${res.created} initial Lead event(s) queued (${res.alreadyCovered} of ${res.totalLeads} leads were already covered). They will send on the next flush.`
-          : `All ${res.totalLeads} leads already have an initial Lead event.`
+        res.eventsCreated > 0
+          ? `${res.eventsCreated} event(s) queued across ${res.leadsTouched} lead(s) (${res.alreadyCovered} of ${res.totalLeads} leads were already fully covered). They will send on the next flush.`
+          : `All ${res.totalLeads} leads already have every CAPI event their current stage implies.`
       )
       await load()
     } catch (err: any) {
@@ -139,10 +139,10 @@ export default function Events() {
           <button
             onClick={handleBackfillLeadEvents}
             disabled={backfilling}
-            title="Meta requires an event per lead for lead coverage; this fills in any missing initial Lead events"
+            title="Fills in any missing CAPI ladder events (Lead/Contact/QualifiedLead/ConversionLead) implied by each lead's current stage"
             className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
           >
-            {backfilling ? 'Backfilling…' : 'Backfill Lead events'}
+            {backfilling ? 'Backfilling…' : 'Backfill missing events'}
           </button>
           {(counts?.skipped || 0) > 0 && (
             <button

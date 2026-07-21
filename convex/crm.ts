@@ -42,6 +42,19 @@ const CRM_EVENT_MAP: Record<string, string> = {
   Purchase: "purchase",
 };
 
+// Some terminal stages don't get their own CAPI event — NotQualified isn't
+// something you'd tell Meta about directly — but still imply an earlier
+// funnel rung genuinely happened and should still be reported. NotQualified
+// specifically means "we reached and spoke with this lead, they just weren't
+// interested" (see the Leads page's Stage Mapping Guide), so it should still
+// backfill a Contact event. NoResponse/Invalid/Duplicate mean contact was
+// NEVER made, so they get no ladder backfill at all (no entry here, or an
+// explicit -1, means "not in STAGE_HIERARCHY" -> treated as not reachable).
+const EFFECTIVE_LADDER_SCORE: Record<string, number> = {
+  ...STAGE_HIERARCHY,
+  NotQualified: STAGE_HIERARCHY.Contact,
+};
+
 // Helper: highest stage score among active events (sent/pending) for a list of events
 function getHighestStageScore(events: any[]): number {
   let highest = -1;
@@ -118,30 +131,38 @@ export const updateStage = mutation({
       capiEventsCreated++;
     }
 
-    if (capiEventName) {
-      const newStageScore = STAGE_HIERARCHY[stage] ?? -1;
-
+    // Gate on EFFECTIVE score, not on whether `stage` itself has a CAPI event
+    // name — NotQualified has no event of its own but still implies Contact
+    // happened, so it must still run the ladder below even though
+    // capiEventName is undefined for it.
+    const newStageScore = EFFECTIVE_LADDER_SCORE[stage] ?? -1;
+    if (newStageScore >= 0) {
       const highestStageScore = getHighestStageScore(existingEvents);
 
       if (CAPI_SEND_MODE === "final_stage_only" && highestStageScore > newStageScore) {
         // Backward move (e.g. correcting a mistaken stage) — a higher-stage
         // event already exists, so just record this one as suppressed rather
         // than backfilling a ladder that would contradict what was already sent.
-        const eventTime = Math.floor(Date.now() / 1000);
-        await ctx.db.insert("conversionLeadEvents", {
-          leadId,
-          metaLeadId: lead.metaLeadId,
-          eventName: capiEventName,
-          stage,
-          status: "suppressed",
-          createdAt: now,
-          attempts: 0,
-          clientId: clientId || undefined,
-          eventId: `${lead.metaLeadId}_${stage}_${eventTime}`,
-          action_source: "system_generated",
-          eventTime,
-        });
-        return { success: true, capiEventCreated: true, suppressed: true, reason: `Higher-stage event already exists` };
+        // Only stages with their own CAPI event name get a record here
+        // (NotQualified has none — it only ever backfills Contact below, and
+        // there's nothing to suppress if we're not moving forward anyway).
+        if (capiEventName) {
+          const eventTime = Math.floor(Date.now() / 1000);
+          await ctx.db.insert("conversionLeadEvents", {
+            leadId,
+            metaLeadId: lead.metaLeadId,
+            eventName: capiEventName,
+            stage,
+            status: "suppressed",
+            createdAt: now,
+            attempts: 0,
+            clientId: clientId || undefined,
+            eventId: `${lead.metaLeadId}_${stage}_${eventTime}`,
+            action_source: "system_generated",
+            eventTime,
+          });
+        }
+        return { success: true, capiEventCreated: !!capiEventName, suppressed: true, reason: `Higher-stage event already exists` };
       }
 
       // Forward move: per Meta's Conversion Leads guidance, every funnel rung
@@ -319,50 +340,97 @@ export const listEventsByStatus = query({
   },
 });
 
-// One-off repair for leads that never got an initial "Lead" event: those
-// imported before the event-on-ingestion behaviour existed, and those whose
-// only stage change was to a negative outcome (which produced no event at all
-// before). Meta's lead coverage counts a lead as uncovered until it receives a
-// matching CRM event, so these silently drag coverage below the 60% threshold
-// that conversion-lead optimisation requires. Idempotent: a lead that already
-// has a Lead-stage event is skipped, so this is safe to run repeatedly.
-export const backfillInitialLeadEvents = mutation({
+// One-off repair for leads whose stored CAPI events don't reflect their
+// current stage — either because they never got an initial "Lead" event
+// (imported before the event-on-ingestion behaviour existed), or because
+// their stage advanced before the ladder-backfill logic in updateStage()
+// existed/covered NotQualified, leaving intermediate rungs (e.g. Contact)
+// never reported even though the lead's current stage implies they happened.
+// Meta's lead coverage counts a lead as uncovered until it receives a
+// matching CRM event, so gaps like these silently drag coverage down and
+// undercount stages like Contact/QualifiedLead versus what Meta actually
+// receives. Idempotent: rungs that already have an event (any status) are
+// never recreated, so this is safe to run repeatedly.
+export const backfillMissingLadderEvents = mutation({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }) => {
     const leads = await ctx.db.query("leads").collect();
     const now = new Date().toISOString();
-    let created = 0;
+    let leadsTouched = 0;
+    let eventsCreated = 0;
     let alreadyCovered = 0;
     const cap = limit ?? 200;
 
     for (const lead of leads) {
-      if (created >= cap) break;
+      if (leadsTouched >= cap) break;
       const events = await ctx.db
         .query("conversionLeadEvents")
         .withIndex("by_leadId", (q) => q.eq("leadId", lead._id))
         .collect();
-      if (events.some((e) => e.stage === "Lead")) {
+
+      const stagesWithEvent = new Set(events.map((e: any) => e.stage));
+      const missingLeadEvent = !stagesWithEvent.has("Lead");
+      const targetScore = EFFECTIVE_LADDER_SCORE[lead.stage] ?? -1;
+      const rungs = Object.keys(CAPI_STAGE_EVENT_MAP).filter((s) => {
+        const score = STAGE_HIERARCHY[s] ?? -1;
+        return score >= 0 && score <= targetScore && !stagesWithEvent.has(s);
+      });
+
+      if (!missingLeadEvent && rungs.length === 0) {
         alreadyCovered++;
         continue;
       }
-      const eventTime = Math.floor(Date.now() / 1000);
-      await ctx.db.insert("conversionLeadEvents", {
-        leadId: lead._id,
-        metaLeadId: lead.metaLeadId,
-        eventName: "Lead",
-        stage: "Lead",
-        status: "pending",
-        createdAt: now,
-        attempts: 0,
-        clientId: lead.clientId ? String(lead.clientId) : undefined,
-        eventId: `${lead.metaLeadId}_Lead_${eventTime}`,
-        action_source: "system_generated",
-        eventTime,
-      });
-      created++;
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      let createdForLead = 0;
+
+      if (missingLeadEvent) {
+        const eventTime = nowSec - (rungs.length + 1);
+        await ctx.db.insert("conversionLeadEvents", {
+          leadId: lead._id,
+          metaLeadId: lead.metaLeadId,
+          eventName: "Lead",
+          stage: "Lead",
+          status: "pending",
+          createdAt: now,
+          attempts: 0,
+          clientId: lead.clientId ? String(lead.clientId) : undefined,
+          eventId: `${lead.metaLeadId}_Lead_${eventTime}`,
+          action_source: "system_generated",
+          eventTime,
+        });
+        createdForLead++;
+      }
+
+      const sortedRungs = rungs
+        .filter((s) => s !== "Lead")
+        .sort((a, b) => (STAGE_HIERARCHY[a] ?? -1) - (STAGE_HIERARCHY[b] ?? -1));
+      for (let r = 0; r < sortedRungs.length; r++) {
+        const rung = sortedRungs[r];
+        const rungEventTime = nowSec - (sortedRungs.length - 1 - r);
+        await ctx.db.insert("conversionLeadEvents", {
+          leadId: lead._id,
+          metaLeadId: lead.metaLeadId,
+          eventName: CAPI_STAGE_EVENT_MAP[rung],
+          stage: rung,
+          status: "pending",
+          createdAt: now,
+          attempts: 0,
+          clientId: lead.clientId ? String(lead.clientId) : undefined,
+          eventId: `${lead.metaLeadId}_${rung}_${rungEventTime}`,
+          action_source: "system_generated",
+          eventTime: rungEventTime,
+        });
+        createdForLead++;
+      }
+
+      if (createdForLead > 0) {
+        leadsTouched++;
+        eventsCreated += createdForLead;
+      }
     }
 
-    return { created, alreadyCovered, totalLeads: leads.length };
+    return { leadsTouched, eventsCreated, alreadyCovered, totalLeads: leads.length };
   },
 });
 

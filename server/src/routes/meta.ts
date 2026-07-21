@@ -621,18 +621,22 @@ export async function sendPendingCapiEventsForLead(leadId: string, convexLeadId:
   }
 }
 
-// POST /api/meta/backfill-lead-events — create the missing initial "Lead"
-// event for any lead that never got one, to lift Meta's lead-coverage metric.
+// POST /api/meta/backfill-lead-events — create any missing CAPI ladder rungs
+// (Lead, and any of Contact/QualifiedLead/ConversionLead implied by a lead's
+// current stage) for leads whose events fell behind — either imported before
+// event-on-ingestion existed, or advanced before the ladder-backfill logic
+// covered every stage. Lifts Meta's lead-coverage metric and reconciles the
+// dashboard's cumulative funnel counts against what Meta actually received.
 router.post("/backfill-lead-events", async (req: Request, res: Response) => {
   try {
     const { limit } = req.body || {};
-    const result = await getConvex().mutation("crm:backfillInitialLeadEvents", {
+    const result = await getConvex().mutation("crm:backfillMissingLadderEvents", {
       limit: typeof limit === "number" ? limit : undefined,
     });
     res.json({ success: true, ...result });
   } catch (err: any) {
-    console.error("Backfill lead events error:", err.message);
-    res.status(500).json({ error: "Failed to backfill lead events", detail: err.message });
+    console.error("Backfill ladder events error:", err.message);
+    res.status(500).json({ error: "Failed to backfill ladder events", detail: err.message });
   }
 });
 

@@ -167,7 +167,7 @@ export function cancelCapiEvent(eventId: string) {
 }
 
 export function backfillLeadEvents(limit?: number) {
-  return json<{ success: boolean; created: number; alreadyCovered: number; totalLeads: number }>(
+  return json<{ success: boolean; leadsTouched: number; eventsCreated: number; alreadyCovered: number; totalLeads: number }>(
     `${API_BASE}/meta/backfill-lead-events`,
     {
       method: 'POST',
