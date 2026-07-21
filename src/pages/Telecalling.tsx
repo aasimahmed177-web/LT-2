@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getLeads, getCallActivities } from '../api'
 import { useClient } from '../ClientContext'
+import { deriveLeadJourneyStatus } from '../leadJourney'
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -177,36 +178,17 @@ export default function Telecalling() {
       const stage = l.stage
       m.total++
 
-      const callPicked = a?.callPicked === "Yes"
-      const callInterested = a?.interested === "Yes"
-      const comments = a?.callComments || ""
+      const status = deriveLeadJourneyStatus(stage, a)
 
-      // Attempted requires a recorded call outcome (picked yes/no) or a stage
-      // past Lead. The mere presence of a call-activity row isn't proof: the
-      // CSV import writes one for every matched lead, including those the
-      // callers never reached, which made this read ~100% attempted.
-      const outcome = (a?.callPicked || "").trim()
-      const hasCallOutcome = outcome === "Yes" || outcome === "No"
-      const isAttempted = hasCallOutcome || stage !== "Lead"
-      // Determine connected: callPicked=Yes OR stage is positive
-      const isConnected = callPicked || ["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(stage) && stage !== "NoResponse" && stage !== "Invalid"
-      // Determine interested: callInterested=Yes OR stage is Prospect+
-      const isInterested = callInterested || ["Prospect", "ConversionLead", "Purchase"].includes(stage)
-      const isConvLead = ["ConversionLead", "Purchase"].includes(stage)
-      const isPurchase = stage === "Purchase" || a?.purchase === "Yes"
-      const isNoResponse = stage === "NoResponse"
-      const isNotQualified = stage === "NotQualified"
-      const isInvalid = stage === "Invalid" || stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")
-
-      if (isAttempted) m.attempted++
+      if (status.isAttempted) m.attempted++
       else m.notAttempted++
-      if (isConnected) m.connected++
-      if (isInterested) m.interested++
-      if (isConvLead) m.conversionLeads++
-      if (isPurchase) m.purchase++
-      if (isNoResponse) m.noResponse++
-      if (isNotQualified) m.notQualified++
-      if (isInvalid) m.invalid++
+      if (status.isContacted) m.connected++
+      if (status.isInterested) m.interested++
+      if (status.isMeetingBooked) m.conversionLeads++
+      if (status.isPurchased) m.purchase++
+      if (status.isNoResponse) m.noResponse++
+      if (status.isNotQualified) m.notQualified++
+      if (status.isInvalid) m.invalid++
     }
     return m
   }, [filtered])
@@ -219,16 +201,15 @@ export default function Telecalling() {
       if (!map.has(caller)) map.set(caller, { caller, total: 0, attempted: 0, connected: 0, interested: 0, conversionLeads: 0, noResponse: 0, notQualified: 0, invalid: 0 })
       const r = map.get(caller)!
       const a = l._activity
-      const comments = a?.callComments || ""
+      const status = deriveLeadJourneyStatus(l.stage, a)
       r.total++
-      if (l.stage !== "Lead" || a) r.attempted++
-      const isConnected = a?.callPicked === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
-      if (isConnected) r.connected++
-      if (a?.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
-      if (["ConversionLead", "Purchase"].includes(l.stage)) r.conversionLeads++
-      if (l.stage === "NoResponse") r.noResponse++
-      if (l.stage === "NotQualified") r.notQualified++
-      if (l.stage === "Invalid" || l.stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")) r.invalid++
+      if (status.isAttempted) r.attempted++
+      if (status.isContacted) r.connected++
+      if (status.isInterested) r.interested++
+      if (status.isMeetingBooked) r.conversionLeads++
+      if (status.isNoResponse) r.noResponse++
+      if (status.isNotQualified) r.notQualified++
+      if (status.isInvalid) r.invalid++
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [enriched])
@@ -242,16 +223,15 @@ export default function Telecalling() {
       if (!map.has(adName)) map.set(adName, { adName, caller: l._caller, total: 0, attempted: 0, connected: 0, interested: 0, conversionLeads: 0, noResponse: 0, notQualified: 0, invalid: 0 })
       const r = map.get(adName)!
       const a = l._activity
-      const comments = a?.callComments || ""
+      const status = deriveLeadJourneyStatus(l.stage, a)
       r.total++
-      if (l.stage !== "Lead" || a) r.attempted++
-      const isConnected = a?.callPicked === "Yes" || (["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(l.stage) && l.stage !== "NoResponse" && l.stage !== "Invalid")
-      if (isConnected) r.connected++
-      if (a?.interested === "Yes" || ["Prospect", "ConversionLead", "Purchase"].includes(l.stage)) r.interested++
-      if (["ConversionLead", "Purchase"].includes(l.stage)) r.conversionLeads++
-      if (l.stage === "NoResponse") r.noResponse++
-      if (l.stage === "NotQualified") r.notQualified++
-      if (l.stage === "Invalid" || l.stage === "Duplicate" || comments.toLowerCase().includes("wrong number") || comments.toLowerCase().includes("junk")) r.invalid++
+      if (status.isAttempted) r.attempted++
+      if (status.isContacted) r.connected++
+      if (status.isInterested) r.interested++
+      if (status.isMeetingBooked) r.conversionLeads++
+      if (status.isNoResponse) r.noResponse++
+      if (status.isNotQualified) r.notQualified++
+      if (status.isInvalid) r.invalid++
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [enriched])

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { getStats, getLeads, getSourceOfTruth, getCallActivities } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass, STAGE_COLOR_VAR } from '../constants'
+import { deriveLeadJourneyStatus } from '../leadJourney'
 
 function getMetaCreated(lead: any): string {
   return lead?.fullResponse?.created_time || lead.ingestedAt || ''
@@ -168,39 +169,45 @@ export default function Dashboard() {
     let neverCalled = 0, attempted = 0, contacted = 0, interested = 0, meetingBooked = 0, purchased = 0
     let noResponse = 0, invalidNumber = 0, notQualified = 0, stalledAtContact = 0
 
+    // The "Where every lead stands" bar below needs a strict partition —
+    // exactly one bucket per lead, guaranteed to sum to the total — so it's
+    // built from `stage` alone rather than the activity-refined flags above
+    // (which deliberately overlap: e.g. isInterested also credits a
+    // call-activity signal even when stage hasn't caught up to Prospect yet).
+    let snapStillInPlay = 0, snapContact = 0, snapNotQualified = 0, snapNoResponse = 0, snapInvalid = 0
+    let snapLeadAttempted = 0, snapLeadNeverCalled = 0
+
     for (const l of filteredLeads) {
       const a = activityMap.get(l.metaLeadId)
       const stage = l.stage
-      const callPicked = a?.callPicked === 'Yes'
+      const status = deriveLeadJourneyStatus(stage, a)
 
-      // "Attempted" needs evidence of an actual call, not merely the existence
-      // of a call-activity row — the CSV import writes a row for every matched
-      // lead, including ones the callers never got to (blank "Call Picked?").
-      // Treating the row itself as proof made this read 100% attempted while
-      // leads were visibly still sitting untouched in the Lead column.
-      const outcome = (a?.callPicked || '').trim()
-      const hasCallOutcome = outcome === 'Yes' || outcome === 'No'
-      const isAttempted = hasCallOutcome || stage !== 'Lead'
-      const isContacted = callPicked || ['Contact', 'Prospect', 'ConversionLead', 'Purchase', 'NotQualified'].includes(stage)
-      const isInterested = ['Prospect', 'ConversionLead', 'Purchase'].includes(stage)
-      const isMeeting = ['ConversionLead', 'Purchase'].includes(stage)
+      if (status.isAttempted) attempted++; else neverCalled++
+      if (status.isContacted) contacted++
+      if (status.isInterested) interested++
+      if (status.isMeetingBooked) meetingBooked++
+      if (status.isPurchased) purchased++
 
-      if (isAttempted) attempted++; else neverCalled++
-      if (isContacted) contacted++
-      if (isInterested) interested++
-      if (isMeeting) meetingBooked++
-      if (stage === 'Purchase') purchased++
+      if (status.isNoResponse) noResponse++
+      if (status.isInvalid) invalidNumber++
+      if (status.isNotQualified) notQualified++
+      if (status.isStalledAtContact) stalledAtContact++
 
-      if (stage === 'NoResponse') noResponse++
-      if (stage === 'Invalid' || stage === 'Duplicate') invalidNumber++
-      if (stage === 'NotQualified') notQualified++
-      if (stage === 'Contact') stalledAtContact++
+      if (['Prospect', 'ConversionLead', 'Purchase'].includes(stage)) snapStillInPlay++
+      else if (stage === 'Contact') snapContact++
+      else if (stage === 'NotQualified') snapNotQualified++
+      else if (stage === 'NoResponse') snapNoResponse++
+      else if (stage === 'Invalid' || stage === 'Duplicate') snapInvalid++
+      else if (status.isAttempted) snapLeadAttempted++
+      else snapLeadNeverCalled++
     }
 
     const total = filteredLeads.length
     return {
       total, neverCalled, attempted, contacted, interested, meetingBooked, purchased,
       noResponse, invalidNumber, notQualified, stalledAtContact,
+      snapStillInPlay, snapContact, snapNotQualified, snapNoResponse, snapInvalid,
+      snapLeadAttempted, snapLeadNeverCalled,
       steps: [
         { key: 'total', label: 'Leads received', count: total, lost: 0, lostLabel: '' },
         { key: 'attempted', label: 'Attempted', count: attempted, lost: neverCalled, lostLabel: 'never called' },
@@ -691,20 +698,25 @@ export default function Dashboard() {
           // it's the same equivalence the .stage-NotQualified/.stage-Invalid
           // badges already encode everywhere else; the count labels below the
           // bar are what disambiguate them, not the color.
+          // Strict partition by current stage (see the snap* fields in the
+          // journey useMemo above) — every lead lands in exactly one segment,
+          // including leads that were attempted but never had their stage
+          // advanced off "Lead", so this always sums to journey.total.
           const segments = [
-            { label: 'Still in play', value: journey.interested, color: STAGE_COLOR_VAR.Prospect },
-            { label: 'Stalled at contact', value: journey.stalledAtContact, color: STAGE_COLOR_VAR.Contact },
-            { label: 'Not qualified', value: journey.notQualified, color: STAGE_COLOR_VAR.NotQualified },
-            { label: 'No response', value: journey.noResponse, color: STAGE_COLOR_VAR.NoResponse },
-            { label: 'Invalid / duplicate', value: journey.invalidNumber, color: STAGE_COLOR_VAR.Invalid },
-            { label: 'Never called', value: journey.neverCalled, color: STAGE_COLOR_VAR.Lead },
+            { label: 'Still in play', value: journey.snapStillInPlay, color: STAGE_COLOR_VAR.Prospect },
+            { label: 'Stalled at contact', value: journey.snapContact, color: STAGE_COLOR_VAR.Contact },
+            { label: 'Not qualified', value: journey.snapNotQualified, color: STAGE_COLOR_VAR.NotQualified },
+            { label: 'No response', value: journey.snapNoResponse, color: STAGE_COLOR_VAR.NoResponse },
+            { label: 'Invalid / duplicate', value: journey.snapInvalid, color: STAGE_COLOR_VAR.Invalid },
+            { label: 'Attempted, not staged', value: journey.snapLeadAttempted, color: STAGE_COLOR_VAR.Duplicate },
+            { label: 'Never called', value: journey.snapLeadNeverCalled, color: STAGE_COLOR_VAR.Lead },
           ].filter((s) => s.value > 0)
           const sum = segments.reduce((n, s) => n + s.value, 0) || 1
           return (
             <div className="mt-6 pt-5 border-t border-card-border">
               <div className="flex items-baseline justify-between mb-2.5">
                 <p className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Where every lead stands</p>
-                <span className="text-[10px] text-[#5f5f5f]">{journey.interested} of {journey.total} still in play</span>
+                <span className="text-[10px] text-[#5f5f5f]">{journey.snapStillInPlay} of {journey.total} still in play</span>
               </div>
               <div className="flex h-3 rounded-full overflow-hidden gap-px">
                 {segments.map((s) => (

@@ -36,12 +36,6 @@ const CAPI_STAGE_EVENT_MAP: Record<string, string> = {
   Purchase: "Purchase",
 };
 
-// Also keep the legacy CRM event mapping for internal tracking
-const CRM_EVENT_MAP: Record<string, string> = {
-  ConversionLead: "conversion_lead",
-  Purchase: "purchase",
-};
-
 // Some terminal stages don't get their own CAPI event — NotQualified isn't
 // something you'd tell Meta about directly — but still imply an earlier
 // funnel rung genuinely happened and should still be reported. NotQualified
@@ -54,6 +48,21 @@ const EFFECTIVE_LADDER_SCORE: Record<string, number> = {
   ...STAGE_HIERARCHY,
   NotQualified: STAGE_HIERARCHY.Contact,
 };
+
+// Shared by updateStage (a single lead's stage just changed) and
+// backfillMissingLadderEvents (reconciling every lead's current state) — both
+// need the same answer to "which CAPI_STAGE_EVENT_MAP rungs, up to this
+// score, does this lead not yet have an event for". Kept as one function so
+// a future change to ladder semantics (e.g. a new stage) only has one place
+// to land instead of two copies quietly drifting apart.
+function missingRungsUpTo(targetScore: number, stagesWithEvent: Set<string>): string[] {
+  return Object.keys(CAPI_STAGE_EVENT_MAP)
+    .filter((s) => {
+      const score = STAGE_HIERARCHY[s] ?? -1;
+      return score >= 0 && score <= targetScore && !stagesWithEvent.has(s);
+    })
+    .sort((a, b) => (STAGE_HIERARCHY[a] ?? -1) - (STAGE_HIERARCHY[b] ?? -1));
+}
 
 // Helper: highest stage score among active events (sent/pending) for a list of events
 function getHighestStageScore(events: any[]): number {
@@ -172,12 +181,7 @@ export const updateStage = mutation({
       // new stage alone. Rungs that already have an event (any status) are
       // never recreated.
       const stagesWithEvent = new Set(existingEvents.map((e: any) => e.stage));
-      const rungs = Object.keys(CAPI_STAGE_EVENT_MAP)
-        .filter((s) => {
-          const score = STAGE_HIERARCHY[s] ?? -1;
-          return score >= 0 && score <= newStageScore && !stagesWithEvent.has(s);
-        })
-        .sort((a, b) => (STAGE_HIERARCHY[a] ?? -1) - (STAGE_HIERARCHY[b] ?? -1));
+      const rungs = missingRungsUpTo(newStageScore, stagesWithEvent);
 
       // Stagger the backfilled rungs one second apart, ending at "now", so the
       // funnel progression Meta receives is unambiguously ordered. Writing the
@@ -204,20 +208,6 @@ export const updateStage = mutation({
         });
         capiEventsCreated++;
       }
-    }
-
-    // Also create legacy CRM event for ConversionLead and Purchase
-    const legacyEventName = CRM_EVENT_MAP[stage];
-    if (legacyEventName && !capiEventName) {
-      await ctx.db.insert("conversionLeadEvents", {
-        leadId,
-        metaLeadId: lead.metaLeadId,
-        eventName: legacyEventName,
-        stage,
-        status: "pending",
-        createdAt: now,
-        attempts: 0,
-      });
     }
 
     return { success: true, capiEventCreated: capiEventsCreated > 0, capiEventsCreated };
@@ -371,10 +361,7 @@ export const backfillMissingLadderEvents = mutation({
       const stagesWithEvent = new Set(events.map((e: any) => e.stage));
       const missingLeadEvent = !stagesWithEvent.has("Lead");
       const targetScore = EFFECTIVE_LADDER_SCORE[lead.stage] ?? -1;
-      const rungs = Object.keys(CAPI_STAGE_EVENT_MAP).filter((s) => {
-        const score = STAGE_HIERARCHY[s] ?? -1;
-        return score >= 0 && score <= targetScore && !stagesWithEvent.has(s);
-      });
+      const rungs = missingRungsUpTo(targetScore, stagesWithEvent);
 
       if (!missingLeadEvent && rungs.length === 0) {
         alreadyCovered++;
@@ -566,8 +553,8 @@ export const getStats = query({
       byStage,
       funnel,
       activityByDate,
-      contacted: byStage["contacted"] || 0,
-      prospects: byStage["prospect"] || 0,
+      contacted: byStage["Contact"] || 0,
+      prospects: byStage["Prospect"] || 0,
       conversionLeads: byStage["ConversionLead"] || 0,
       purchases: byStage["Purchase"] || 0,
       notQualified: byStage["NotQualified"] || 0,
