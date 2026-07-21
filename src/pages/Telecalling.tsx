@@ -62,11 +62,27 @@ interface ReasonBucket {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-function determineCaller(adName: string): string {
-  const lower = adName.toLowerCase()
-  if (lower.includes("aparna")) return "Aparna"
-  if (lower.includes("suganya")) return "Suganya"
-  return "Unknown"
+// Callers are attributed from the ad name, which encodes who runs that ad.
+// Add new callers here as they're onboarded — a name that isn't listed will
+// fall through to "Unassigned" rather than being silently mis-attributed.
+const CALLER_KEYWORDS: [string, string][] = [
+  ["aparna", "Aparna"],
+  ["suganya", "Suganya"],
+]
+
+// Two genuinely different situations were both being labelled "Unknown":
+// a lead nobody has called yet (no caller exists), and a called lead whose ad
+// name doesn't match a known caller (attribution gap). They need different
+// labels — the first is a normal queue state, the second is a data problem.
+const NOT_YET_CALLED = "Not yet called"
+const UNASSIGNED = "Unassigned"
+
+function determineCaller(adName: string, hasCallData: boolean): string {
+  const lower = (adName || "").toLowerCase()
+  for (const [keyword, name] of CALLER_KEYWORDS) {
+    if (lower.includes(keyword)) return name
+  }
+  return hasCallData ? UNASSIGNED : NOT_YET_CALLED
 }
 
 function bucketReason(comments: string): string {
@@ -130,7 +146,7 @@ export default function Telecalling() {
     return leads.map((lead) => {
       const activity = activityMap.get(lead.metaLeadId)
       const adName = activity?.adName || lead.adName || ""
-      const caller = activity?.caller || determineCaller(adName)
+      const caller = activity?.caller || determineCaller(adName, !!activity)
       return {
         ...lead,
         _activity: activity,

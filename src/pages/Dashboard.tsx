@@ -591,44 +591,83 @@ export default function Dashboard() {
           {journey.total} leads received · {journey.contacted} actually spoken to · {journey.meetingBooked} meetings booked
         </p>
 
-        <div className="space-y-1">
-          {journey.steps.map((step, idx) => {
-            const pctOfTotal = journey.total > 0 ? (step.count / journey.total) * 100 : 0
-            const prev = idx > 0 ? journey.steps[idx - 1].count : step.count
-            const stepConv = idx > 0 && prev > 0 ? Math.round((step.count / prev) * 100) : null
-            return (
-              <div key={step.key}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-[#6b6b6b] w-[120px] shrink-0">{step.label}</span>
-                  <div className="flex-1 h-6 bg-[#f5f5f5] rounded-md overflow-hidden relative">
-                    <div
-                      className="h-full rounded-md funnel-bar-smooth"
-                      style={{
-                        width: `${Math.max(pctOfTotal, step.count > 0 ? 2 : 0)}%`,
-                        backgroundColor: idx === 0 ? '#0a0a0a' : idx >= 4 ? '#34d399' : '#0a0a0a',
-                        opacity: idx === 0 ? 1 : 1 - idx * 0.1,
-                      }}
-                    />
-                  </div>
-                  <span className="text-sm font-semibold text-[#0a0a0a] tabular-nums w-10 text-right shrink-0">{step.count}</span>
-                  <span className="text-[10px] text-muted tabular-nums w-11 text-right shrink-0">{pctOfTotal.toFixed(0)}%</span>
-                  <span className="text-[10px] text-muted tabular-nums w-16 text-right shrink-0">
-                    {stepConv !== null ? `${stepConv}% step` : ''}
-                  </span>
-                </div>
-                {/* Drop-off between this step and the next */}
-                {idx < journey.steps.length - 1 && journey.steps[idx + 1].lost > 0 && (
-                  <div className="flex items-center gap-3 py-0.5">
-                    <span className="w-[120px] shrink-0" />
-                    <span className="text-[10px] text-red-400 pl-1">
-                      ↓ −{journey.steps[idx + 1].lost} {journey.steps[idx + 1].lostLabel}
-                    </span>
-                  </div>
-                )}
+        {/* The funnel silhouette does the explaining: each band's width is that
+            step's share of all leads, so the taper *is* the drop-off. */}
+        {(() => {
+          const BAND = 52
+          const GAP = 3
+          const steps = journey.steps
+          const H = steps.length * BAND
+          const colors = ['#cbd5e1', '#94a3b8', '#60a5fa', '#818cf8', '#a78bfa', '#34d399']
+          const half = (c: number) => {
+            const p = journey.total > 0 ? (c / journey.total) * 100 : 0
+            return Math.max(p / 2, c > 0 ? 1.2 : 0.35)
+          }
+          return (
+            <div className="flex items-stretch" style={{ height: H }}>
+              {/* Left gutter: what the step is */}
+              <div className="w-[170px] shrink-0">
+                {steps.map((s, i) => {
+                  const prev = i > 0 ? steps[i - 1].count : s.count
+                  const stepConv = i > 0 && prev > 0 ? Math.round((s.count / prev) * 100) : null
+                  return (
+                    <div key={s.key} className="flex flex-col justify-center" style={{ height: BAND }}>
+                      <span className="text-[13px] font-semibold text-[#0a0a0a] leading-tight">{s.label}</span>
+                      {stepConv !== null && (
+                        <span className="text-[10px] text-muted tabular-nums leading-tight">{stepConv}% of previous</span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
+
+              {/* The funnel itself — width of each band is that step's share of all leads */}
+              <div className="flex-1 min-w-0 px-3">
+                <svg
+                  viewBox={`0 0 100 ${H}`}
+                  preserveAspectRatio="none"
+                  className="w-full block"
+                  style={{ height: H }}
+                  aria-hidden="true"
+                >
+                  {steps.map((s, i) => {
+                    const y0 = i * BAND
+                    const y1 = y0 + BAND - GAP
+                    const topH = half(s.count)
+                    const botH = half(i < steps.length - 1 ? steps[i + 1].count : s.count)
+                    return (
+                      <path
+                        key={s.key}
+                        d={`M ${50 - topH} ${y0} L ${50 + topH} ${y0} L ${50 + botH} ${y1} L ${50 - botH} ${y1} Z`}
+                        fill={colors[i]}
+                      />
+                    )
+                  })}
+                </svg>
+              </div>
+
+              {/* Right gutter: how many, and who was lost getting here */}
+              <div className="w-[230px] shrink-0">
+                {steps.map((s) => {
+                  const pctOfTotal = journey.total > 0 ? (s.count / journey.total) * 100 : 0
+                  return (
+                    <div key={s.key} className="flex items-center justify-end gap-2" style={{ height: BAND }}>
+                      {s.lost > 0 && (
+                        <span className="text-[10px] text-red-400 tabular-nums text-right leading-tight">
+                          −{s.lost} {s.lostLabel}
+                        </span>
+                      )}
+                      <span className="text-[17px] font-bold text-[#0a0a0a] tabular-nums">{s.count}</span>
+                      <span className="text-[10px] text-muted tabular-nums w-8 text-right">
+                        {pctOfTotal.toFixed(0)}%
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Where leads are lost */}
         <div className="mt-5 pt-4 border-t border-card-border">
