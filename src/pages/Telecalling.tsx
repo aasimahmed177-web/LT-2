@@ -70,19 +70,20 @@ const CALLER_KEYWORDS: [string, string][] = [
   ["suganya", "Suganya"],
 ]
 
-// Two genuinely different situations were both being labelled "Unknown":
-// a lead nobody has called yet (no caller exists), and a called lead whose ad
-// name doesn't match a known caller (attribution gap). They need different
-// labels — the first is a normal queue state, the second is a data problem.
-const NOT_YET_CALLED = "Not yet called"
+// A caller is a property of the ad, not of whether anyone has called yet — so
+// this resolves purely from the ad name. "Unassigned" therefore means a real
+// attribution gap (the lead has no ad name, or an ad name matching no caller),
+// not "not called". Leads used to land here because the Meta import wasn't
+// requesting ad_name at all; if this count is non-zero after a re-sync, the ad
+// genuinely isn't named after a caller.
 const UNASSIGNED = "Unassigned"
 
-function determineCaller(adName: string, hasCallData: boolean): string {
+function determineCaller(adName: string): string {
   const lower = (adName || "").toLowerCase()
   for (const [keyword, name] of CALLER_KEYWORDS) {
     if (lower.includes(keyword)) return name
   }
-  return hasCallData ? UNASSIGNED : NOT_YET_CALLED
+  return UNASSIGNED
 }
 
 function bucketReason(comments: string): string {
@@ -146,7 +147,7 @@ export default function Telecalling() {
     return leads.map((lead) => {
       const activity = activityMap.get(lead.metaLeadId)
       const adName = activity?.adName || lead.adName || ""
-      const caller = activity?.caller || determineCaller(adName, !!activity)
+      const caller = activity?.caller || determineCaller(adName)
       return {
         ...lead,
         _activity: activity,
@@ -176,13 +177,17 @@ export default function Telecalling() {
       const stage = l.stage
       m.total++
 
-      const hasCallData = !!a
       const callPicked = a?.callPicked === "Yes"
       const callInterested = a?.interested === "Yes"
       const comments = a?.callComments || ""
 
-      // Determine attempted: has call activity or stage indicates attempt was made
-      const isAttempted = stage !== "Lead" || hasCallData
+      // Attempted requires a recorded call outcome (picked yes/no) or a stage
+      // past Lead. The mere presence of a call-activity row isn't proof: the
+      // CSV import writes one for every matched lead, including those the
+      // callers never reached, which made this read ~100% attempted.
+      const outcome = (a?.callPicked || "").trim()
+      const hasCallOutcome = outcome === "Yes" || outcome === "No"
+      const isAttempted = hasCallOutcome || stage !== "Lead"
       // Determine connected: callPicked=Yes OR stage is positive
       const isConnected = callPicked || ["Contact", "Prospect", "ConversionLead", "Purchase", "NotQualified"].includes(stage) && stage !== "NoResponse" && stage !== "Invalid"
       // Determine interested: callInterested=Yes OR stage is Prospect+

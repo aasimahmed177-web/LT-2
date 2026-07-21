@@ -173,7 +173,14 @@ export default function Dashboard() {
       const stage = l.stage
       const callPicked = a?.callPicked === 'Yes'
 
-      const isAttempted = stage !== 'Lead' || !!a
+      // "Attempted" needs evidence of an actual call, not merely the existence
+      // of a call-activity row — the CSV import writes a row for every matched
+      // lead, including ones the callers never got to (blank "Call Picked?").
+      // Treating the row itself as proof made this read 100% attempted while
+      // leads were visibly still sitting untouched in the Lead column.
+      const outcome = (a?.callPicked || '').trim()
+      const hasCallOutcome = outcome === 'Yes' || outcome === 'No'
+      const isAttempted = hasCallOutcome || stage !== 'Lead'
       const isContacted = callPicked || ['Contact', 'Prospect', 'ConversionLead', 'Purchase', 'NotQualified'].includes(stage)
       const isInterested = ['Prospect', 'ConversionLead', 'Purchase'].includes(stage)
       const isMeeting = ['ConversionLead', 'Purchase'].includes(stage)
@@ -585,9 +592,9 @@ export default function Dashboard() {
       <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
         <div className="flex items-baseline justify-between mb-1">
           <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Lead Journey</h2>
-          <span className="text-[10px] text-muted">Cumulative — each step counts every lead that reached at least that far</span>
+          <span className="text-[10px] text-[#5f5f5f]">Cumulative — each step counts every lead that reached at least that far</span>
         </div>
-        <p className="text-[10px] text-muted mb-5">
+        <p className="text-[10px] text-[#5f5f5f] mb-5">
           {journey.total} leads received · {journey.contacted} actually spoken to · {journey.meetingBooked} meetings booked
         </p>
 
@@ -614,7 +621,7 @@ export default function Dashboard() {
                     <div key={s.key} className="flex flex-col justify-center" style={{ height: BAND }}>
                       <span className="text-[13px] font-semibold text-[#0a0a0a] leading-tight">{s.label}</span>
                       {stepConv !== null && (
-                        <span className="text-[10px] text-muted tabular-nums leading-tight">{stepConv}% of previous</span>
+                        <span className="text-[10px] text-[#5f5f5f] tabular-nums leading-tight">{stepConv}% of previous</span>
                       )}
                     </div>
                   )
@@ -653,12 +660,12 @@ export default function Dashboard() {
                   return (
                     <div key={s.key} className="flex items-center justify-end gap-2" style={{ height: BAND }}>
                       {s.lost > 0 && (
-                        <span className="text-[10px] text-red-400 tabular-nums text-right leading-tight">
+                        <span className="text-[10px] text-red-600 tabular-nums text-right leading-tight">
                           −{s.lost} {s.lostLabel}
                         </span>
                       )}
                       <span className="text-[17px] font-bold text-[#0a0a0a] tabular-nums">{s.count}</span>
-                      <span className="text-[10px] text-muted tabular-nums w-8 text-right">
+                      <span className="text-[10px] text-[#5f5f5f] tabular-nums w-8 text-right">
                         {pctOfTotal.toFixed(0)}%
                       </span>
                     </div>
@@ -669,24 +676,48 @@ export default function Dashboard() {
           )
         })()}
 
-        {/* Where leads are lost */}
-        <div className="mt-5 pt-4 border-t border-card-border">
-          <p className="section-label mb-2.5">Where leads drop off</p>
-          <div className="grid grid-cols-5 gap-3">
-            {[
-              { label: 'Never called', value: journey.neverCalled },
-              { label: 'No response', value: journey.noResponse },
-              { label: 'Invalid / dup', value: journey.invalidNumber },
-              { label: 'Not qualified', value: journey.notQualified },
-              { label: 'Stalled at contact', value: journey.stalledAtContact },
-            ].map((d) => (
-              <div key={d.label} className="rounded-lg border border-card-border px-3 py-2">
-                <p className="text-[18px] font-bold text-[#0a0a0a] tabular-nums leading-none">{d.value}</p>
-                <p className="text-[10px] text-muted mt-1 leading-tight">{d.label}</p>
+        {/* Where every lead currently stands — one bar, sums to the full set,
+            so "still in play" is visible against everything already lost. */}
+        {(() => {
+          const segments = [
+            { label: 'Still in play', value: journey.interested, color: '#34d399' },
+            { label: 'Stalled at contact', value: journey.stalledAtContact, color: '#fbbf24' },
+            { label: 'Not qualified', value: journey.notQualified, color: '#fb923c' },
+            { label: 'No response', value: journey.noResponse, color: '#f87171' },
+            { label: 'Invalid / duplicate', value: journey.invalidNumber, color: '#e11d48' },
+            { label: 'Never called', value: journey.neverCalled, color: '#cbd5e1' },
+          ].filter((s) => s.value > 0)
+          const sum = segments.reduce((n, s) => n + s.value, 0) || 1
+          return (
+            <div className="mt-6 pt-5 border-t border-card-border">
+              <div className="flex items-baseline justify-between mb-2.5">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Where every lead stands</p>
+                <span className="text-[10px] text-[#5f5f5f]">{journey.interested} of {journey.total} still in play</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex h-3 rounded-full overflow-hidden gap-px">
+                {segments.map((s) => (
+                  <div
+                    key={s.label}
+                    style={{ width: `${(s.value / sum) * 100}%`, backgroundColor: s.color }}
+                    title={`${s.label}: ${s.value}`}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3">
+                {segments.map((s) => (
+                  <div key={s.label} className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-[11px] text-[#3d3d3d]">{s.label}</span>
+                    <span className="text-[11px] font-semibold text-[#0a0a0a] tabular-nums">{s.value}</span>
+                    <span className="text-[10px] text-[#5f5f5f] tabular-nums">
+                      {((s.value / sum) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Stage Distribution — snapshot of where leads sit right now */}

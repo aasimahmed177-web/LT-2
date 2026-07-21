@@ -169,7 +169,25 @@ export async function importLeadsForClient(rawClientId?: string) {
       };
 
       try {
-        const leadsUrl = `https://graph.facebook.com/v21.0/${formId}/leads?access_token=${pageToken}`;
+        // The leads edge returns only a minimal default set (id, created_time,
+        // field_data) unless fields are named explicitly — which is why every
+        // lead previously imported with no ad/adset/campaign, breaking ad-level
+        // reporting and caller attribution (both derive from ad_name).
+        const LEAD_FIELDS = [
+          "id",
+          "created_time",
+          "ad_id",
+          "ad_name",
+          "adset_id",
+          "adset_name",
+          "campaign_id",
+          "campaign_name",
+          "form_id",
+          "is_organic",
+          "platform",
+          "field_data",
+        ].join(",");
+        const leadsUrl = `https://graph.facebook.com/v21.0/${formId}/leads?access_token=${pageToken}&fields=${LEAD_FIELDS}`;
         const { allData: leads, pagesFetched } = await paginatedFetch(leadsUrl, 100);
 
         formEntry.leadsFetched = leads.length;
