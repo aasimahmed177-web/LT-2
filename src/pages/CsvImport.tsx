@@ -14,6 +14,7 @@ export default function CsvImport() {
   const [preview, setPreview] = useState<any>(null)
   const [applyResult, setApplyResult] = useState<any>(null)
   const [applying, setApplying] = useState(false)
+  const [applyProgress, setApplyProgress] = useState<{ done: number; total: number } | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -55,18 +56,47 @@ export default function CsvImport() {
     }
   }
 
+  // Apply in chunks. Each row costs several sequential Convex round-trips, so
+  // sending all rows in one request would blow past the serverless function
+  // timeout (~10-26s) on any sizeable import and die part-way. Chunking keeps
+  // every request short and gives real progress. Re-applying is safe: stage
+  // updates no-op when unchanged, notes de-duplicate, and call activities and
+  // deal values are upserts.
+  const APPLY_CHUNK_SIZE = 20
+
   const handleApply = async () => {
     if (!preview?.rows || preview.rows.length === 0) return
     setApplying(true)
     setShowConfirm(false)
+    setApplyProgress({ done: 0, total: preview.rows.length })
+
+    const totals = { total: 0, updated: 0, errors: 0, capiEventsCreated: 0, notesAdded: 0, callActivitiesStored: 0 }
+    const allResults: any[] = []
+
     try {
-      const result = await applyCsv(preview.rows)
-      setApplyResult(result)
+      for (let i = 0; i < preview.rows.length; i += APPLY_CHUNK_SIZE) {
+        const chunk = preview.rows.slice(i, i + APPLY_CHUNK_SIZE)
+        const result = await applyCsv(chunk)
+        const s = result?.summary || {}
+        totals.total += s.total || chunk.length
+        totals.updated += s.updated || 0
+        totals.errors += s.errors || 0
+        totals.capiEventsCreated += s.capiEventsCreated || 0
+        totals.notesAdded += s.notesAdded || 0
+        totals.callActivitiesStored += s.callActivitiesStored || 0
+        if (Array.isArray(result?.results)) allResults.push(...result.results)
+        setApplyProgress({ done: Math.min(i + APPLY_CHUNK_SIZE, preview.rows.length), total: preview.rows.length })
+      }
+      setApplyResult({ success: true, summary: totals, results: allResults })
     } catch (err: any) {
       console.error('Apply error:', err)
-      setApplyResult({ error: err.message || 'Failed to apply CSV updates' })
+      setApplyResult({
+        error: `${err.message || 'Failed to apply CSV updates'} — ${totals.updated} row(s) were already applied before this failed. Re-running the import is safe and will resume the rest.`,
+        summary: totals,
+      })
     } finally {
       setApplying(false)
+      setApplyProgress(null)
     }
   }
 
@@ -330,7 +360,11 @@ export default function CsvImport() {
               disabled={applyDisabled}
               className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-[#0a0a0a] text-white hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all-expo"
             >
-              {applying ? 'Applying...' : `Apply updates — ${summary?.stageChanges || 0} stages`}
+              {applying
+                ? applyProgress
+                  ? `Applying ${applyProgress.done}/${applyProgress.total}…`
+                  : 'Applying...'
+                : `Apply updates — ${summary?.stageChanges || 0} stages`}
             </button>
             <button
               onClick={handleReset}
