@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
-import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent } from '../api'
+import { getEvents, getEventsCounts, getCapiStatus, sendCapiEvent, cancelCapiEvent, requeueSkippedEvents } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
@@ -14,6 +14,27 @@ export default function Events() {
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [capiStatus, setCapiStatus] = useState<any>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [requeuing, setRequeuing] = useState(false)
+  const [requeueMsg, setRequeueMsg] = useState<string | null>(null)
+
+  const handleRequeueSkipped = async () => {
+    if (!window.confirm('Move all dry-run "skipped" events back to pending so they get sent? Only do this once live sending is enabled (META_CAPI_DRY_RUN=false), otherwise they will just be skipped again.')) return
+    setRequeuing(true)
+    setRequeueMsg(null)
+    try {
+      const res = await requeueSkippedEvents()
+      setRequeueMsg(
+        res.dryRun
+          ? `${res.requeued} re-queued — but CAPI is still in dry-run, so they will be skipped again. Set META_CAPI_DRY_RUN=false first.`
+          : `${res.requeued} event(s) re-queued and will send shortly.`
+      )
+      await load()
+    } catch (err: any) {
+      setRequeueMsg(`Error: ${err.message}`)
+    } finally {
+      setRequeuing(false)
+    }
+  }
 
   const load = () => {
     setLoading(true)
@@ -94,14 +115,32 @@ export default function Events() {
           <h1 className="text-[22px] font-semibold text-[#0a0a0a] tracking-tight">Event Log</h1>
           <p className="text-sm text-muted mt-0.5">Conversion lead events</p>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={events.length === 0}
-          className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
-        >
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          {(counts?.skipped || 0) > 0 && (
+            <button
+              onClick={handleRequeueSkipped}
+              disabled={requeuing}
+              title="Move dry-run skipped events back to pending so they can actually be sent"
+              className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
+            >
+              {requeuing ? 'Re-queuing…' : `Re-queue ${counts.skipped} skipped`}
+            </button>
+          )}
+          <button
+            onClick={handleExport}
+            disabled={events.length === 0}
+            className="h-8 px-3 text-xs font-medium border border-card-border rounded-md bg-white text-muted hover:text-[#0a0a0a] hover:border-[#d4d4d4] disabled:opacity-40 disabled:cursor-not-allowed transition-all-expo"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
+
+      {requeueMsg && (
+        <div className="warning-banner border border-blue-200 bg-blue-50">
+          <p className="text-xs text-blue-800">{requeueMsg}</p>
+        </div>
+      )}
 
       {/* CAPI Warning Banners */}
       {capiStatus && !capiStatus.dryRun && capiStatus.capiCapable && (

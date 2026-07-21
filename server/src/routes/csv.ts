@@ -10,6 +10,36 @@ const STAGES = ["Lead", "Contact", "Prospect", "ConversionLead", "Purchase", "No
 const VALID_STAGES = new Set(STAGES);
 const CAPI_STAGES = new Set(["Contact", "Prospect", "ConversionLead", "Purchase"]);
 
+// Calling-team sheets don't always use the exact CRM stage keys — e.g. they
+// write "Contacted" where the CRM stage is "Contact" (the same mapping the
+// Leads page's Stage Mapping Guide documents). Normalize unambiguous variants
+// rather than rejecting the row, which would silently drop the update.
+// Matching ignores case, spaces, underscores and hyphens.
+const STAGE_ALIASES: Record<string, string> = {
+  contacted: "Contact",
+  conversionlead: "ConversionLead",
+  conversion: "ConversionLead",
+  qualifiedlead: "Prospect",
+  notqualified: "NotQualified",
+  noresponse: "NoResponse",
+  notinterested: "NotQualified",
+  duplicate: "Duplicate",
+  invalid: "Invalid",
+  purchased: "Purchase",
+  purchase: "Purchase",
+  lead: "Lead",
+  contact: "Contact",
+  prospect: "Prospect",
+};
+
+function normalizeStage(raw: string): string {
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return "";
+  if (VALID_STAGES.has(trimmed)) return trimmed;
+  const key = trimmed.toLowerCase().replace(/[\s_-]/g, "");
+  return STAGE_ALIASES[key] || trimmed; // unknown values pass through and fail validation as before
+}
+
 // ─── CSV Parsing ────────────────────────────────────────────────────
 
 function parseCsv(text: string): Record<string, string>[] {
@@ -154,7 +184,7 @@ router.post("/preview", async (req: Request, res: Response) => {
     for (const rawRow of parsed) {
       const rawMetaLeadId = metaLeadCol ? (rawRow[metaLeadCol] || "").trim() : "";
       const normalizedMetaLeadId = normalizeMetaLeadId(rawMetaLeadId);
-      const rawStage = stageCol ? (rawRow[stageCol] || "").trim() : "";
+      const rawStage = normalizeStage(stageCol ? (rawRow[stageCol] || "") : "");
       const comments = commentsCol ? (rawRow[commentsCol] || "").trim() : "";
 
       const lead = leadByMetaId.get(normalizedMetaLeadId) || null;
@@ -258,7 +288,9 @@ router.post("/apply", async (req: Request, res: Response) => {
           continue;
         }
 
-        // Validate stage
+        // Validate stage (normalize defensively — the client sends the value
+        // the preview computed, but never trust it blindly).
+        row.newStage = normalizeStage(row.newStage || "");
         if (row.newStage && !VALID_STAGES.has(row.newStage)) {
           results.push({ metaLeadId: row.metaLeadId, status: "skipped", reason: `Invalid stage: "${row.newStage}"` });
           errors++;

@@ -601,6 +601,21 @@ export async function sendPendingCapiEventsForLead(leadId: string, convexLeadId:
   }
 }
 
+// POST /api/meta/requeue-skipped — move dry-run "skipped" events back to
+// "pending" so they get sent once live sending is enabled.
+router.post("/requeue-skipped", async (req: Request, res: Response) => {
+  try {
+    const { limit } = req.body || {};
+    const result = await getConvex().mutation("crm:requeueSkippedEvents", {
+      limit: typeof limit === "number" ? limit : undefined,
+    });
+    res.json({ success: true, ...result, dryRun: META_CAPI_DRY_RUN });
+  } catch (err: any) {
+    console.error("Requeue skipped error:", err.message);
+    res.status(500).json({ error: "Failed to requeue skipped events", detail: err.message });
+  }
+});
+
 // POST /api/meta/send-capi-event - send a pending CAPI event by its Convex event ID
 router.post("/send-capi-event", async (_req: Request, res: Response) => {
   try {

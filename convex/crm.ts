@@ -284,6 +284,26 @@ export const listEventsByStatus = query({
   },
 });
 
+// Re-queues events that were recorded but never transmitted (i.e. "skipped"
+// because CAPI was in dry-run) back to "pending" so they can actually be sent
+// once META_CAPI_DRY_RUN=false. Without this, importing while in dry-run would
+// be a one-way door: skipped events are blocked from sending forever.
+export const requeueSkippedEvents = mutation({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
+    const skipped = await ctx.db
+      .query("conversionLeadEvents")
+      .withIndex("by_status", (q) => q.eq("status", "skipped"))
+      .collect();
+    const batch = typeof limit === "number" ? skipped.slice(0, limit) : skipped;
+    const now = new Date().toISOString();
+    for (const e of batch) {
+      await ctx.db.patch(e._id, { status: "pending", updatedAt: now, error: undefined });
+    }
+    return { requeued: batch.length, remaining: skipped.length - batch.length };
+  },
+});
+
 export const getCapiEventByEventId = query({
   args: { eventId: v.string() },
   handler: async (ctx, { eventId }) => {

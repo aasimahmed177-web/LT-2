@@ -166,6 +166,17 @@ export function cancelCapiEvent(eventId: string) {
   })
 }
 
+export function requeueSkippedEvents(limit?: number) {
+  return json<{ success: boolean; requeued: number; remaining: number; dryRun: boolean }>(
+    `${API_BASE}/meta/requeue-skipped`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limit }),
+    }
+  )
+}
+
 export function getSystemHealth(clientId?: string) {
   return json<any>(withClient(`${API_BASE}/system/health`, clientId))
 }
