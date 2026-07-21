@@ -723,6 +723,37 @@ html.dark .text-amber-800 {
 html.dark .text-amber-900 {
   color: #ffb347;
 }
+html.dark .border-amber-300 {
+  border-color: #4a4a1a;
+}
+html.dark .text-amber-700 {
+  color: #ffb347;
+}
+
+/* Info banner backgrounds (dry-run / status messages) */
+html.dark .bg-blue-50 {
+  background: #0a1f2e;
+}
+html.dark .border-blue-200 {
+  border-color: #1a3a4a;
+}
+html.dark .text-blue-800 {
+  color: #7bb8ff;
+}
+html.dark .text-blue-700 {
+  color: #7bb8ff;
+}
+
+/* Error banner backgrounds */
+html.dark .bg-red-50 {
+  background: #2a1414;
+}
+html.dark .border-red-100 {
+  border-color: #4a1a1a;
+}
+html.dark .text-red-600 {
+  color: #ff8080;
+}
 
 /* ─── Mobile Sidebar Overlay ──────────────────────────────────── */
 
