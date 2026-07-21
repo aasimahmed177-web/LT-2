@@ -131,8 +131,16 @@ export const updateStage = mutation({
         })
         .sort((a, b) => (STAGE_HIERARCHY[a] ?? -1) - (STAGE_HIERARCHY[b] ?? -1));
 
-      for (const rung of rungs) {
-        const rungEventTime = Math.floor(Date.now() / 1000);
+      // Stagger the backfilled rungs one second apart, ending at "now", so the
+      // funnel progression Meta receives is unambiguously ordered. Writing the
+      // whole ladder with an identical event_time (they're all inserted within
+      // the same second) leaves Meta unable to tell that Lead preceded Contact
+      // preceded QualifiedLead. Counting backwards keeps the newest stage at
+      // the real current time and never stamps an event in the future.
+      const nowSec = Math.floor(Date.now() / 1000);
+      for (let r = 0; r < rungs.length; r++) {
+        const rung = rungs[r];
+        const rungEventTime = nowSec - (rungs.length - 1 - r);
         await ctx.db.insert("conversionLeadEvents", {
           leadId,
           metaLeadId: lead.metaLeadId,
