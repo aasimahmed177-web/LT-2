@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { getStats, getLeads, getSourceOfTruth } from '../api'
+import { getStats, getLeads, getSourceOfTruth, getCallActivities } from '../api'
 import { useClient } from '../ClientContext'
 import { POSITIVE_STAGES, NEGATIVE_STAGES, stageClass } from '../constants'
 
@@ -55,6 +55,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null)
   const [allLeads, setAllLeads] = useState<any[]>([])
   const [sourceOfTruth, setSourceOfTruth] = useState<any>(null)
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filters
@@ -77,11 +78,13 @@ export default function Dashboard() {
       getStats(currentClientId),
       getLeads(currentClientId, { limit: 1000 }),
       getSourceOfTruth(currentClientId),
+      getCallActivities().catch(() => ({ activities: [] })),
     ])
-      .then(([s, l, t]) => {
+      .then(([s, l, t, a]) => {
         setStats(s)
         setAllLeads(l.leads || [])
         setSourceOfTruth(t)
+        setActivities(a?.activities || [])
       })
       .catch((err) => {
         console.error(err)
@@ -144,6 +147,64 @@ export default function Dashboard() {
     return { total, byStage, funnel, activityByDate: byDate }
   }, [filteredLeads])
 
+  // Lead-journey funnel. Deliberately CUMULATIVE ("reached at least this
+  // step"), unlike the stage distribution below which is a snapshot of where
+  // leads currently sit. A lead at ConversionLead was necessarily contacted and
+  // interested first, so it must count toward those earlier steps too —
+  // otherwise the step-to-step conversion rates are meaningless.
+  //
+  // Terminal negative stages still carry progress information:
+  //   NotQualified  -> they WERE contacted (you spoke to them to disqualify)
+  //   NoResponse    -> attempted but never reached
+  //   Invalid/Dup   -> attempted, unusable number
+  // Call activity ("Call Picked?") refines this where the CSV supplied it.
+  const activityMap = useMemo(() => {
+    const map = new Map<string, any>()
+    for (const a of activities) if (a.metaLeadId) map.set(a.metaLeadId, a)
+    return map
+  }, [activities])
+
+  const journey = useMemo(() => {
+    let neverCalled = 0, attempted = 0, contacted = 0, interested = 0, meetingBooked = 0, purchased = 0
+    let noResponse = 0, invalidNumber = 0, notQualified = 0, stalledAtContact = 0
+
+    for (const l of filteredLeads) {
+      const a = activityMap.get(l.metaLeadId)
+      const stage = l.stage
+      const callPicked = a?.callPicked === 'Yes'
+
+      const isAttempted = stage !== 'Lead' || !!a
+      const isContacted = callPicked || ['Contact', 'Prospect', 'ConversionLead', 'Purchase', 'NotQualified'].includes(stage)
+      const isInterested = ['Prospect', 'ConversionLead', 'Purchase'].includes(stage)
+      const isMeeting = ['ConversionLead', 'Purchase'].includes(stage)
+
+      if (isAttempted) attempted++; else neverCalled++
+      if (isContacted) contacted++
+      if (isInterested) interested++
+      if (isMeeting) meetingBooked++
+      if (stage === 'Purchase') purchased++
+
+      if (stage === 'NoResponse') noResponse++
+      if (stage === 'Invalid' || stage === 'Duplicate') invalidNumber++
+      if (stage === 'NotQualified') notQualified++
+      if (stage === 'Contact') stalledAtContact++
+    }
+
+    const total = filteredLeads.length
+    return {
+      total, neverCalled, attempted, contacted, interested, meetingBooked, purchased,
+      noResponse, invalidNumber, notQualified, stalledAtContact,
+      steps: [
+        { key: 'total', label: 'Leads received', count: total, lost: 0, lostLabel: '' },
+        { key: 'attempted', label: 'Attempted', count: attempted, lost: neverCalled, lostLabel: 'never called' },
+        { key: 'contacted', label: 'Contacted', count: contacted, lost: attempted - contacted, lostLabel: 'no answer / invalid number' },
+        { key: 'interested', label: 'Interested', count: interested, lost: contacted - interested, lostLabel: 'not qualified / stalled' },
+        { key: 'meeting', label: 'Meeting booked', count: meetingBooked, lost: interested - meetingBooked, lostLabel: 'no meeting booked' },
+        { key: 'purchase', label: 'Purchased', count: purchased, lost: meetingBooked - purchased, lostLabel: 'not closed' },
+      ],
+    }
+  }, [filteredLeads, activityMap])
+
   // Ad-level breakdown: which ads actually produce ConversionLeads/Purchases,
   // not just raw lead volume.
   const byAdStats = useMemo(() => {
@@ -179,13 +240,10 @@ export default function Dashboard() {
     )
   }
 
-  const stageOrder = ['Lead', 'Contact', 'Prospect', 'ConversionLead', 'Purchase']
   const stageLabels: Record<string, string> = {
     Lead: 'Lead', Contact: 'Contact', Prospect: 'Prospect',
     ConversionLead: 'Conv. Lead', Purchase: 'Purchase',
   }
-
-  const maxFunnel = Math.max(...stageOrder.map((s) => filteredStats.funnel.find((f: any) => f.stage === s)?.count || 0), 1)
 
   const activityEntries = Object.entries(filteredStats.activityByDate).sort()
   const maxActivity = Math.max(...activityEntries.map(([, c]) => c as number), 1)
@@ -523,52 +581,82 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Funnel + Stage Distribution */}
-      <div className="grid grid-cols-2 gap-5">
-        {/* Pipeline Funnel */}
-        <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
-          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Pipeline Funnel</h2>
-          <div className="space-y-4">
-            {stageOrder.map((stage, idx) => {
-              const entry = filteredStats.funnel.find((f: any) => f.stage === stage)
-              const count = entry?.count || 0
-              const pct = maxFunnel > 0 ? (count / maxFunnel) * 100 : 0
-              const prevCount = idx > 0
-                ? (filteredStats.funnel.find((f: any) => f.stage === stageOrder[idx - 1])?.count || 0)
-                : count
-              const conversion = idx > 0 && prevCount > 0 ? Math.round((count / prevCount) * 100) : null
-              return (
-                <div key={stage}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
-                      <span className="text-xs font-medium text-[#6b6b6b]">{stageLabels[stage]}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#0a0a0a] tabular-nums">{count}</span>
-                      {conversion !== null && (
-                        <span className="text-[10px] text-muted tabular-nums">({conversion}%)</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+      {/* Lead Journey Funnel (cumulative) */}
+      <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
+        <div className="flex items-baseline justify-between mb-1">
+          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Lead Journey</h2>
+          <span className="text-[10px] text-muted">Cumulative — each step counts every lead that reached at least that far</span>
+        </div>
+        <p className="text-[10px] text-muted mb-5">
+          {journey.total} leads received · {journey.contacted} actually spoken to · {journey.meetingBooked} meetings booked
+        </p>
+
+        <div className="space-y-1">
+          {journey.steps.map((step, idx) => {
+            const pctOfTotal = journey.total > 0 ? (step.count / journey.total) * 100 : 0
+            const prev = idx > 0 ? journey.steps[idx - 1].count : step.count
+            const stepConv = idx > 0 && prev > 0 ? Math.round((step.count / prev) * 100) : null
+            return (
+              <div key={step.key}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-[#6b6b6b] w-[120px] shrink-0">{step.label}</span>
+                  <div className="flex-1 h-6 bg-[#f5f5f5] rounded-md overflow-hidden relative">
                     <div
-                      className="h-full rounded-full funnel-bar-smooth"
+                      className="h-full rounded-md funnel-bar-smooth"
                       style={{
-                        width: `${pct}%`,
-                        backgroundColor: idx === stageOrder.length - 1 ? '#555555' : '#0a0a0a',
+                        width: `${Math.max(pctOfTotal, step.count > 0 ? 2 : 0)}%`,
+                        backgroundColor: idx === 0 ? '#0a0a0a' : idx >= 4 ? '#34d399' : '#0a0a0a',
+                        opacity: idx === 0 ? 1 : 1 - idx * 0.1,
                       }}
                     />
                   </div>
+                  <span className="text-sm font-semibold text-[#0a0a0a] tabular-nums w-10 text-right shrink-0">{step.count}</span>
+                  <span className="text-[10px] text-muted tabular-nums w-11 text-right shrink-0">{pctOfTotal.toFixed(0)}%</span>
+                  <span className="text-[10px] text-muted tabular-nums w-16 text-right shrink-0">
+                    {stepConv !== null ? `${stepConv}% step` : ''}
+                  </span>
                 </div>
-              )
-            })}
-          </div>
+                {/* Drop-off between this step and the next */}
+                {idx < journey.steps.length - 1 && journey.steps[idx + 1].lost > 0 && (
+                  <div className="flex items-center gap-3 py-0.5">
+                    <span className="w-[120px] shrink-0" />
+                    <span className="text-[10px] text-red-400 pl-1">
+                      ↓ −{journey.steps[idx + 1].lost} {journey.steps[idx + 1].lostLabel}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
-        {/* Stage Distribution */}
+        {/* Where leads are lost */}
+        <div className="mt-5 pt-4 border-t border-card-border">
+          <p className="section-label mb-2.5">Where leads drop off</p>
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: 'Never called', value: journey.neverCalled },
+              { label: 'No response', value: journey.noResponse },
+              { label: 'Invalid / dup', value: journey.invalidNumber },
+              { label: 'Not qualified', value: journey.notQualified },
+              { label: 'Stalled at contact', value: journey.stalledAtContact },
+            ].map((d) => (
+              <div key={d.label} className="rounded-lg border border-card-border px-3 py-2">
+                <p className="text-[18px] font-bold text-[#0a0a0a] tabular-nums leading-none">{d.value}</p>
+                <p className="text-[10px] text-muted mt-1 leading-tight">{d.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stage Distribution — snapshot of where leads sit right now */}
+      <div className="grid grid-cols-1 gap-5">
         <div className="border border-card-border rounded-xl p-6 transition-all-expo hover:border-[#d4d4d4]">
-          <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a] mb-5">Stage Distribution</h2>
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[#0a0a0a]">Current Stage Distribution</h2>
+            <span className="text-[10px] text-muted">Snapshot — where each lead sits right now (not cumulative)</span>
+          </div>
           <div className="space-y-3">
             {Object.entries(filteredStats.byStage).sort(([, a], [, b]) => (b as number) - (a as number)).map(([stage, count]) => {
               const pct = filteredStats.total > 0 ? Math.round(((count as number) / filteredStats.total) * 100) : 0
