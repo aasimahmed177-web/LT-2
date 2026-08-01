@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { getConvex } from "../convexClient.js";
 import { getClients, resolveClientId, resolveConvexClientId, checkDeployStatus } from "../clients.js";
+import { graphApiUrl, redactToken } from "../metaGraph.js";
 
 // Thrown when required Meta env config is missing — callers can distinguish this
 // from transient/API failures (e.g. to return a 400 instead of a 500 over HTTP).
@@ -45,7 +46,7 @@ router.get("/health", (_req: Request, res: Response) => {
 
 // Helper: get page-scoped access token from system user token
 async function getPageAccessToken(pageId: string, sysToken: string): Promise<string> {
-  const url = `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${sysToken}`;
+  const url = graphApiUrl(pageId, { fields: "access_token", access_token: sysToken });
   const res = await fetch(url);
   const data: any = await res.json();
   if (!res.ok || !data.access_token) {
@@ -90,7 +91,9 @@ async function paginatedFetch(
     const res = await fetch(nextUrl);
     const body: any = await res.json();
     if (!res.ok) {
-      throw new Error(body.error?.message || `API error at page ${pageCount}`);
+      // Redacted: Meta's error message may quote the request URL, which
+      // carries access_token as a query param.
+      throw new Error(redactToken(body.error?.message || `API error at page ${pageCount}`));
     }
     const items = body.data || [];
     allData.push(...items);
@@ -129,7 +132,10 @@ export async function importLeadsForClient(rawClientId?: string) {
     const pageToken = await getPageAccessToken(META_PAGE_ID, META_ACCESS_TOKEN);
 
     // Step 2: Get all leadgen forms for the page (paginated)
-    const formsBaseUrl = `https://graph.facebook.com/v21.0/${META_PAGE_ID}/leadgen_forms?access_token=${pageToken}&fields=id,name,status`;
+    const formsBaseUrl = graphApiUrl(`${META_PAGE_ID}/leadgen_forms`, {
+      access_token: pageToken,
+      fields: "id,name,status",
+    });
     const { allData: forms, pagesFetched: formsPages } = await paginatedFetch(formsBaseUrl, 100);
 
     // Persist forms in leadForms table
@@ -187,7 +193,10 @@ export async function importLeadsForClient(rawClientId?: string) {
           "platform",
           "field_data",
         ].join(",");
-        const leadsUrl = `https://graph.facebook.com/v21.0/${formId}/leads?access_token=${pageToken}&fields=${LEAD_FIELDS}`;
+        const leadsUrl = graphApiUrl(`${formId}/leads`, {
+          access_token: pageToken,
+          fields: LEAD_FIELDS,
+        });
         const { allData: leads, pagesFetched } = await paginatedFetch(leadsUrl, 100);
 
         formEntry.leadsFetched = leads.length;
@@ -212,6 +221,9 @@ export async function importLeadsForClient(rawClientId?: string) {
             fieldData,
             fullResponse: lead,
             ingestedAt: new Date().toISOString(),
+            // The lead's real Meta submission time — becomes event_time on the
+            // initial "Lead" CAPI event instead of this sync run's clock.
+            metaCreatedAt: lead.created_time,
             name,
             email,
             phone,
@@ -500,7 +512,7 @@ export async function sendCapiEvent(
     }
 
     // Send to Meta Graph API
-    const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${META_ACCESS_TOKEN}`;
+    const url = graphApiUrl(`${pixelId}/events`, { access_token: META_ACCESS_TOKEN });
     const fbRes = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -511,11 +523,19 @@ export async function sendCapiEvent(
     if (fbRes.ok && fbData.events_received === 1) {
       return { success: true, response: `Meta accepted: ${fbData.events_received} event(s) received`, payload: body };
     } else {
+      // Meta error payloads can quote the offending request URL back at us,
+      // and that URL carries access_token as a query param — redact before
+      // this string is persisted on the event or returned over the API.
       const errMsg = fbData.error?.message || fbData.error?.error_user_msg || JSON.stringify(fbData);
-      return { success: false, error: errMsg, response: JSON.stringify(fbData).substring(0, 500), payload: body };
+      return {
+        success: false,
+        error: redactToken(errMsg),
+        response: redactToken(JSON.stringify(fbData)).substring(0, 500),
+        payload: body,
+      };
     }
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: redactToken(err.message) };
   }
 }
 

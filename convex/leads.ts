@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { normalizeMetaCreatedTime, resolveLeadEventTimeSeconds } from "./eventTime";
 
 // Parses Indian real-estate budget-range strings (crore/lakh notation) into an
 // estimated INR value — e.g. "under_₹3cr_" -> 2.25cr, "₹3cr–₹5cr_" -> 4cr
@@ -112,6 +113,9 @@ export const upsertMetaLead = mutation({
     phone: v.optional(v.string()),
     formName: v.optional(v.string()),
     formId: v.optional(v.string()),
+    // Meta's `created_time` for this lead. Optional so existing callers keep
+    // working; when absent we fall back to fullResponse.created_time below.
+    metaCreatedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -121,6 +125,12 @@ export const upsertMetaLead = mutation({
 
     const budgetRaw = extractBudgetFieldValue(args.fieldData);
     const dealValueEstimate = budgetRaw ? parseBudgetRangeToINR(budgetRaw) : undefined;
+
+    // Prefer the explicitly-passed created_time, but fall back to the one
+    // inside the raw Meta response so any caller gets correct behaviour.
+    const metaCreatedAt =
+      normalizeMetaCreatedTime(args.metaCreatedAt) ??
+      normalizeMetaCreatedTime(args.fullResponse?.created_time);
 
     if (existing) {
       // Only update Meta-owned/source fields. Never overwrite CRM-owned fields.
@@ -149,6 +159,12 @@ export const upsertMetaLead = mutation({
         patch.dealValueEstimate = dealValueEstimate;
         patch.dealValueCurrency = "INR";
       }
+      // A re-sync may fill in a metaCreatedAt that a pre-existing lead never
+      // had, but must never overwrite one already stored — and never creates
+      // or resends a CAPI event for an existing lead.
+      if (metaCreatedAt && !(existing as any).metaCreatedAt) {
+        patch.metaCreatedAt = metaCreatedAt;
+      }
       await ctx.db.patch(existing._id, patch);
       return { action: "updated", id: existing._id };
     }
@@ -166,6 +182,7 @@ export const upsertMetaLead = mutation({
       fieldData: args.fieldData,
       fullResponse: args.fullResponse,
       ingestedAt: args.ingestedAt,
+      metaCreatedAt,
       stage: "Lead",
       platform: "meta",
       name: args.name,
@@ -185,8 +202,15 @@ export const upsertMetaLead = mutation({
     // "Lead" entry in crm.ts's CAPI_STAGE_EVENT_MAP. Created here (at ingestion)
     // rather than in crm:updateStage, since there's no explicit stage-change
     // call for a lead's very first stage.
+    //
+    // event_time is the lead's real Meta submission time, not ingestion time:
+    // metaCreatedAt -> fullResponse.created_time -> now (see eventTime.ts).
     const now = new Date().toISOString();
-    const eventTime = Math.floor(Date.now() / 1000);
+    const eventTime = resolveLeadEventTimeSeconds(
+      metaCreatedAt,
+      args.fullResponse,
+      Math.floor(Date.now() / 1000)
+    );
     await ctx.db.insert("conversionLeadEvents", {
       leadId: id,
       metaLeadId: args.metaLeadId,

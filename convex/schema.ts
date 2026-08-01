@@ -61,6 +61,12 @@ export default defineSchema({
     fullResponse: v.any(),
     pageId: v.optional(v.string()),
     ingestedAt: v.string(),
+    // When the person actually submitted the Meta Instant Form (ISO-8601),
+    // as opposed to `ingestedAt` which is when our sync imported them. Used
+    // as event_time for the initial "Lead" CAPI event. Optional because leads
+    // imported before this field existed won't have it — those fall back to
+    // fullResponse.created_time.
+    metaCreatedAt: v.optional(v.string()),
     stage: v.string(),
     stageChangedAt: v.optional(v.string()),
     name: v.optional(v.string()),

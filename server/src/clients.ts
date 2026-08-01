@@ -2,6 +2,7 @@
 // After `npx convex deploy` + backfill, app uses Convex storage transparently.
 
 import { getConvex } from "./convexClient.js";
+import { graphApiUrl } from "./metaGraph.js";
 
 export interface Client {
   id: string
@@ -157,11 +158,11 @@ export async function autoBackfillMetaConfig(): Promise<void> {
     if (metaToken && pageId) {
       try {
         // First exchange system token for page-scoped token
-        const tokenRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${metaToken}`);
+        const tokenRes = await fetch(graphApiUrl(pageId, { fields: "access_token", access_token: metaToken }));
         const tokenData: any = await tokenRes.json();
         const pageToken = tokenData.access_token;
         if (pageToken) {
-          const pageRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name&access_token=${pageToken}`);
+          const pageRes = await fetch(graphApiUrl(pageId, { fields: "name", access_token: pageToken }));
           const pageData: any = await pageRes.json();
           if (pageData.name) pageName = pageData.name;
         }
@@ -303,11 +304,11 @@ export async function backfillDefaultClient(): Promise<{ success: boolean; clien
     if (metaToken && metaPageId) {
       try {
         // Exchange system token for page-scoped token
-        const tokenRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=access_token&access_token=${metaToken}`);
+        const tokenRes = await fetch(graphApiUrl(metaPageId, { fields: "access_token", access_token: metaToken }));
         const tokenData: any = await tokenRes.json();
         const pageToken = tokenData.access_token;
         if (pageToken) {
-          const pageRes = await fetch(`https://graph.facebook.com/v21.0/${metaPageId}?fields=name&access_token=${pageToken}`);
+          const pageRes = await fetch(graphApiUrl(metaPageId, { fields: "name", access_token: pageToken }));
           const pageData: any = await pageRes.json();
           if (pageData.name) {
             pageName = pageData.name;

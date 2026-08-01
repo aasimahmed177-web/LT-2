@@ -172,6 +172,19 @@ export default function Settings() {
           <p className="text-sm text-muted">Loading system health...</p>
         ) : systemHealth ? (
           <div className="space-y-4">
+            {/* Deployed build — which commit the live site is actually running,
+                so a "did my fix ship?" question is answerable from the UI. */}
+            <div className="setting-subsection">
+              <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Deployed version</p>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500" />
+                <span className="font-mono text-xs text-[#0a0a0a]">{systemHealth.build?.version || 'unknown'}</span>
+                {systemHealth.build?.version === 'local' && (
+                  <span className="text-[11px] text-muted">not a deployed build</span>
+                )}
+              </div>
+            </div>
+
             {/* Environment Status */}
             <div className="setting-subsection">
               <p className="text-[10px] text-muted uppercase tracking-wider font-medium mb-1.5">Environment</p>

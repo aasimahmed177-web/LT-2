@@ -4,6 +4,19 @@ import { getClients, getClientMetaConfig, resolveClientId } from "../clients.js"
 
 const router = Router();
 
+// The commit this build was deployed from, so Settings can show whether the
+// live site actually has a given fix. Netlify exposes COMMIT_REF; BUILD_SHA and
+// GITHUB_SHA cover other CI providers. A commit SHA is not sensitive, and only
+// the short form is returned. Falls back to "local" for un-deployed dev runs.
+function resolveDeployedVersion(): string {
+  const sha =
+    process.env.COMMIT_REF ||
+    process.env.BUILD_SHA ||
+    process.env.GITHUB_SHA ||
+    "";
+  return sha ? sha.substring(0, 7) : "local";
+}
+
 // GET /api/system/health — comprehensive system health for the Settings dashboard
 router.get("/health", async (_req: Request, res: Response) => {
   try {
@@ -73,6 +86,9 @@ router.get("/health", async (_req: Request, res: Response) => {
     }
 
     res.json({
+      build: {
+        version: resolveDeployedVersion(),
+      },
       convex: {
         configured: !!convexUrl,
         url: convexUrl ? convexUrl.substring(0, 20) + "..." : null,

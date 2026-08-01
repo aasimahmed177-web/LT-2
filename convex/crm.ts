@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { resolveLeadEventTimeSeconds } from "./eventTime";
 
 // ─── Stage Management ───────────────────────────────────────────────
 
@@ -122,7 +123,15 @@ export const updateStage = mutation({
     // straight from Lead to one of them previously produced no event at all
     // and counted against coverage.
     if (!existingEvents.some((e: any) => e.stage === "Lead")) {
-      const leadEventTime = Math.floor(Date.now() / 1000);
+      // The Lead event describes when the person submitted the form, so it
+      // carries the lead's real Meta created_time (falling back to now only
+      // when unavailable). The ladder rungs below are CRM milestones and keep
+      // using the actual stage-change time.
+      const leadEventTime = resolveLeadEventTimeSeconds(
+        (lead as any).metaCreatedAt,
+        lead.fullResponse,
+        Math.floor(Date.now() / 1000)
+      );
       await ctx.db.insert("conversionLeadEvents", {
         leadId,
         metaLeadId: lead.metaLeadId,
@@ -372,7 +381,13 @@ export const backfillMissingLadderEvents = mutation({
       let createdForLead = 0;
 
       if (missingLeadEvent) {
-        const eventTime = nowSec - (rungs.length + 1);
+        // Same rule as the live paths: the Lead event uses the lead's real
+        // Meta created_time when we have one.
+        const eventTime = resolveLeadEventTimeSeconds(
+          (lead as any).metaCreatedAt,
+          lead.fullResponse,
+          nowSec - (rungs.length + 1)
+        );
         await ctx.db.insert("conversionLeadEvents", {
           leadId: lead._id,
           metaLeadId: lead.metaLeadId,
