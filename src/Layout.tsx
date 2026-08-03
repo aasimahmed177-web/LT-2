@@ -50,6 +50,34 @@ const icons: Record<string, React.ReactNode> = {
   ),
 }
 
+// Renders the supplied brand SVG, swapping the black artwork for the white one
+// in dark mode. Both variants are rendered and one is hidden via CSS (see
+// .brand-logo-light / .brand-logo-dark in index.css) because the theme is a
+// class on <html>, not a media query — so <picture media=...> wouldn't follow
+// the in-app toggle. The hidden copy is display:none, so it's also out of the
+// accessibility tree and the label isn't announced twice.
+//
+// Width is set and height left auto so the artwork keeps its exact aspect
+// ratio (horizontal lockup is 1280x240, mark is 256x256). The files are used
+// as supplied — never recolored, stretched, or redrawn.
+function BrandLogo({ variant, className = "" }: { variant: "horizontal" | "mark"; className?: string }) {
+  const base = variant === "horizontal" ? "leadtracer-logo-horizontal" : "leadtracer-mark";
+  return (
+    <>
+      <img
+        src={`/brand/${base}-black.svg`}
+        alt="LeadTracer"
+        className={`brand-logo-light h-auto ${className}`}
+      />
+      <img
+        src={`/brand/${base}-white.svg`}
+        alt="LeadTracer"
+        className={`brand-logo-dark h-auto ${className}`}
+      />
+    </>
+  );
+}
+
 export default function Layout() {
   const { clients, currentClientId, setCurrentClientId, currentClient } = useClient()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -87,17 +115,13 @@ export default function Layout() {
       <aside className={`w-52 bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 fixed md:relative z-40 h-full transition-transform-expo ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        {/* Logo */}
+        {/* Logo — horizontal lockup at 140px wide (≈26px tall at the artwork's
+            1280x240 ratio), inside the 176px of content width the w-52 sidebar
+            leaves after its px-4 padding. */}
         <div className="px-4 py-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#0a0a0a] flex items-center justify-center text-white text-[11px] font-bold tracking-tight transition-transform-expo">
-              LT
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[13px] font-semibold text-[#0a0a0a] tracking-tight leading-none">LeadTrace</span>
-              <span className="text-[9px] text-muted mt-0.5 tracking-wider uppercase">CRM</span>
-            </div>
-            <button onClick={closeSidebar} className="md:hidden ml-auto text-muted hover:text-[#0a0a0a] transition-colors">
+            <BrandLogo variant="horizontal" className="w-[140px] shrink-0" />
+            <button onClick={closeSidebar} className="md:hidden ml-auto text-muted hover:text-[#0a0a0a] transition-colors shrink-0">
               {closeX}
             </button>
           </div>
@@ -180,10 +204,9 @@ export default function Layout() {
           >
             {hamburger}
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#0a0a0a] flex items-center justify-center text-white text-[9px] font-bold">LT</div>
-            <span className="text-[12px] font-semibold text-[#0a0a0a]">LeadTrace</span>
-          </div>
+          {/* Narrow nav strip — the standalone LT mark rather than the full
+              horizontal lockup, per brand usage for compact placements. */}
+          <BrandLogo variant="mark" className="w-6 shrink-0" />
         </div>
         <Outlet />
       </main>

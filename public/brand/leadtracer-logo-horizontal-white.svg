@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 240" role="img" aria-label="LeadTracer logo">
+  <g transform="translate(28,12) scale(0.84)"><g>
+  <rect x="28" y="28" width="28" height="178" rx="1" fill="#FFFFFF"/>
+  <rect x="28" y="178" width="112" height="28" rx="1" fill="#FFFFFF"/>
+  <rect x="78" y="28" width="142" height="28" rx="1" fill="#FFFFFF"/>
+  <rect x="148" y="28" width="28" height="178" rx="1" fill="#FFFFFF"/>
+  <path d="M205 28 L232 42 L205 56 Z" fill="#FFFFFF"/>
+  <path d="M48 188 C68 174 81 158 96 145 C117 128 135 108 158 82" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="188" r="10" fill="#0A0A0A" stroke="#FFFFFF" stroke-width="5"/>
+  <circle cx="96" cy="145" r="8" fill="#0A0A0A" stroke="#FFFFFF" stroke-width="5"/>
+  <circle cx="158" cy="82" r="10" fill="#0A0A0A" stroke="#FFFFFF" stroke-width="5"/>
+</g></g>
+  <text x="330" y="132" font-family="Inter, Arial, Helvetica, sans-serif" font-size="104" font-weight="700" letter-spacing="-3" fill="#FFFFFF">LeadTracer</text>
+  <text x="334" y="188" font-family="Inter, Arial, Helvetica, sans-serif" font-size="28" font-weight="600" letter-spacing="7" fill="#D4D4D4">CRM &amp; CONVERSION TRACKING</text>
+  
+</svg>

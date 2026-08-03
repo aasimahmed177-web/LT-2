@@ -755,6 +755,22 @@ html.dark .text-red-600 {
   color: #ff8080;
 }
 
+/* ─── Brand logo theme switching ──────────────────────────────── */
+/* The supplied black and white logo files are both rendered, and the one that
+   doesn't suit the current theme is hidden. Theme is a class on <html> (set by
+   the in-app toggle), so this can't be a prefers-color-scheme media query.
+   Nothing here recolors the artwork — it only chooses which supplied file
+   is shown. */
+.brand-logo-dark {
+  display: none;
+}
+html.dark .brand-logo-light {
+  display: none;
+}
+html.dark .brand-logo-dark {
+  display: block;
+}
+
 /* ─── Mobile Sidebar Overlay ──────────────────────────────────── */
 
 .sidebar-overlay {
